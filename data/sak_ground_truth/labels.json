@@ -1,0 +1,182 @@
+[
+ {
+  "page": 1,
+  "xobj": "Im1",
+  "obj": 3,
+  "W": 760,
+  "H": 915,
+  "box": [
+   491,
+   224,
+   673,
+   444
+  ],
+  "dist": 0.0,
+  "label": "Roxon"
+ },
+ {
+  "page": 1,
+  "xobj": "Im2",
+  "obj": 5,
+  "W": 576,
+  "H": 698,
+  "box": [
+   685,
+   223,
+   867,
+   444
+  ],
+  "dist": 0.0,
+  "label": "The Helton"
+ },
+ {
+  "page": 1,
+  "xobj": "Im3",
+  "obj": 7,
+  "W": 599,
+  "H": 691,
+  "box": [
+   601,
+   36,
+   766,
+   226
+  ],
+  "dist": 0.0,
+  "label": "Swiza"
+ },
+ {
+  "page": 1,
+  "xobj": "Im4",
+  "obj": 9,
+  "W": 609,
+  "H": 600,
+  "box": [
+   57,
+   224,
+   273,
+   436
+  ],
+  "dist": 0.0,
+  "label": "SAK / Essentials / Spartan (SKU 1.3603)"
+ },
+ {
+  "page": 1,
+  "xobj": "Im5",
+  "obj": 11,
+  "W": 600,
+  "H": 600,
+  "box": [
+   224,
+   54,
+   450,
+   280
+  ],
+  "dist": 0.0,
+  "label": "SAK / Essentials / Synergy X Alox (SKU: 0.8226.22)"
+ },
+ {
+  "page": 13,
+  "xobj": "Im1",
+  "obj": 16,
+  "W": 679,
+  "H": 682,
+  "box": [
+   491,
+   233,
+   699,
+   442
+  ],
+  "dist": 0.0,
+  "label": "Roxon"
+ },
+ {
+  "page": 13,
+  "xobj": "Im2",
+  "obj": 18,
+  "W": 522,
+  "H": 600,
+  "box": [
+   69,
+   221,
+   263,
+   445
+  ],
+  "dist": 0.0,
+  "label": "SAK / Essentials / Spartan (SKU 1.3603)"
+ },
+ {
+  "page": 13,
+  "xobj": "Im3",
+  "obj": 19,
+  "W": 1280,
+  "H": 1237,
+  "box": [
+   660,
+   49,
+   868,
+   250
+  ],
+  "dist": 0.0,
+  "label": "Swiza"
+ },
+ {
+  "page": 13,
+  "xobj": "Im4",
+  "obj": 21,
+  "W": 618,
+  "H": 600,
+  "box": [
+   199,
+   33,
+   461,
+   287
+  ],
+  "dist": 0.0,
+  "label": "SAK / Essentials / Synergy X Alox (SKU: 0.8226.22)"
+ },
+ {
+  "page": 22,
+  "xobj": "Im1",
+  "obj": 24,
+  "W": 658,
+  "H": 246,
+  "box": [
+   519,
+   50,
+   865,
+   180
+  ],
+  "dist": 0.0,
+  "label": "Swiza"
+ },
+ {
+  "page": 22,
+  "xobj": "Im2",
+  "obj": 26,
+  "W": 600,
+  "H": 465,
+  "box": [
+   82,
+   104,
+   414,
+   361
+  ],
+  "dist": 0.0,
+  "label": "SAK / Essentials / Spartan (SKU 1.3603)"
+ },
+ {
+  "page": 22,
+  "xobj": "Im3",
+  "obj": 27,
+  "W": 1000,
+  "H": 1247,
+  "box": [
+   494,
+   190,
+   695,
+   441
+  ],
+  "dist": 0.0,
+  "label": "Roxon"
+ }
+]

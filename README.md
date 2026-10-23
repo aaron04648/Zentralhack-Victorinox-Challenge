@@ -100,6 +100,18 @@ cross-reference tables for competitor products.
 **Status: in progress.** A quality-checked export or read-only interface for the SAK
 category is being prepared by Aaron (data processing).
 
+The scraped catalogue now lives in `backend/data/`:
+`victorinox_sak_produkte.csv` (247 SAK products: article number, name, categories,
+price, stock status, colours, tool list, product URL, image URL) and
+`victorinox_sak_werkzeuge.csv` (1,936 rows mapping each article number to its
+individual tools).
+
+Additionally, the hackathon input PDF (`infos_zentral_hack_regional_impact/Input
+Hackathon_Victorinox.pdf`) contains 12 product photos with sticky-note ground-truth
+labels by the client. These have been extracted to `data/sak_ground_truth/` and are
+used as the evaluation set for the classification workstream — see
+[docs/classification_recommendation.md](docs/classification_recommendation.md).
+
 ## Success criteria
 
 For the defined test catalogue:
@@ -164,18 +176,60 @@ cd frontend && npm install && npm run dev   # http://localhost:3000, proxies /ap
 ## Repository Layout
 
 ```
-docs/                              Challenge briefing and client documents
+docs/                                Challenge briefing and client documents
+  classification_recommendation.md   Classification workstream: research + recommendation
+  api.md                             Backend API contract
 infos_zentral_hack_regional_impact/  Original client files (Fragebogen, intro deck, input PDF)
-main.py                            Entry point
-embeddings.py                      Embedding pipeline (in progress)
-pyproject.toml                     Python project definition
+backend/                             FastAPI service + catalogue scraper
+  app/main.py                        API endpoints
+  scraper/victorinox.py              Catalogue scraper
+  data/                              Scraped SAK catalogue (products + per-SKU tools)
+frontend/                            React app (Vite, Tailwind)
+data/sak_ground_truth/               12 labelled product photos extracted from the input PDF
+tools/                               Classification workstream: Clef client + evaluation harnesses
+  clef_client.py                     Clef decision client (OpenRouter /api/alpha/decisions)
+  eval_clef.py                       Clef decision experiments
+  eval_retrieval.py                  Embedding retrieval baselines
+main.py                              Entry point
+embeddings.py                        Embedding pipeline (in progress)
+pyproject.toml                       Python project definition
 ```
+
+## Classification (Simon: jev)
+
+The classification approach is documented in
+[docs/classification_recommendation.md](docs/classification_recommendation.md).
+
+Summary of what was measured on the 12 labelled photos in `data/sak_ground_truth/`:
+
+- **Off-the-shelf image embeddings do not work here.** CLIP, SigLIP2, UniCom, nomic and
+  resnet50 all produce a *negative* within-class vs between-class similarity gap —
+  worse than chance at telling SAK variants apart. Best top-1 was **2/12**.
+- **[Cloudflare Clef](https://huggingface.co/Cloudflare/clef)** (Apache-2.0,
+  multimodal, Jev/SystemOne-compatible) does work: **top-3 = 11/12 (92%)**, which
+  meets the success criterion above, at ~$0.00003 per decision.
+- It is reachable on OpenRouter at `POST /api/alpha/decisions` — **not**
+  `/chat/completions`, and it is **not** listed in the model catalogue.
+
+```bash
+uv run python tools/eval_retrieval.py     # embedding baselines
+uv run python tools/eval_clef.py          # Clef decision experiments
+```
+
+`tools/clef_client.py` is the decision client. `OPENROUTER_API_KEY` goes in `.env`
+(see `.env.example`).
 
 ## Getting Started
 
 ```bash
 uv sync        # install dependencies
 uv run main.py # run the project
+```
+
+The backend and frontend run via Docker:
+
+```bash
+docker compose up --build -V
 ```
 
 ## References
