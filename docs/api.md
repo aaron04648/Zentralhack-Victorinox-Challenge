@@ -1,0 +1,117 @@
+# API-Vertrag Frontend ↔ Backend
+
+Alle Endpoints liegen unter `/api` (Vite-Proxy → FastAPI, `backend/app/main.py`).
+Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorinox_sak_produkte.csv`.
+
+| Endpoint | Status |
+| --- | --- |
+| `GET /api/health` | vorhanden |
+| `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
+| `GET /api/products` | vorhanden |
+| `GET /api/products/{artikelnummer}` | vorhanden |
+| `POST /api/match` | **offen**, Frontend nutzt bis dahin den Mock (`frontend/src/api/mock.js`) |
+| `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
+
+Fehlt ein Endpoint (404/405/501) oder ist das Backend nicht erreichbar, springt im Frontend automatisch
+der Mock ein (`VITE_USE_MOCK=auto`, Standard). Mit `VITE_USE_MOCK=false` werden Fehler stattdessen angezeigt,
+mit `true` wird immer der Mock benutzt. Ergebnisse aus dem Mock sind in der UI als „Demo-Modus“ markiert.
+
+## Product
+
+So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und so erwartet das Frontend
+`produkt` auch in `/api/match`.
+
+```json
+{
+  "artikelnummer": "1.3603",
+  "name": "Spartan",
+  "kategorien": ["Everyday", "Personalisieren"],
+  "unterkategorien": ["Everyday: Essentials"],
+  "shop_kategorie": "Essentials",
+  "preis_chf": 25.0,
+  "lagerstatus": "inStock",            // "inStock" | "outOfStock" | null
+  "varianten_artikelnummern": ["1.3603", "1.3603.3"],
+  "farben": ["rot", "schwarz"],
+  "url": "https://www.victorinox.com/...",
+  "bild_url": "https://imageengine.victorinox.com/transform/..."
+}
+```
+
+### `GET /api/products?q=&kategorie=&limit=50&offset=0`
+
+`q` sucht in Name, Artikelnummer, Varianten-Artikelnummern und Farben (ohne Gross-/Kleinschreibung).
+`kategorie` ist eine der Hauptkategorien (`Everyday`, `Outdoor & Sports`, `Trades & Crafts`, `Swiss Tools`,
+`Accessoires`, `Personalisieren`). Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
+
+### `GET /api/products/{artikelnummer}`
+
+Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wenn unbekannt.
+
+## `POST /api/match`
+
+`multipart/form-data`:
+
+| Feld | Typ | |
+| --- | --- | --- |
+| `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
+| `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
+
+Antwort:
+
+```json
+{
+  "match_id": "m_123",
+  "pfad": "ersatz",                     // "ersatz" (Konkurrenz) | "nachfolger" (Victorinox, ausgelaufen) | "aktuell" (Victorinox, erhältlich)
+  "erkannt": {
+    "marke": "SWIZA",
+    "ist_victorinox": false,
+    "modell": "D03 AM (Black)",         // null, wenn unklar
+    "artikelnummer": "KNI.0036.1010",   // null, wenn nicht erkannt
+    "kategorie": "Taschenmesser (SAK)",
+    "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
+    "produkt": null,                    // Product, falls es ein Victorinox-Katalogprodukt ist
+    "merkmale": [Merkmal, …]
+  },
+  "empfehlungen": [                     // sortiert, bestes zuerst, typischerweise Top 3
+    {
+      "produkt": Product,
+      "score": 0.87,                    // 0..1, Match-Score
+      "begruendung": "Kurzer, verständlicher Text …",
+      "gruende": ["Alle 7 erkannten Werkzeuge vorhanden", "An Lager"],
+      "merkmale": [Merkmal, …]
+    }
+  ],
+  "rueckfrage": null,                   // oder { "frage": "…", "hinweis": "…" }
+  "schritte": [Schritt, …]
+}
+```
+
+**Merkmal**: Grundlage für die Vergleichstabelle. Gleiche `key`s auf beiden Seiten werden nebeneinander
+gestellt. `wert` darf string, number oder string[] sein (Listen werden als Chips verglichen, z. B. `werkzeuge`).
+`quelle` wird in der UI angezeigt: **keine Werte ohne Quelle**, lieber weglassen.
+
+```json
+{ "key": "laenge", "label": "Länge", "wert": "91 mm", "quelle": "Produktstammdaten" }
+```
+
+Bekannte Keys: `laenge`, `funktionen`, `werkzeuge`, `schale`. Weitere Keys werden automatisch als Zeile angezeigt.
+
+**Schritt**: für die Agenten-Ansicht während der Analyse.
+
+```json
+{ "id": "vision", "label": "Bild analysiert", "status": "ok", "detail": "Taschenmesser erkannt, 7 Werkzeuge sichtbar" }
+```
+
+`id` ∈ `vision`, `marke`, `ocr`, `suche`, `empfehlung`; `status` ∈ `ok`, `warnung`, `fehler`.
+
+**Rückfrage**: Das Frontend zeigt Rückfrage-Banner und Kandidatenauswahl, wenn `rueckfrage` gesetzt ist
+oder `erkannt.konfidenz < 0.6` (`KONFIDENZ_SCHWELLE` in `frontend/src/lib/format.js`).
+
+## `POST /api/feedback`
+
+```json
+{ "match_id": "m_123", "korrekt": false, "gewaehlte_artikelnummer": "1.3703" }
+```
+
+Bei `korrekt: true` enthält `gewaehlte_artikelnummer` die angezeigte Empfehlung, bei `false` den vom
+Nutzer gewählten besseren Treffer (oder `null`). Antwort beliebig, z. B. `{ "gespeichert": true }`.

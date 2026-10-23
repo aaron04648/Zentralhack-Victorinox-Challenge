@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import Header from './components/Header.jsx'
+import ScanPage from './pages/ScanPage.jsx'
+import AnalyzePage from './pages/AnalyzePage.jsx'
+import ResultPage from './pages/ResultPage.jsx'
+import ProductPage from './pages/ProductPage.jsx'
+import CatalogPage from './pages/CatalogPage.jsx'
 
 export default function App() {
-  const [status, setStatus] = useState('…')
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus('nicht erreichbar'))
-  }, [])
-
   return (
-    <main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
-      <h1>Victorinox Challenge</h1>
-      <p>Backend: {status}</p>
-    </main>
+    <div className="min-h-dvh">
+      <Header />
+      <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-4">
+        <Routes>
+          <Route path="/" element={<ScanPage />} />
+          <Route path="/analyse/:scanId" element={<AnalyzePage />} />
+          <Route path="/ergebnis/:scanId" element={<ResultPage />} />
+          <Route path="/produkt/:artikelnummer" element={<ProductPage />} />
+          <Route path="/katalog" element={<CatalogPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
   )
 }
