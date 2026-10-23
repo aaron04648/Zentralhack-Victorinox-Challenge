@@ -3,7 +3,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -78,6 +78,31 @@ def load_products():
         return list(csv.DictReader(f, delimiter=";"))
 
 
+def split_list(cell, sep=","):
+    return [part.strip() for part in cell.split(sep) if part.strip()]
+
+
+def to_product(row):
+    """CSV-Zeile als bereinigtes Produkt für das Frontend (Listen statt Strings, Zahlen statt Text)."""
+    try:
+        preis = float(row["preis_chf"])
+    except ValueError:
+        preis = None
+    return {
+        "artikelnummer": row["artikelnummer"],
+        "name": row["name"],
+        "kategorien": split_list(row["kategorien"], ";"),
+        "unterkategorien": split_list(row["unterkategorien"], ";"),
+        "shop_kategorie": row["shop_kategorie"].replace("\xa0", " "),
+        "preis_chf": preis,
+        "lagerstatus": row["lagerstatus"] or None,
+        "varianten_artikelnummern": split_list(row["varianten_artikelnummern"]),
+        "farben": split_list(row["farben"]),
+        "url": row["url"],
+        "bild_url": row["bild_url"],
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -99,3 +124,32 @@ def product_image(body: ProductFilter):
     if not found:
         raise HTTPException(status_code=404, detail="Kein Produkt passt zu den angegebenen Feldern")
     return {"anzahl": len(found), "bild_url": found[0]["bild_url"], "treffer": found}
+
+
+@app.get("/api/products")
+def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)):
+    """Katalog-Suche. `q` sucht in Name, Artikelnummer (inkl. Varianten) und Farben,
+    `kategorie` filtert auf eine der Hauptkategorien (z. B. "Everyday")."""
+    needle = q.strip().casefold()
+    kategorie = kategorie.strip().casefold()
+    found = []
+    for row in load_products():
+        if kategorie and kategorie not in (k.casefold() for k in split_list(row["kategorien"], ";")):
+            continue
+        haystack = " ".join((row["name"], row["artikelnummer"], row["varianten_artikelnummern"], row["farben"]))
+        if needle and needle not in haystack.casefold():
+            continue
+        found.append(to_product(row))
+    return {"anzahl": len(found), "produkte": found[offset:offset + limit]}
+
+
+@app.get("/api/products/{artikelnummer}")
+def get_product(artikelnummer: str):
+    """Ein Produkt per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
+    for row in load_products():
+        if row["artikelnummer"] == artikelnummer:
+            return to_product(row)
+    for row in load_products():
+        if artikelnummer in split_list(row["varianten_artikelnummern"]):
+            return to_product(row)
+    raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")

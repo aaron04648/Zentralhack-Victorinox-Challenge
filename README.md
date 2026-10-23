@@ -134,6 +134,33 @@ POST /api/products/image
     ...
   ]
 }
+
+GET  /api/products?q=&kategorie=&limit=&offset=   catalogue search
+GET  /api/products/{artikelnummer}                 single product (variant numbers resolve too)
+POST /api/match                                    photo → recognition + recommendations (open, mocked in frontend)
+POST /api/feedback                                 correct / not correct + better hit (open, mocked in frontend)
+
+Full request/response contract: [docs/api.md](docs/api.md).
+
+## Frontend
+
+Mobile-first React app in `frontend/` (Vite, JSX, Tailwind CSS v4, lucide-react, framer-motion, react-router).
+
+Flow: **Scan** (camera / upload / demo examples) → **Analyse** (agent steps live) → **Result**
+(recognised product with Victorinox/competitor badge and confidence, top recommendation with rationale,
+technical comparison with sources, top-3 candidates, clarification prompt when unsure, feedback bar)
+→ **Product detail** / **Catalogue**.
+
+As long as `/api/match` and `/api/feedback` do not exist, the frontend falls back to a mock
+(`frontend/src/api/mock.js`, real catalogue products, technical features clearly labelled as demo data).
+Mock results show a "Demo-Modus" badge. `VITE_USE_MOCK=true|false|auto` (default `auto`) controls this.
+
+```bash
+docker compose up --build -V   # -V renews the node_modules volume after dependency changes
+# or locally:
+cd frontend && npm install && npm run dev   # http://localhost:3000, proxies /api to :8000
+```
+
 ## Repository Layout
 
 ```
