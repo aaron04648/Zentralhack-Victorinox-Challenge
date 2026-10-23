@@ -122,6 +122,18 @@ recommendations — not a plain chatbot.
         - Simon: jev
     - Claude: app
 
+# API Endpoints 
+POST /api/products/image
+
+{ "Everyday": true, "Personalisieren": true }
+{
+  "anzahl": 28,
+  "bild_url": "https://...",
+  "treffer": [
+    { "artikelnummer": "0.6223.G", "name": "Classic SD", "bild_url": "https://..." },
+    ...
+  ]
+}
 ## Repository Layout
 
 ```
