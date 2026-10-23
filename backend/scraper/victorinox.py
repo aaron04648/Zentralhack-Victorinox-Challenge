@@ -6,13 +6,19 @@ eine CSV mit einer Zeile pro Produkt. Ein Produkt kann in mehreren Kategorien
 vorkommen; die Zugehörigkeit steht in der Spalte "kategorien" sowie in je einer
 0/1-Spalte pro Kategorie.
 
+Die Werkzeuge eines Messers stehen nur auf der Produktseite (Merkmal
+"Hauptfunktion"). Sie landen als Spalte "werkzeuge" in der Haupt-CSV und
+zusätzlich als eine Zeile pro Messer und Werkzeug in einer zweiten CSV.
+
 Aufruf:  python -m scraper.victorinox [ausgabe.csv]
 """
 
 import csv
 import json
+import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -27,6 +33,10 @@ HEADERS = {
     "Frontastic-Locale": "de_CH",
     "User-Agent": "Mozilla/5.0 (ZentralHack scraper)",
 }
+PAGE_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh) Chrome/130.0 (ZentralHack scraper)"}
+PAGE_WORKERS = 4
+TOOLS_FEATURE = "class_sak_functions.sak_main_function"
+TOOLS_SEPARATOR = " / "  # wie auf der Webseite
 
 # Jede Kategorie besteht aus Quellen: (Typ, ID, Unterkategorie).
 # "grid" = vollständige Produktliste einer CMS-Seite, "list" = Shop-Kategorie,
@@ -77,20 +87,24 @@ CATEGORIES = {
 }
 
 
-def get_json(endpoint, params):
-    url = f"{API}/{endpoint}?{urllib.parse.urlencode(params)}"
+def fetch(url, headers):
     for attempt in range(3):
         try:
-            req = urllib.request.Request(url, headers=HEADERS)
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30) as res:
-                payload = json.load(res)["dataSourcePayload"]
-            if not payload.get("ok"):
-                raise RuntimeError(f"{endpoint} {params}: {payload.get('errors')}")
-            return payload["data"]
-        except (OSError, json.JSONDecodeError):
+                return res.read().decode("utf-8")
+        except OSError:
             if attempt == 2:
                 raise
             time.sleep(2 * (attempt + 1))
+
+
+def get_json(endpoint, params):
+    payload = json.loads(fetch(f"{API}/{endpoint}?{urllib.parse.urlencode(params)}", HEADERS))
+    payload = payload["dataSourcePayload"]
+    if not payload.get("ok"):
+        raise RuntimeError(f"{endpoint} {params}: {payload.get('errors')}")
+    return payload["data"]
 
 
 def fetch_paged(endpoint, params):
@@ -120,6 +134,34 @@ def fetch_source(kind, component_id, page):
     if len(data["response"]["docs"]) >= CAROUSEL_LIMIT:
         print(f"  WARNUNG: {component_id} hat das Limit von {CAROUSEL_LIMIT} erreicht", file=sys.stderr)
     return docs
+
+
+def find_feature(node, code_suffix):
+    if isinstance(node, dict):
+        if str(node.get("code", "")).endswith(code_suffix) and isinstance(node.get("values"), list):
+            return node["values"]
+        children = node.values()
+    elif isinstance(node, list):
+        children = node
+    else:
+        return None
+    for child in children:
+        found = find_feature(child, code_suffix)
+        if found is not None:
+            return found
+    return None
+
+
+def fetch_tools(url):
+    """Werkzeugliste von der Produktseite (Next.js-Daten); leer bei Zubehör o. ä."""
+    if not url:
+        return []
+    html = fetch(url, PAGE_HEADERS)
+    match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
+    if not match:
+        return []
+    values = find_feature(json.loads(match.group(1)), TOOLS_FEATURE) or []
+    return [v.replace("\xa0", " ").strip() for v in values if v and v.strip()]
 
 
 def image_url(image):
@@ -180,31 +222,55 @@ def scrape():
             row[c] = int(c in cats)
         rows.append(row)
 
+    print(f"  Lade Werkzeuge von {len(rows)} Produktseiten ...", file=sys.stderr)
+    with ThreadPoolExecutor(PAGE_WORKERS) as pool:
+        for row, tools in zip(rows, pool.map(lambda r: fetch_tools(r["url"]), rows)):
+            row["werkzeuge"] = TOOLS_SEPARATOR.join(tools)
+            row["anzahl_werkzeuge"] = len(tools)
+
     rows.sort(key=lambda r: (r["kategorien"], r["name"]))
     return rows
 
 
-def write_csv(rows, path):
-    columns = [
-        "artikelnummer", "name", "kategorien", "anzahl_kategorien", *CATEGORIES,
-        "unterkategorien", "shop_kategorie", "preis_chf", "lagerstatus",
-        "anzahl_varianten", "varianten_artikelnummern", "farben", "url", "bild_url",
-    ]
+PRODUCT_COLUMNS = [
+    "artikelnummer", "name", "kategorien", "anzahl_kategorien", *CATEGORIES,
+    "unterkategorien", "shop_kategorie", "preis_chf", "lagerstatus",
+    "anzahl_varianten", "varianten_artikelnummern", "farben",
+    "anzahl_werkzeuge", "werkzeuge", "url", "bild_url",
+]
+TOOL_COLUMNS = ["artikelnummer", "name", "werkzeug"]
+
+
+def write_csv(rows, path, columns):
     path.parent.mkdir(parents=True, exist_ok=True)
     # utf-8-sig + Semikolon, damit Excel (CH/DE) die Datei direkt korrekt öffnet
     with path.open("w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=columns, delimiter=";")
+        writer = csv.DictWriter(f, fieldnames=columns, delimiter=";", extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def tool_rows(rows):
+    """Eine Zeile pro Messer und Werkzeug, für einfaches Filtern/Joinen."""
+    return [
+        {"artikelnummer": r["artikelnummer"], "name": r["name"], "werkzeug": tool}
+        for r in rows if r["werkzeuge"]
+        for tool in r["werkzeuge"].split(TOOLS_SEPARATOR)
+    ]
 
 
 def main():
     default = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else default
+    tools_out = out.with_name("victorinox_sak_werkzeuge.csv")
     rows = scrape()
-    write_csv(rows, out)
+    tools = tool_rows(rows)
+    write_csv(rows, out, PRODUCT_COLUMNS)
+    write_csv(tools, tools_out, TOOL_COLUMNS)
     multi = sum(1 for r in rows if r["anzahl_kategorien"] > 1)
+    with_tools = sum(1 for r in rows if r["anzahl_werkzeuge"])
     print(f"{len(rows)} Produkte ({multi} in mehreren Kategorien) -> {out}", file=sys.stderr)
+    print(f"{with_tools} Produkte mit Werkzeugen, {len(tools)} Zeilen -> {tools_out}", file=sys.stderr)
 
 
 if __name__ == "__main__":

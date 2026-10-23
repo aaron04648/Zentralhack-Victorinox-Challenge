@@ -43,6 +43,8 @@ class ProductFilter(BaseModel):
     anzahl_varianten: Value | None = None
     varianten_artikelnummern: Value | None = None
     farben: Value | None = None
+    anzahl_werkzeuge: Value | None = None
+    werkzeuge: Value | None = None
     url: Value | None = None
     bild_url: Value | None = None
 
