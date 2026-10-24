@@ -1,16 +1,17 @@
 # API-Vertrag Frontend ↔ Backend
 
 Alle Endpoints liegen unter `/api` (Vite-Proxy → FastAPI, `backend/app/main.py`).
-Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorinox_sak_produkte.csv`.
+Feldnamen sind deutsch und entsprechen den Produktdaten in `backend/data/` (siehe README, Abschnitt Data).
 
 | Endpoint | Status |
 | --- | --- |
 | `GET /api/health` | vorhanden |
-| `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
+| `POST /api/products/image` | vorhanden (Filter auf Produktfelder, Keys wie die Spalten der früheren CSV) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
 | `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
 | `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
+| `GET /api/alternativen/{produkt_id}` | vorhanden (Cross-References aus `backend/data/cross_references.json`) |
 
 Fehlt ein Endpoint (404/405/501) oder ist das Backend nicht erreichbar, springt im Frontend automatisch
 der Mock ein (`VITE_USE_MOCK=auto`, Standard). Mit `VITE_USE_MOCK=false` werden Fehler stattdessen angezeigt,
@@ -23,6 +24,8 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
 
 ```json
 {
+  "id": "victorinox:1.3603",
+  "marke": "Victorinox",
   "artikelnummer": "1.3603",
   "name": "Spartan",
   "kategorien": ["Everyday", "Personalisieren"],
@@ -32,8 +35,12 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
   "lagerstatus": "inStock",            // "inStock" | "outOfStock" | null
   "varianten_artikelnummern": ["1.3603", "1.3603.3"],
   "farben": ["rot", "schwarz"],
-  "anzahl_werkzeuge": 12,              // null, wenn die CSV keine Angabe hat
+  "anzahl_werkzeuge": 12,              // null, wenn keine Werkzeugliste vorhanden ist
   "werkzeuge": ["Klinge, gross", "Korkenzieher", "Dosenöffner | Schraubendreher 3 mm"],  // " | " = Kombi-Werkzeug
+  "werkzeug_gruppen": ["dosenoeffner", "klinge_gross", "korkenzieher"],  // aus app/werkzeuge.py, berechnet
+  "anzahl_funktionen": 12,             // laut victorinox.com, null wenn unbekannt
+  "laenge_mm": 91,
+  "material": "ABS/Cellidor",
   "url": "https://www.victorinox.com/...",
   "bild_url": "https://imageengine.victorinox.com/transform/..."
 }
@@ -45,8 +52,8 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
 `kategorie` ist eine der Messer-Kategorien (`Everyday`, `Outdoor & Sports`, `Trades & Crafts`).
 Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
 
-Beide Produkt-Endpoints liefern **nur Taschenmesser** (153 von 247 CSV-Zeilen, siehe `is_pocket_knife()` in
-`backend/app/main.py`). Zubehör, Nagelpflege, Swiss Cards, Swiss Tools und Venture ergeben 404 bzw. keinen Treffer.
+Beide Produkt-Endpoints liefern **nur Taschenmesser** (153 von 247 Produkten, siehe `is_pocket_knife()` in
+`backend/app/katalog.py`). Zubehör, Nagelpflege, Swiss Cards, Swiss Tools und Venture ergeben 404 bzw. keinen Treffer.
 
 ### `GET /api/products/{artikelnummer}`
 
@@ -59,7 +66,7 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | Feld | Typ | |
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
-| `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte der CSV-Spalte `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
+| `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte des Produktfelds `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:
@@ -112,6 +119,29 @@ Bekannte Keys: `funktionen` (= `anzahl_werkzeuge`), `werkzeuge` (= `werkzeuge`, 
 
 **Rückfrage**: Das Frontend zeigt Rückfrage-Banner und Kandidatenauswahl, wenn `rueckfrage` gesetzt ist
 oder `erkannt.konfidenz < 0.6` (`KONFIDENZ_SCHWELLE` in `frontend/src/lib/format.js`).
+
+## `GET /api/alternativen/{produkt_id}`
+
+Explizite Zuordnungen für ein Produkt, verifizierte zuerst. `produkt_id` im Format `<marke>:<artikelnummer>`
+(Konkurrenzprodukt aus `cross_references.json` oder Victorinox-Taschenmesser). 404, wenn unbekannt.
+
+```json
+{
+  "von": "swiza:KNI.0036.1010",
+  "alternativen": [
+    {
+      "beziehung": "funktionale_alternative",  // direktes_aequivalent | funktionale_alternative | nachfolger | aehnlich
+      "status": "vorgeschlagen",               // verifiziert | vorgeschlagen | modell_generiert
+      "quelle": "Hackathon-Team: …",
+      "notiz": "…",
+      "produkt": Product
+    }
+  ]
+}
+```
+
+Für `/api/match` gilt: Gibt es eine **verifizierte** Zuordnung für das erkannte Produkt, sollte sie die
+Bildähnlichkeit überstimmen, also als erste Empfehlung mit der Quelle als Begründung erscheinen.
 
 ## `POST /api/feedback`
 

@@ -2,20 +2,21 @@
 
 Die Produktlisten der Webseite werden clientseitig über die Frontastic-API
 nachgeladen. Dieser Scraper ruft dieselben Endpunkte direkt auf und schreibt
-eine CSV mit einer Zeile pro Produkt. Ein Produkt kann in mehreren Kategorien
-vorkommen; die Zugehörigkeit steht in der Spalte "kategorien" sowie in je einer
-0/1-Spalte pro Kategorie.
+data/victorinox_produkte.json mit einem Eintrag pro Produkt (Format: app/katalog.py,
+Modell `Produkt`). Ein Produkt kann in mehreren Kategorien vorkommen ("kategorien").
 
 Die Werkzeuge eines Messers stehen nur auf der Produktseite (Merkmal
-"Hauptfunktion"). Sie landen als Spalte "werkzeuge" in der Haupt-CSV und
-zusätzlich als eine Zeile pro Messer und Werkzeug in einer zweiten CSV.
-Von dort kommen auch Masse, Material und alle Galeriebilder (Trainingsdaten).
+"Hauptfunktion") und landen als Liste "werkzeuge" im Produkt. Von dort kommen
+auch Masse, Material und alle Galeriebilder (Trainingsdaten).
 
-Aufruf:  python -m scraper.victorinox [ausgabe.csv]
+Die Datei wird komplett neu geschrieben: nie von Hand bearbeiten. Konkurrenzprodukte
+und Zuordnungen gehören in data/cross_references.json.
+
+Aufruf:  python -m scraper.victorinox [ausgabe.json]
 """
 
-import csv
 import json
+from datetime import date
 import re
 import sys
 import time
@@ -23,8 +24,6 @@ from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 import urllib.request
 from pathlib import Path
-
-from app.werkzeuge import gruppen
 
 API = "https://b2cstore-victorinox.frontastic.live/frontastic/data-source"
 SITE = "https://www.victorinox.com/de-CH"
@@ -267,55 +266,79 @@ def scrape():
             row.update(details)
             row["werkzeuge"] = TOOLS_SEPARATOR.join(tools)
             row["anzahl_werkzeuge"] = len(tools)
-            row["werkzeug_gruppen"] = ", ".join(sorted(gruppen(tools)))
             row["galerie_bilder"] = " ".join(galerie)
 
     rows.sort(key=lambda r: (r["kategorien"], r["name"]))
     return rows
 
 
-PRODUCT_COLUMNS = [
-    "artikelnummer", "name", "kategorien", "anzahl_kategorien", *CATEGORIES,
-    "unterkategorien", "shop_kategorie", "preis_chf", "lagerstatus",
-    "anzahl_varianten", "varianten_artikelnummern", "farben",
-    "anzahl_werkzeuge", "werkzeuge", "werkzeug_gruppen", "anzahl_funktionen",
-    "laenge_mm", "breite_mm", "hoehe_mm", "gewicht_g", "material", "feststellbar",
-    "einhandklinge", "url", "bild_url", "galerie_bilder",
-]
-TOOL_COLUMNS = ["artikelnummer", "name", "werkzeug", "werkzeug_gruppe"]
+def split(value, sep):
+    return [part.strip() for part in str(value or "").split(sep) if part.strip()]
 
 
-def write_csv(rows, path, columns):
+def number(value):
+    value = str(value or "").strip()
+    if not value:
+        return None
+    f = float(value)
+    return int(f) if f.is_integer() else f
+
+
+def yes_no(value):
+    return {"Ja": True, "Nein": False}.get(str(value or "").strip())
+
+
+def to_product(row):
+    """Interne Scraper-Zeile → Produkt im JSON-Format (Listen statt Trennzeichen, null statt "").
+    Abgeleitete Werte (Anzahlen, Werkzeuggruppen) werden nicht gespeichert, sondern beim Laden berechnet."""
+    return {
+        "id": f"victorinox:{row['artikelnummer']}",
+        "marke": "Victorinox",
+        "artikelnummer": row["artikelnummer"],
+        "name": row["name"],
+        "kategorien": split(row["kategorien"], ";"),
+        "unterkategorien": split(row["unterkategorien"], ";"),
+        "shop_kategorie": str(row.get("shop_kategorie") or "").replace("\xa0", " ") or None,
+        "preis_chf": number(row.get("preis_chf")),
+        "lagerstatus": row.get("lagerstatus") or None,
+        "varianten": split(row["varianten_artikelnummern"], ","),
+        "farben": split(row["farben"], ","),
+        "werkzeuge": split(row.get("werkzeuge"), TOOLS_SEPARATOR),
+        "anzahl_funktionen": number(row.get("anzahl_funktionen")),
+        "laenge_mm": number(row.get("laenge_mm")),
+        "breite_mm": number(row.get("breite_mm")),
+        "hoehe_mm": number(row.get("hoehe_mm")),
+        "gewicht_g": number(row.get("gewicht_g")),
+        "material": row.get("material") or None,
+        "feststellbar": yes_no(row.get("feststellbar")),
+        "einhandklinge": yes_no(row.get("einhandklinge")),
+        "url": row.get("url") or None,
+        "bild_url": row.get("bild_url") or None,
+        "galerie_bilder": split(row.get("galerie_bilder"), " "),
+    }
+
+
+def write_json(products, path, scraped=None):
+    """Ein Produkt pro Zeile: kompakt und in Git-Diffs pro Produkt lesbar."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    # utf-8-sig + Semikolon, damit Excel (CH/DE) die Datei direkt korrekt öffnet
-    with path.open("w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=columns, delimiter=";", extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def tool_rows(rows):
-    """Eine Zeile pro Messer und Werkzeug, für einfaches Filtern/Joinen."""
-    return [
-        {"artikelnummer": r["artikelnummer"], "name": r["name"], "werkzeug": tool,
-         "werkzeug_gruppe": ", ".join(sorted(gruppen([tool])))}
-        for r in rows if r["werkzeuge"]
-        for tool in r["werkzeuge"].split(TOOLS_SEPARATOR)
-    ]
+    lines = ",\n".join("    " + json.dumps(p, ensure_ascii=False) for p in products)
+    header = {
+        "quelle": f"{SITE} (backend/scraper/victorinox.py)",
+        "gescrapt_am": (scraped or date.today()).isoformat(),
+        "anzahl": len(products),
+    }
+    head = json.dumps(header, ensure_ascii=False, indent=2)[:-2]  # ohne schliessende Klammer
+    path.write_text(f'{head},\n  "produkte": [\n{lines}\n  ]\n}}\n', encoding="utf-8")
 
 
 def main():
-    default = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
+    default = Path(__file__).resolve().parent.parent / "data" / "victorinox_produkte.json"
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else default
-    tools_out = out.with_name("victorinox_sak_werkzeuge.csv")
-    rows = scrape()
-    tools = tool_rows(rows)
-    write_csv(rows, out, PRODUCT_COLUMNS)
-    write_csv(tools, tools_out, TOOL_COLUMNS)
-    multi = sum(1 for r in rows if r["anzahl_kategorien"] > 1)
-    with_tools = sum(1 for r in rows if r["anzahl_werkzeuge"])
-    print(f"{len(rows)} Produkte ({multi} in mehreren Kategorien) -> {out}", file=sys.stderr)
-    print(f"{with_tools} Produkte mit Werkzeugen, {len(tools)} Zeilen -> {tools_out}", file=sys.stderr)
+    products = [to_product(row) for row in scrape()]
+    write_json(products, out)
+    multi = sum(1 for p in products if len(p["kategorien"]) > 1)
+    with_tools = sum(1 for p in products if p["werkzeuge"])
+    print(f"{len(products)} Produkte ({multi} in mehreren Kategorien, {with_tools} mit Werkzeugen) -> {out}", file=sys.stderr)
 
 
 if __name__ == "__main__":

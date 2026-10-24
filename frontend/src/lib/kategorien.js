@@ -1,5 +1,6 @@
-// Optionaler Hinweis für die Bilderkennung. Die Werte entsprechen exakt der Spalte
-// `kategorien` der Produkt-CSV, damit das Backend die Kandidaten darauf eingrenzen kann.
+// Optionaler Hinweis für die Bilderkennung. Die Werte entsprechen exakt dem Feld
+// `kategorien` der Produktdaten (backend/data/victorinox_produkte.json), damit das Backend
+// die Kandidaten darauf eingrenzen kann.
 export const KATEGORIEN = [
   {
     wert: '',

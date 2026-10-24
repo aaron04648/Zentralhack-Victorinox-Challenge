@@ -26,13 +26,13 @@ Ergebnis: data/training/auswertung_<set>_<modus>.json
 """
 
 import argparse
-import csv
 import json
 import sys
 from collections import Counter
 from pathlib import Path
 
 from app import clef, jev, matching, vision
+from app.katalog import load_products
 from app.werkzeuge import GRUPPEN
 from training.clef_kalibrieren import roh_fuer
 
@@ -77,8 +77,7 @@ def foto_samples(rows):
         if name in FOTO_KORREKTUR:
             marke, nummer = FOTO_KORREKTUR[name]
             label = f"{marke} {nummer or ''}".strip()
-        row = next((r for r in rows if nummer and (r["artikelnummer"] == nummer or nummer in
-                    r["varianten_artikelnummern"].replace(" ", "").split(","))), None)
+        row = next((r for r in rows if nummer and (r["artikelnummer"] == nummer or nummer in r["varianten"])), None)
         samples.append({
             "id": f"foto-{name}",
             "name": label,
@@ -128,8 +127,7 @@ def main():
     parser.add_argument("--limit", type=int, default=0)
     args = parser.parse_args()
 
-    with (DATA / "victorinox_sak_produkte.csv").open(encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f, delimiter=";"))
+    rows = list(load_products())
     gruppen_von = {r["artikelnummer"]: matching.produkt_gruppen(r) for r in rows}
     name_von = {r["artikelnummer"]: r["name"] for r in rows}
     messer = [r for r in rows if gruppen_von[r["artikelnummer"]]]

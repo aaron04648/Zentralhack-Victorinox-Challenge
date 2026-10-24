@@ -39,9 +39,9 @@ The prototype must work end-to-end for **one clearly delimited product category*
 ### Scope of this prototype
 
 - **In scope:** **pocket knives** from the SAK (Swiss Army Knife) category only.
-  The catalogue CSV also contains accessories, nail care, Swiss Cards, fixed-blade knives
+  The scraped catalogue also contains accessories, nail care, Swiss Cards, fixed-blade knives
   (Venture) and Swiss Tools (pliers); these are filtered out by `is_pocket_knife()` in
-  `backend/app/main.py`, leaving **153 of 247** products. New backend code should read the
+  `backend/app/katalog.py`, leaving **153 of 247** products. New backend code should read the
   catalogue via `load_pocket_knives()`.
 - **Competitor brands considered:** Swiss Army Knife (own), Swiza, Roxon, The Helton,
   Leatherman, Gerber Gear, Benchmade Knives.
@@ -106,11 +106,67 @@ cross-reference tables for competitor products.
 **Status: in progress.** A quality-checked export or read-only interface for the SAK
 category is being prepared by Aaron (data processing).
 
-The scraped catalogue now lives in `backend/data/`:
-`victorinox_sak_produkte.csv` (247 SAK products: article number, name, categories,
-price, stock status, colours, tool list, product URL, image URL) and
-`victorinox_sak_werkzeuge.csv` (1,936 rows mapping each article number to its
-individual tools).
+All product data lives in **two files** in `backend/data/`, split by origin, both in the same
+product format and validated by the Pydantic models in `backend/app/katalog.py`:
+
+| File | Written by | Contents |
+| --- | --- | --- |
+| `victorinox_produkte.json` | scraper (`backend/scraper/victorinox.py`), **never edit by hand** | All 247 Victorinox SAK products incl. tool lists |
+| `cross_references.json` | the team, by hand | Competitor products + mappings between products |
+
+Splitting by origin means a scraper run can never overwrite hand-maintained data. The former
+`victorinox_sak_produkte.csv` and `victorinox_sak_werkzeuge.csv` were merged into
+`victorinox_produkte.json` without loss (the tools CSV was a 1:1 copy of the tools column).
+Derived values are not stored but computed on load: counts (`len(werkzeuge)` …) and
+`werkzeug_gruppen` (via `app/werkzeuge.py`, used by matching, vision and training).
+`load_products()` / `load_pocket_knives()` return plain dicts with all product fields plus
+`werkzeug_gruppen`, so `matching.py`, `clef.py` and `training/` keep using `row["…"]`.
+The competitor training data of `training/konkurrenz.py` (`data/training/konkurrenz.csv`) is a
+separate, generated training artefact and was left as is.
+
+Product format (one per line in `victorinox_produkte.json`):
+
+```json
+{"id": "victorinox:1.3603", "marke": "Victorinox", "artikelnummer": "1.3603", "name": "Spartan",
+ "kategorien": ["Everyday", "Personalisieren"], "unterkategorien": ["Everyday: Essentials"],
+ "shop_kategorie": "Essentials", "preis_chf": 25, "lagerstatus": "inStock",
+ "varianten": ["1.3603", "1.3603.3"], "farben": ["rot", "schwarz"],
+ "werkzeuge": ["Klinge, gross", "Klinge, klein", "Korkenzieher"],
+ "anzahl_funktionen": 12, "laenge_mm": 91, "breite_mm": 26, "hoehe_mm": 14, "gewicht_g": 59,
+ "material": "ABS/Cellidor", "feststellbar": false, "einhandklinge": false,
+ "url": "…", "bild_url": "…", "galerie_bilder": ["…", "…"]}
+```
+
+Unknown values are `null`. Competitor products use the same fields, plus optional `modell` and a
+mandatory `quelle` (source, check date, `verifiziert`, note).
+
+Rules:
+
+- **IDs** are `<brand>:<article number>`, e.g. `victorinox:1.3603`, `swiza:KNI.0036.1010`.
+- **Tools** are always the German catalogue names (`Klinge, gross`, `Korkenzieher`, …), for competitors
+  too. `tools/tool_vocab.py` maps them to canonical IDs (`large_blade`, `corkscrew`, …), so a
+  competitor's tools can be compared with any Victorinox tool list. Counts are not stored; use
+  `len(werkzeuge)`.
+- **Unknown values are `null` or left out**, never estimated.
+- **Cross-reference `beziehung`:** `direktes_aequivalent` | `funktionale_alternative` | `nachfolger` | `aehnlich`.
+  **`status`:** `verifiziert` (confirmed by Victorinox or a domain expert, requires `geprueft_von`) |
+  `vorgeschlagen` (reasoned team suggestion) | `modell_generiert` (produced by the agent, unchecked).
+  A verified cross-reference should override visual similarity.
+- The target (`zu`) of a cross-reference must be a Victorinox pocket knife.
+
+Current seed data: SWIZA D03 AM (tools read from the intro deck photo, unverified) with a suggested
+alternative Spartan, plus a suggested successor Swiss Post Huntsman Lite → Huntsman Lite. Nothing is
+verified yet: the client's cross-reference tables are still missing (see open question 4 in
+`docs/classification_recommendation.md`).
+
+```bash
+uv run python tools/check_catalog.py                     # structure, duplicate IDs, dangling references, tool names
+cd backend && python -m scraper.victorinox               # re-scrape victorinox_produkte.json
+```
+
+Before adding data: confirm brand, model and SKU; use catalogue tool names; record source URL and
+check date; only mark something `verifiziert` once a trusted source confirmed it; check image
+licences before reusing pictures.
 
 Additionally, the hackathon input PDF (`infos_zentral_hack_regional_impact/Input
 Hackathon_Victorinox.pdf`) contains 12 product photos with sticky-note ground-truth
@@ -157,6 +213,7 @@ GET  /api/products?q=&kategorie=&limit=&offset=   pocket-knife search (used by t
 GET  /api/products/{artikelnummer}                 single pocket knife incl. tool list (variant numbers resolve too)
 POST /api/match                                    photo → recognition + recommendations (needs a vision API key, see below)
 POST /api/feedback                                 correct / not correct + better hit (open, mocked in frontend)
+GET  /api/alternativen/{produkt_id}                cross-references for a product, e.g. swiza:KNI.0036.1010
 
 Full request/response contract: [docs/api.md](docs/api.md).
 
@@ -239,7 +296,7 @@ clarification prompt when unsure, feedback bar) → **Product detail**.
 After choosing a photo the user can optionally pick a category. It is sent to `POST /api/match` as the
 form field `kategorie` and is meant to narrow the candidate set (the "category" filter in the
 classification pipeline, see `docs/classification_recommendation.md` §8). The values are exactly the
-pocket-knife values of the CSV column `kategorien`:
+pocket-knife values of the product field `kategorien`:
 
 | Value (`kategorie`) | Label in the app | Typical models | Knives |
 | --- | --- | --- | --- |
@@ -275,8 +332,10 @@ docs/                                Challenge briefing and client documents
 infos_zentral_hack_regional_impact/  Original client files (Fragebogen, intro deck, input PDF)
 backend/                             FastAPI service + catalogue scraper
   app/main.py                        API endpoints
+  app/katalog.py                     Product models, loaders, pocket-knife filter, data checks
   scraper/victorinox.py              Catalogue scraper
-  data/                              Scraped SAK catalogue (products + per-SKU tools)
+  data/victorinox_produkte.json      Victorinox catalogue (generated by the scraper)
+  data/cross_references.json         Competitor products + cross-references (maintained by hand)
 frontend/                            React app (Vite, Tailwind)
 data/sak_ground_truth/               12 labelled product photos extracted from the input PDF
 tools/                               Classification workstream: Clef client + evaluation harnesses
@@ -285,6 +344,8 @@ tools/                               Classification workstream: Clef client + ev
   feature_detection.py               Detects which tools are visible in a photo
   eval_clef.py                       Clef decision experiments
   eval_retrieval.py                  Embedding retrieval baselines
+  tool_vocab.py                      German catalogue tool names → canonical tool IDs
+  check_catalog.py                   Validates the product data in backend/data/
 main.py                              Entry point
 embeddings.py                        Embedding pipeline (in progress)
 pyproject.toml                       Python project definition

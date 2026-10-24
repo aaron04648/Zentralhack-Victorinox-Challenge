@@ -1,5 +1,5 @@
 // Mock für Endpoints, die das Backend noch nicht hat (v. a. /api/match).
-// Produkte inkl. Werkzeuglisten sind echte Zeilen aus backend/data/victorinox_sak_produkte.csv
+// Produkte inkl. Werkzeuglisten sind echte Einträge aus backend/data/victorinox_produkte.json
 // (so wie GET /api/products sie liefert). Was angeblich auf dem Foto erkannt wurde,
 // ist dagegen fest vorgegeben und als "Bilderkennung (Demo)" markiert. Vertrag: docs/api.md
 

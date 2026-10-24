@@ -1,7 +1,7 @@
 """Baut den Trainings-/Testdatensatz für die Werkzeugerkennung.
 
 Quellen:
-- Victorinox-Katalog (data/victorinox_sak_produkte.csv): Produktbild aufgeklappt (S1) mit den
+- Victorinox-Katalog (data/victorinox_produkte.json): Produktbild aufgeklappt (S1) mit den
   Werkzeuggruppen aus den Produktdaten. Zugeklappte Ansichten (S2 …) werden nicht verwendet,
   weil darauf keine Werkzeuge sichtbar sind.
 - Konkurrenz (data/training/konkurrenz.csv, aus training/konkurrenz.py), nur fürs Training.
@@ -24,6 +24,7 @@ import json
 import sys
 from pathlib import Path
 
+from app.katalog import load_products
 from app.werkzeuge import GRUPPEN
 
 DATA = Path(__file__).resolve().parent.parent / "data"
@@ -51,8 +52,8 @@ def split_fuer(gruppen_set, test_anteil):
 
 def victorinox(test_anteil):
     samples = []
-    for row in lies_csv(DATA / "victorinox_sak_produkte.csv"):
-        g = {x.strip() for x in row.get("werkzeug_gruppen", "").split(",") if x.strip()}
+    for row in load_products():
+        g = set(row["werkzeug_gruppen"])
         if len(g) < 2 or not row["bild_url"]:
             continue  # Zubehör und Einzelwerkzeuge (Nagelschere …) sind keine Taschenmesser
         samples.append({

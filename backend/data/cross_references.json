@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0.0",
+  "konkurrenzprodukte": [
+    {
+      "id": "swiza:KNI.0036.1010",
+      "marke": "SWIZA",
+      "artikelnummer": "KNI.0036.1010",
+      "name": "SWIZA D03 AM - Black",
+      "modell": "D03 AM",
+      "farben": ["schwarz"],
+      "werkzeuge": ["Klinge, gross", "Korkenzieher", "Dosenöffner", "Kapselheber", "Stech-Bohr-Nähahle", "Pinzette"],
+      "url": "https://swiza.com/products/d-03-am?variant=50181620334923",
+      "bild_url": "https://swiza.com/cdn/shop/files/KNI.0036.1010.png?v=1723457054",
+      "quelle": {
+        "typ": "foto",
+        "url": "https://swiza.com/products/d-03-am?variant=50181620334923",
+        "geprueft_am": null,
+        "verifiziert": false,
+        "notiz": "Werkzeuge vom Produktfoto im Einführungs-Deck abgelesen, nicht mit Herstellerangaben abgeglichen. Bildrechte vor Nutzung prüfen."
+      }
+    }
+  ],
+  "cross_references": [
+    {
+      "id": "xref-0001",
+      "von": "swiza:KNI.0036.1010",
+      "zu": "victorinox:1.3603",
+      "beziehung": "funktionale_alternative",
+      "status": "vorgeschlagen",
+      "quelle": "Hackathon-Team: Werkzeugvergleich anhand des Produktfotos im Einführungs-Deck",
+      "geprueft_von": null,
+      "notiz": "Spartan enthält alle auf dem Foto sichtbaren Werkzeuge und ist in Schwarz erhältlich (1.3603.3). Von Victorinox nicht bestätigt."
+    },
+    {
+      "id": "xref-0002",
+      "von": "victorinox:4.3803.1",
+      "zu": "victorinox:1.7915.T",
+      "beziehung": "nachfolger",
+      "status": "vorgeschlagen",
+      "quelle": "Hackathon-Team: gleiches Basismodell laut Produktname, Limited Edition laut Katalog nicht verfügbar",
+      "geprueft_von": null,
+      "notiz": "Swiss Post Limited Edition Huntsman Lite → reguläres Modell Huntsman Lite."
+    }
+  ]
+}

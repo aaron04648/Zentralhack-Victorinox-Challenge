@@ -1,6 +1,6 @@
 """Tool vocabulary: map the catalogue's German tool names to English.
 
-`backend/data/victorinox_sak_werkzeuge.csv` stores tool names in German
+`backend/data/victorinox_produkte.json` stores tool names in German
 (`Klinge, gross`, `Korkenzieher`, `Schere`, ...). The decision model is
 English-centric, so we need a mapping to build English criteria and to compare
 detected features against catalogue tool sets.
@@ -18,13 +18,13 @@ Usage:
 
 from __future__ import annotations
 
-import csv
 import functools
+import json
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-WERKZEUGE_CSV = REPO / "backend" / "data" / "victorinox_sak_werkzeuge.csv"
-PRODUKTE_CSV = REPO / "backend" / "data" / "victorinox_sak_produkte.csv"
+# Victorinox catalogue, one entry per product with its tool list (written by backend/scraper)
+PRODUKTE_JSON = REPO / "backend" / "data" / "victorinox_produkte.json"
 
 # Canonical tool id -> English description, used as the `criteria` for a
 # `choice` question. Keep this list to tools that are actually recognisable in
@@ -306,20 +306,16 @@ def canonical_tool(name: str) -> str | None:
 
 
 @functools.lru_cache(maxsize=1)
-def _catalogue() -> tuple[dict[str, frozenset[str]], list[dict[str, str]]]:
-    if not WERKZEUGE_CSV.exists():
+def _catalogue() -> tuple[dict[str, frozenset[str]], list[dict]]:
+    if not PRODUKTE_JSON.exists():
         return {}, []
+    products: list[dict] = json.loads(PRODUKTE_JSON.read_text(encoding="utf-8"))["produkte"]
     tools_by_article: dict[str, set[str]] = {}
-    with WERKZEUGE_CSV.open(encoding="utf-8-sig", newline="") as handle:
-        for row in csv.DictReader(handle, delimiter=";"):
-            article = row["artikelnummer"].strip()
-            canonical = canonical_tool(row["werkzeug"])
+    for product in products:
+        for tool in product["werkzeuge"]:
+            canonical = canonical_tool(tool)
             if canonical:
-                tools_by_article.setdefault(article, set()).add(canonical)
-    products: list[dict[str, str]] = []
-    if PRODUKTE_CSV.exists():
-        with PRODUKTE_CSV.open(encoding="utf-8-sig", newline="") as handle:
-            products = list(csv.DictReader(handle, delimiter=";"))
+                tools_by_article.setdefault(product["artikelnummer"], set()).add(canonical)
     return {k: frozenset(v) for k, v in tools_by_article.items()}, products
 
 
@@ -329,8 +325,8 @@ def tool_set_for(article_number: str) -> frozenset[str]:
     return tools.get(article_number.strip(), frozenset())
 
 
-def products() -> list[dict[str, str]]:
-    """Catalogue rows from victorinox_sak_produkte.csv."""
+def products() -> list[dict]:
+    """Catalogue products from victorinox_produkte.json (keys: artikelnummer, name, werkzeuge, ...)."""
     _, rows = _catalogue()
     return rows
 
@@ -356,11 +352,7 @@ if __name__ == "__main__":
     print(f"articles with tools: {len(tools)} / {len(prods)}")
     print(f"canonical tool ids available: {len(TOOL_EN)}")
     # Report catalogue tool names we could not map, so the table can be completed.
-    unmapped: set[str] = set()
-    with WERKZEUGE_CSV.open(encoding="utf-8-sig", newline="") as handle:
-        for row in csv.DictReader(handle, delimiter=";"):
-            if canonical_tool(row["werkzeug"]) is None:
-                unmapped.add(row["werkzeug"])
+    unmapped = {tool for row in prods for tool in row["werkzeuge"] if canonical_tool(tool) is None}
     print(f"\n{len(unmapped)} catalogue tool names not yet mapped:")
     for name in sorted(unmapped):
         print(f"  {name}")

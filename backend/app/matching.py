@@ -19,7 +19,7 @@ SCHALENTEILE = {"pinzette", "zahnstocher", "kugelschreiber", "stecknadel"}
 
 
 def produkt_gruppen(row):
-    return {g.strip() for g in row.get("werkzeug_gruppen", "").split(",") if g.strip()}
+    return set(row.get("werkzeug_gruppen", ()))
 
 
 def name_passt(modell, produktname):
@@ -55,7 +55,7 @@ def bewerte(erkannte_gruppen, row, erkannt=None):
     erkannt = erkannt or {}
     marke = (erkannt.get("marke") or "").casefold()
     if erkannt.get("artikelnummer_sichtbar") and erkannt["artikelnummer_sichtbar"] in (
-            row["artikelnummer"], *row.get("varianten_artikelnummern", "").replace(" ", "").split(",")):
+            row["artikelnummer"], *row.get("varianten", ())):
         score = 1.0
         gruende.insert(0, "Artikelnummer auf dem Foto erkannt")
     elif "victorinox" in marke and name_passt(erkannt.get("modell"), row["name"]):
