@@ -10,7 +10,7 @@ from typing import Dict
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
+from app.embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
 
 from app import clef, jev, matching, vision
 from app.werkzeuge import GRUPPEN
