@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, RotateCcw, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
 import KategorieAuswahl from '../components/KategorieAuswahl.jsx'
+import BeschreibungFeld from '../components/BeschreibungFeld.jsx'
 import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { ladeDemoDatei } from '../lib/image.js'
@@ -12,7 +13,7 @@ import { prozent } from '../lib/format.js'
 // `demo` wählt im Mock das passende Szenario; das echte Backend bekommt nur das Bild.
 const BEISPIELE = [
   { demo: 'konkurrenz', bild: '/demo/swiza-d03.jpg', titel: 'SWIZA D03', text: 'Konkurrenzprodukt → Victorinox-Ersatz' },
-  { demo: 'victorinox', bild: '/demo/huntsman-lite-swiss-post.webp', titel: 'Huntsman Lite Swiss Post', text: 'Ausgelaufen → Nachfolger' },
+  { demo: 'victorinox', bild: '/demo/huntsman-year-of-the-horse.webp', titel: 'Huntsman Year of the Horse', text: 'Ausgelaufen → Nachfolger' },
   { demo: 'unsicher', bild: '/demo/climber-unscharf.webp', titel: 'Unscharfes Foto', text: 'Unsicher → Rückfrage' },
 ]
 
@@ -24,6 +25,7 @@ export default function ScanPage() {
   // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionale Kategorie, dann "Analysieren"
   const [entwurf, setEntwurf] = useState(null)
   const [kategorie, setKategorie] = useState('')
+  const [beschreibung, setBeschreibung] = useState('')
 
   useEffect(() => () => entwurf && URL.revokeObjectURL(entwurf.url), [entwurf])
 
@@ -37,7 +39,7 @@ export default function ScanPage() {
     setLaedt(true)
     setFehler(null)
     try {
-      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie })
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie, beschreibung: beschreibung.trim() })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -66,6 +68,7 @@ export default function ScanPage() {
             </div>
             <div className="space-y-4 p-4">
               <KategorieAuswahl wert={kategorie} onAendern={setKategorie} deaktiviert={laedt} />
+              <BeschreibungFeld wert={beschreibung} onAendern={setBeschreibung} deaktiviert={laedt} />
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <Button icon={ScanLine} onClick={scanne} disabled={laedt} className="py-3 text-base">
                   Analysieren

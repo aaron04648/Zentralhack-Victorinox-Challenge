@@ -155,7 +155,7 @@ Rules:
 - The target (`zu`) of a cross-reference must be a Victorinox pocket knife.
 
 Current seed data: SWIZA D03 AM (tools read from the intro deck photo, unverified) with a suggested
-alternative Spartan, plus a suggested successor Swiss Post Huntsman Lite → Huntsman Lite. Nothing is
+alternative Spartan, plus a suggested successor Huntsman Year of the Horse 2026 → Year of the Goat 2027. Nothing is
 verified yet: the client's cross-reference tables are still missing (see open question 4 in
 `docs/classification_recommendation.md`).
 
@@ -309,6 +309,11 @@ Products can be in several categories. The hint is a soft filter: if the recogni
 confident about a product outside the chosen category, it should still win. The options live in
 `frontend/src/lib/kategorien.js`. On a follow-up photo after a clarification prompt, the category of the
 first photo is reused.
+
+Below the category there is an optional free-text field ("Zusätzliche Angaben", max. 300 characters).
+It is sent to `POST /api/match` as `beschreibung` but **not evaluated yet**; the idea is to use it later
+as an extra hint for recognition and matching (e.g. a brand, an article number or a tool the photo
+does not show).
 
 ### Mock
 

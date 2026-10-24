@@ -33,13 +33,13 @@
     },
     {
       "id": "xref-0002",
-      "von": "victorinox:4.3803.1",
-      "zu": "victorinox:1.7915.T",
+      "von": "victorinox:1.3714.E15",
+      "zu": "victorinox:1.3714.E16",
       "beziehung": "nachfolger",
       "status": "vorgeschlagen",
-      "quelle": "Hackathon-Team: gleiches Basismodell laut Produktname, Limited Edition laut Katalog nicht verfügbar",
+      "quelle": "Hackathon-Team: Jahresedition 2026 laut Katalog nicht verfügbar, Edition 2027 mit identischer Werkzeugliste an Lager",
       "geprueft_von": null,
-      "notiz": "Swiss Post Limited Edition Huntsman Lite → reguläres Modell Huntsman Lite."
+      "notiz": "Huntsman Year of the Horse 2026 → Huntsman Year of the Goat 2027."
     }
   ]
 }

@@ -61,6 +61,9 @@ function Ergebnis({ scanId }) {
             .join(' · ')}
         </p>
       )}
+      {scan.beschreibung && (
+        <p className="mt-1 line-clamp-2 px-1 text-xs text-zinc-500">Deine Angaben: „{scan.beschreibung}“</p>
+      )}
 
       <div className="mt-4">
         {unsicher ? (

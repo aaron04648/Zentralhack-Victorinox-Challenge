@@ -67,6 +67,7 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
 | `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte des Produktfelds `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
+| `beschreibung` | string | optional: Freitext aus der App (max. 300 Zeichen), z. B. Marke, Artikelnummer oder Werkzeuge. **Wird vom Backend noch nicht ausgewertet**; gedacht als zusätzlicher Hinweis für Erkennung und Matching. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:

@@ -44,15 +44,17 @@ async function mitFallback(echt, ersatz) {
 /**
  * Foto analysieren und Victorinox-Empfehlung holen.
  * @param {Blob} bild
- * @param {{ kategorie?: string, vorherigeMatchId?: string, demo?: string }} optionen
- *   kategorie = optionaler Hinweis aus dem Dropdown, demo steuert nur den Mock
+ * @param {{ kategorie?: string, beschreibung?: string, vorherigeMatchId?: string, demo?: string }} optionen
+ *   kategorie = optionaler Hinweis aus dem Dropdown, beschreibung = Freitext (noch nicht ausgewertet),
+ *   demo steuert nur den Mock
  */
-export function match(bild, { kategorie, vorherigeMatchId, demo } = {}) {
+export function match(bild, { kategorie, beschreibung, vorherigeMatchId, demo } = {}) {
   return mitFallback(
     async () => {
       const form = new FormData()
       form.append('bild', bild, 'foto.jpg')
       if (kategorie) form.append('kategorie', kategorie)
+      if (beschreibung) form.append('beschreibung', beschreibung)
       if (vorherigeMatchId) form.append('vorherige_match_id', vorherigeMatchId)
       return { modus: 'live', ...(await request('/api/match', { method: 'POST', body: form })) }
     },

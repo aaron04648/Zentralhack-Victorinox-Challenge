@@ -378,7 +378,7 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
 @app.get("/api/alternativen/{produkt_id}")
 def alternatives(produkt_id: str):
     """Explizite Zuordnungen aus cross_references.json für ein Produkt,
-    z. B. /api/alternativen/swiza:KNI.0036.1010 oder /api/alternativen/victorinox:4.3803.1.
+    z. B. /api/alternativen/swiza:KNI.0036.1010 oder /api/alternativen/victorinox:1.3714.E15.
     Verifizierte Zuordnungen zuerst; das Ziel ist immer ein Victorinox-Taschenmesser."""
     knives = {row["id"]: row for row in load_pocket_knives()}
     if produkt_id not in knives and produkt_id not in load_konkurrenz():
