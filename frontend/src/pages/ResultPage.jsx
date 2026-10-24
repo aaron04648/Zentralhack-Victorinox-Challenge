@@ -3,7 +3,6 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, FlaskConical, RotateCcw } from 'lucide-react'
 import ErkennungsKarte from '../components/ErkennungsKarte.jsx'
 import EmpfehlungsHero from '../components/EmpfehlungsHero.jsx'
-import VergleichsTabelle from '../components/VergleichsTabelle.jsx'
 import KandidatenListe from '../components/KandidatenListe.jsx'
 import RueckfrageBanner from '../components/RueckfrageBanner.jsx'
 import FeedbackLeiste from '../components/FeedbackLeiste.jsx'
@@ -25,7 +24,7 @@ export default function ResultPage() {
 }
 
 function Ergebnis({ scanId }) {
-  const { scans, starteScan, sendeFeedback } = useScans()
+  const { scans, starteScan, sendeFeedback, korrigiereWerkzeuge } = useScans()
   const navigate = useNavigate()
   const [auswahl, setAuswahl] = useState(0)
   const [nachfotoLaedt, setNachfotoLaedt] = useState(false)
@@ -52,17 +51,23 @@ function Ergebnis({ scanId }) {
         </div>
       )}
 
-      <ErkennungsKarte vorschau={scan.vorschau} erkannt={erkannt} />
+      <ErkennungsKarte
+        vorschau={scan.vorschau}
+        erkannt={erkannt}
+        sucheLaeuft={scan.sucheLaeuft}
+        fehler={scan.korrekturFehler}
+        onWerkzeugeAendern={(werkzeuge) => {
+          setAuswahl(0)
+          korrigiereWerkzeuge(scanId, werkzeuge)
+        }}
+      />
 
-      {(scan.vorherigerScanId || scan.kategorie) && (
+      {(scan.vorherigerScanId || scan.kategorie || scan.verwendung) && (
         <p className="mt-2 px-1 text-xs text-zinc-500">
-          {[scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
+          {[scan.verwendung && `Einsatz: „${scan.verwendung}“`, scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
             .filter(Boolean)
             .join(' · ')}
         </p>
-      )}
-      {scan.beschreibung && (
-        <p className="mt-1 line-clamp-2 px-1 text-xs text-zinc-500">Deine Angaben: „{scan.beschreibung}“</p>
       )}
 
       <div className="mt-4">
@@ -94,10 +99,6 @@ function Ergebnis({ scanId }) {
           <div className="mt-6">
             <EmpfehlungsHero empfehlung={empfehlung} pfad={pfad} rang={auswahl} unsicher={unsicher} />
           </div>
-
-          <Abschnitt titel="Technischer Vergleich">
-            <VergleichsTabelle erkannt={erkannt} empfehlung={empfehlung} />
-          </Abschnitt>
 
           {!unsicher && empfehlungen.length > 1 && (
             <Abschnitt titel="Weitere Kandidaten">

@@ -41,21 +41,21 @@ export function ScanProvider({ children }) {
   }, [])
 
   const starteScan = useCallback(
-    async (datei, { demo, kategorie, beschreibung, vorherigerScanId } = {}) => {
+    async (datei, { demo, kategorie, verwendung, vorherigerScanId } = {}) => {
       const id = Date.now().toString(36)
       const { upload, vorschau } = await bereiteFotoVor(datei)
       const vorheriger = vorherigerScanId ? scans[vorherigerScanId] : null
       const vorherigeMatchId = vorheriger?.ergebnis?.match_id
       kategorie = kategorie ?? vorheriger?.kategorie ?? ''
-      beschreibung = beschreibung ?? vorheriger?.beschreibung ?? ''
+      verwendung = verwendung ?? vorheriger?.verwendung ?? ''
 
       setScans((alt) => ({
         ...alt,
-        [id]: { id, zeit: Date.now(), vorschau, kategorie, beschreibung, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
+        [id]: { id, zeit: Date.now(), vorschau, kategorie, verwendung, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
       }))
 
       anfragen.current[id] = api
-        .match(upload, { demo, kategorie, beschreibung, vorherigeMatchId })
+        .match(upload, { demo, kategorie, verwendung, vorherigeMatchId })
         .then((ergebnis) => {
           aktualisiere(id, { status: 'fertig', ergebnis })
           return ergebnis
@@ -72,6 +72,29 @@ export function ScanProvider({ children }) {
 
   const warteAuf = useCallback((id) => anfragen.current[id] ?? null, [])
 
+  // Werkzeuge bestätigen/hinzufügen/entfernen -> Backend sucht ohne neues Foto erneut
+  const korrigiereWerkzeuge = useCallback(
+    async (id, werkzeuge) => {
+      const scan = scans[id]
+      const alt = scan.ergebnis
+      aktualisiere(id, {
+        sucheLaeuft: true,
+        ergebnis: { ...alt, erkannt: { ...alt.erkannt, werkzeuge } },
+      })
+      try {
+        const neu = await api.werkzeugeKorrigieren(alt.match_id, werkzeuge.filter((w) => w.gruppe))
+        aktualisiere(id, {
+          sucheLaeuft: false,
+          korrekturFehler: null,
+          ergebnis: neu ?? { ...alt, erkannt: { ...alt.erkannt, werkzeuge } },
+        })
+      } catch (fehler) {
+        aktualisiere(id, { sucheLaeuft: false, ergebnis: alt, korrekturFehler: fehler.message })
+      }
+    },
+    [scans, aktualisiere],
+  )
+
   const sendeFeedback = useCallback(
     async (id, { korrekt, gewaehlteArtikelnummer }) => {
       const scan = scans[id]
@@ -86,7 +109,7 @@ export function ScanProvider({ children }) {
     .sort((a, b) => b.zeit - a.zeit)
 
   return (
-    <ScanContext.Provider value={{ scans, verlauf, starteScan, warteAuf, sendeFeedback }}>
+    <ScanContext.Provider value={{ scans, verlauf, starteScan, warteAuf, sendeFeedback, korrigiereWerkzeuge }}>
       {children}
     </ScanContext.Provider>
   )

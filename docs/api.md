@@ -9,6 +9,8 @@ Feldnamen sind deutsch und entsprechen den Produktdaten in `backend/data/` (sieh
 | `POST /api/products/image` | vorhanden (Filter auf Produktfelder, Keys wie die Spalten der früheren CSV) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
+| `POST /api/match/{match_id}/werkzeuge` | vorhanden: Werkzeuge korrigieren und ohne neues Foto erneut suchen |
+| `GET /api/werkzeuge` | vorhanden: alle Werkzeuggruppen (Vorschläge beim Hinzufügen) |
 | `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
 | `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
 | `GET /api/alternativen/{produkt_id}` | vorhanden (Cross-References aus `backend/data/cross_references.json`) |
@@ -39,8 +41,11 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
   "werkzeuge": ["Klinge, gross", "Korkenzieher", "Dosenöffner | Schraubendreher 3 mm"],  // " | " = Kombi-Werkzeug
   "werkzeug_gruppen": ["dosenoeffner", "klinge_gross", "korkenzieher"],  // aus app/werkzeuge.py, berechnet
   "anzahl_funktionen": 12,             // laut victorinox.com, null wenn unbekannt
-  "laenge_mm": 91,
-  "material": "ABS/Cellidor",
+  "laenge_mm": 91, "breite_mm": 26, "hoehe_mm": 14,   // null, wenn unbekannt
+  "gewicht_g": 59,
+  "material": "ABS/Cellidor",          // Schalenmaterial, null bei "Undefiniert"
+  "feststellbar": false,               // feststellbare Klinge, null = unbekannt
+  "einhandklinge": false,
   "url": "https://www.victorinox.com/...",
   "bild_url": "https://imageengine.victorinox.com/transform/..."
 }
@@ -53,7 +58,8 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
 Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
 
 Beide Produkt-Endpoints liefern **nur Taschenmesser** (153 von 247 Produkten, siehe `is_pocket_knife()` in
-`backend/app/katalog.py`). Zubehör, Nagelpflege, Swiss Cards, Swiss Tools und Venture ergeben 404 bzw. keinen Treffer.
+`backend/app/katalog.py`). Zubehör, Nagelpflege, Swiss Cards und Venture ergeben 404 bzw. keinen Treffer. Swiss Tools sind nicht in der
+Suche, aber per Artikelnummer abrufbar, weil `/api/match` sie als Ersatz für fremde Zangen-Multitools empfiehlt.
 
 ### `GET /api/products/{artikelnummer}`
 
@@ -67,7 +73,7 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
 | `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte des Produktfelds `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
-| `beschreibung` | string | optional: Freitext aus der App (max. 300 Zeichen), z. B. Marke, Artikelnummer oder Werkzeuge. **Wird vom Backend noch nicht ausgewertet**; gedacht als zusätzlicher Hinweis für Erkennung und Matching. |
+| `verwendung` | string | optional: Freitext „Wofür brauchst du das Messer?“ (max. 300 Zeichen). Per Embedding mit den Produkten abgeglichen: gewichtet Clefs Bildsuche, filtert bei fremden Marken die Kandidaten. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:
@@ -83,6 +89,9 @@ Antwort:
     "artikelnummer": "KNI.0036.1010",   // null, wenn nicht erkannt
     "kategorie": "Taschenmesser",
     "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
+    "werkzeuge": [                      // erkannte Werkzeuggruppen, sicherste zuerst
+      { "gruppe": "zange", "label": "Zange", "wahrscheinlichkeit": 0.93 }   // null = aus erstem Foto übernommen
+    ],
     "produkt": null,                    // Product, falls es ein Victorinox-Katalogprodukt ist
     "merkmale": [Merkmal, …]
   },
@@ -152,3 +161,21 @@ Bildähnlichkeit überstimmen, also als erste Empfehlung mit der Quelle als Begr
 
 Bei `korrekt: true` enthält `gewaehlte_artikelnummer` die angezeigte Empfehlung, bei `false` den vom
 Nutzer gewählten besseren Treffer (oder `null`). Antwort beliebig, z. B. `{ "gespeichert": true }`.
+
+
+## `POST /api/match/{match_id}/werkzeuge`
+
+Der Nutzer bestätigt unsichere Werkzeuge (Doppelklick), entfernt oder ergänzt welche. Das Backend sucht
+mit der korrigierten Liste erneut, ohne neue Bilderkennung (Clef-Ergebnis ist pro `match_id` im Speicher;
+nach einem Backend-Neustart 404 → neu scannen). Danach wird immer nach Ausstattung gesucht.
+
+```jsonc
+{ "werkzeuge": [
+    { "gruppe": "zange" },                                   // ohne Wahrscheinlichkeit = sicher
+    { "gruppe": "schere", "wahrscheinlichkeit": 1.0 },       // bestätigt
+    { "gruppe": "ahle", "wahrscheinlichkeit": 0.2 }          // bleibt unsicher, zählt weniger
+] }
+```
+
+Komplette Liste; was fehlt, gilt als entfernt. Antwort: wie `POST /api/match` (gleiche `match_id`).
+Gruppen-Keys: `GET /api/werkzeuge` → `[{ "gruppe", "label", "beschreibung" }]`.

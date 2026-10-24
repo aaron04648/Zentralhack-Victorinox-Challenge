@@ -44,21 +44,39 @@ async function mitFallback(echt, ersatz) {
 /**
  * Foto analysieren und Victorinox-Empfehlung holen.
  * @param {Blob} bild
- * @param {{ kategorie?: string, beschreibung?: string, vorherigeMatchId?: string, demo?: string }} optionen
- *   kategorie = optionaler Hinweis aus dem Dropdown, beschreibung = Freitext (noch nicht ausgewertet),
- *   demo steuert nur den Mock
+ * @param {{ kategorie?: string, verwendung?: string, vorherigeMatchId?: string, demo?: string }} optionen
+ *   kategorie = optionaler Hinweis aus dem Dropdown, verwendung = Freitext "wofür", demo steuert nur den Mock
  */
-export function match(bild, { kategorie, beschreibung, vorherigeMatchId, demo } = {}) {
+export function match(bild, { kategorie, verwendung, vorherigeMatchId, demo } = {}) {
   return mitFallback(
     async () => {
       const form = new FormData()
       form.append('bild', bild, 'foto.jpg')
       if (kategorie) form.append('kategorie', kategorie)
-      if (beschreibung) form.append('beschreibung', beschreibung)
+      if (verwendung) form.append('verwendung', verwendung)
       if (vorherigeMatchId) form.append('vorherige_match_id', vorherigeMatchId)
       return { modus: 'live', ...(await request('/api/match', { method: 'POST', body: form })) }
     },
     () => mock.match({ kategorie, vorherigeMatchId, demo }),
+  )
+}
+
+/**
+ * Vom Nutzer korrigierte Werkzeugliste schicken und ohne neues Foto erneut suchen.
+ * @param {{ gruppe: string, wahrscheinlichkeit?: number | null }[]} werkzeuge  komplette Liste, 1.0 = sicher
+ * @returns neues Match-Ergebnis, im Mock null (dann ändert sich nur die Anzeige)
+ */
+export function werkzeugeKorrigieren(matchId, werkzeuge) {
+  return mitFallback(
+    async () => ({
+      modus: 'live',
+      ...(await request(`/api/match/${encodeURIComponent(matchId)}/werkzeuge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ werkzeuge }),
+      })),
+    }),
+    async () => null,
   )
 }
 

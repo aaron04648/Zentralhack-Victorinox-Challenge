@@ -81,11 +81,45 @@ class DecisionResult:
         return values[0] - values[1]
 
 
-def _data_url(path: str | Path) -> str:
+def _data_url(path: str | Path, max_bytes: int = 900_000, max_side: int = 1400) -> str:
+    """Base64 data URL for an image, downscaled if needed.
+
+    The API rejects images that exceed its decoded byte limit - a modern
+    smartphone photo (3000x4000, ~4.7 MB) fails with HTTP 422:
+        "images.0: image exceeds the decoded byte limit"
+
+    Images are also billed per 32x32-pixel token, capped at 1024 tokens
+    (~1024x1024 px) per image. Downscaling to ~1400 px keeps detail while
+    staying well inside both limits, and JPEG re-encoding cuts the payload
+    by roughly an order of magnitude.
+    """
     path = Path(path)
     mime = mimetypes.guess_type(path.name)[0] or "image/png"
-    encoded = base64.b64encode(path.read_bytes()).decode()
-    return f"data:{mime};base64,{encoded}"
+    raw = path.read_bytes()
+
+    if len(raw) <= max_bytes:
+        return f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+    except ImportError:
+        # Cannot resize - send as-is and let the API decide.
+        return f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+
+    with Image.open(path) as image:
+        image = image.convert("RGB")
+        image.thumbnail((max_side, max_side), Image.LANCZOS)
+        quality = 88
+        while True:
+            buffer = BytesIO()
+            image.save(buffer, format="JPEG", quality=quality, optimize=True)
+            payload = buffer.getvalue()
+            if len(payload) <= max_bytes or quality <= 60:
+                break
+            quality -= 10
+    return "data:image/jpeg;base64," + base64.b64encode(payload).decode()
 
 
 def _load_dotenv() -> None:

@@ -1,0 +1,110 @@
+[
+ {
+  "photo": "01_PXL_20261024_070613768.jpg",
+  "truth": "leatherman",
+  "pred": "leatherman",
+  "confidence": 0.9464,
+  "margin": 0.9678,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "02_PXL_20261024_070633052.jpg",
+  "truth": "sak_red",
+  "pred": "sak_red",
+  "confidence": 0.8753,
+  "margin": 0.9202,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "03_PXL_20261024_070643393.jpg",
+  "truth": "gerber",
+  "pred": "gerber",
+  "confidence": 0.8592,
+  "margin": 0.914,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "04_PXL_20261024_070652715.MP.jpg",
+  "truth": "sak_red",
+  "pred": "sak_red",
+  "confidence": 0.972,
+  "margin": 0.9831,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "05_PXL_20261024_070657633.jpg",
+  "truth": "sak_red",
+  "pred": "sak_red",
+  "confidence": 0.9661,
+  "margin": 0.9796999999999999,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "06_PXL_20261024_070707946.jpg",
+  "truth": "sak_black",
+  "pred": "sak_black",
+  "confidence": 0.6229,
+  "margin": 0.7734,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "07_PXL_20261024_070713477.jpg",
+  "truth": "sak_black",
+  "pred": "gerber",
+  "confidence": 0.2132,
+  "margin": 0.029700000000000004,
+  "hit1": false,
+  "hit3": true
+ },
+ {
+  "photo": "08_PXL_20261024_070734192.jpg",
+  "truth": "ruler",
+  "pred": "sak_black",
+  "confidence": 0.1164,
+  "margin": 0.06629999999999997,
+  "hit1": false,
+  "hit3": false
+ },
+ {
+  "photo": "09_PXL_20261024_070739736.jpg",
+  "truth": "ruler",
+  "pred": "sak_red",
+  "confidence": 0.0266,
+  "margin": 0.010899999999999965,
+  "hit1": false,
+  "hit3": true
+ },
+ {
+  "photo": "10_PXL_20261024_070745178.jpg",
+  "truth": "sak_black",
+  "pred": "sak_black",
+  "confidence": 0.7775,
+  "margin": 0.8708,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "11_PXL_20261024_070749922.jpg",
+  "truth": "sak_red",
+  "pred": "sak_red",
+  "confidence": 0.9671,
+  "margin": 0.9801,
+  "hit1": true,
+  "hit3": true
+ },
+ {
+  "photo": "12_PXL_20261024_070755770.jpg",
+  "truth": "sak_black",
+  "pred": "sak_black",
+  "confidence": 0.6601,
+  "margin": 0.7980999999999999,
+  "hit1": true,
+  "hit3": true
+ }
+]

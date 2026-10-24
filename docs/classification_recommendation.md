@@ -24,8 +24,10 @@
 2. **Use Cloudflare Clef as the decision layer — it is available on OpenRouter** at
    `POST /api/alpha/decisions` (not `/chat/completions`). It is Apache-2.0,
    multimodal, Jev-API-compatible, and costs ~$0.00003/call on `clef-flash`.
-   Measured on our 12 photos: **top-3 = 11/12 (92%)**, which meets the README's
-   success criterion. See §7.
+   Measured on **real smartphone photos** (`data/real_photos/`): **top-1 = 9/12
+   (75%), top-3 = 11/12 (92%)**, with confidence separating cleanly (0.850 when
+   correct vs 0.119 when wrong). At confidence ≥ 0.3 it shows 9/12 at **100%
+   precision** and abstains on the rest. See §10.
 
 3. **Do not build the classifier on top of CLIP/SigLIP embeddings alone.** I measured
    this on the 12 real ground-truth photos extracted from the client PDF. Every
@@ -465,14 +467,14 @@ The hackathon is 24 h with a live demo. Proposed order, highest value first:
 
 | # | Task | Why now |
 | --- | --- | --- |
-| 1 | **Clef decision via `tools/clef_client.py`** — `choice` over catalogue SKUs + `noul` attribute probes | This is the classifier. Already measured at 11/12 top-3 on brand |
-| 2 | Build the per-SKU `criteria` from the scrape: tool list + colour + category | Turns the decision from "which brand" into "which SKU" — the tool lists are the real discriminator (§8) |
-| 3 | Translate the 147 German tool names to English | The catalogue is German, the model is English-centric. ~30 min, unblocks #2 |
-| 4 | Candidate shortlist by tool-set signature (string match, no embeddings) | Deterministic and explainable; narrows 247 SKUs to a handful |
-| 5 | Wire `tools/eval_clef.py` in and re-measure on **real demo photos** | The 12 photos are packshots; the domain gap is the unknown |
+| 1 | **Clef decision via `tools/clef_client.py`** — brand/category choice + `noul` probes | This is the classifier. Measured **9/12 top-1, 11/12 top-3 on real photos**, 100% precision above conf 0.3 |
+| 2 | **Open/closed gate** before anything else | A closed knife cannot be feature-probed. Gate on `open_state`, then either identify brand-only + ask for an open photo, or go the full SKU route |
+| 3 | Build the per-SKU `criteria` from the scrape: tool list + colour + category | Turns the decision from "which brand" into "which SKU" — the tool lists are the real discriminator (§8) |
+| 4 | Translate the German tool names to English | **Done** — `tools/tool_vocab.py` maps all 147 names, 0 unmapped |
+| 5 | Candidate shortlist by tool-set signature (string match, no embeddings) | Deterministic and explainable; narrows 247 SKUs to a handful |
 | 6 | Rationale generation (separate VLM call) + comparison view | README requires a human-readable justification; Clef cannot generate text |
-| 7 | Confidence fusion + margin-based abstention (flash → 27B escalation) | Meets the "transparent confidence" criterion |
-| 8 | OCR (RapidOCR) with article-number lookup | Highest-precision signal; great demo moment |
+| 7 | Confidence fusion + margin-based abstention | **Validated**: conf ≥ 0.3 → 100% precision on real photos |
+| 8 | OCR (RapidOCR) with article-number lookup | Highest-precision signal; the "VICTORINOX" marks in these photos suggest it is readable |
 | 9 | *If needed:* SigLIP2 embeddings for the residual cases | Only if the tool-list match is not enough |
 
 **Ask the client for more labelled photos.** 12 is the binding constraint on every
@@ -521,11 +523,17 @@ product, since multi-view is what makes embedding retrieval work.
    generative VLM call or a templated rationale built from the decision + catalogue
    fields.
 
-8. **Can we get more labelled photos?** 12 is the binding constraint on every number
-   above. The PDF's unmatchable annotations (Leatherman, Gerber Gear, Benchmade,
-   EVOKE ALOX, Swiss Tool, Swiss Tool Spirit XBS) are a concrete ask: *"can we get
-   the original slide source with photos and labels together?"* Also worth asking
-   for photos where the article number is visible, and 2–3 views per product.
+8. **Can we get more labelled photos?** The 12 real photos in `data/real_photos/`
+   are the best data we have, and they cover only 5 classes (4× red SAK, 4× black
+   SAK, 2× ruler, 1× Leatherman, 1× Gerber). The PDF's unmatchable annotations
+   (Leatherman, Gerber Gear, Benchmade, EVOKE ALOX, Swiss Tool, Swiss Tool Spirit
+   XBS) are a concrete ask: *"can we get the original slide source with photos and
+   labels together?"* Also worth asking for photos where the article number is
+   visible, and 2–3 views per product.
+9. **Should the demo ask for an open-tools photo?** The measurements say SKU-level
+   identification needs it, and brand-level works without it. Asking for one extra
+   photo when the knife is closed is a cheap trade for a much more precise
+   result — but it costs a demo round-trip, so it is a product decision.
 
 ---
 
@@ -1137,7 +1145,113 @@ what makes the final comparison explainable.
 
 ---
 
-## 10. Provider interface (keeping the model swappable)
+## 10. Results on real smartphone photos — the actual demo domain
+
+Everything above was measured on clean packshots. `data/real_photos/` holds 12
+photos taken with a Pixel phone of products on a desk: real distractions (a drinks
+can, a power cable), mostly **closed** knives, and — importantly — **competitor
+brands** (Leatherman, Gerber), which is the case the project is actually about.
+
+Ground truth was established by **reading the brand markings directly off the
+photos** (`LEATHERMAN® Rev™`, `GERBER`, the Swiss cross shield, the cm scale), not
+from a model prediction.
+
+### Brand decision: 9/12 top-1, 11/12 top-3 — and a very clean confidence split
+
+| metric | value |
+| --- | --- |
+| top-1 | **9/12 (75%)** |
+| top-3 | **11/12 (92%)** |
+| mean confidence when **correct** | **0.850** |
+| mean confidence when **wrong** | **0.119** |
+
+Every correct answer scored ≥0.62; every wrong answer ≤0.21. That separation is
+*better* than on the packshots (0.585 vs 0.499), which makes sense: a real photo
+of a real product is a much easier decision than a cropped packshot of a generic
+black multi-tool.
+
+**The abstention threshold works.** At `confidence ≥ 0.3` the system shows 9/12
+with **100% precision** and abstains on the other 3. The margin (top1 − top2)
+separates just as cleanly: 0.910 when correct vs 0.036 when wrong.
+
+The two misses are exactly the ones you would hope for:
+
+- **the ruler photos (2×)** — a flat metal bar with a centimetre scale does not
+  look like a knife, and the model ranked the SAK options above `ruler`. Both score
+  below 0.12 confidence, so abstention catches them.
+- **photo 07** — a black SAK photographed edge-on, read as `gerber` (0.437) over
+  `sak_black` (0.113). Confidence 0.213, again caught by abstention.
+
+### The open/closed gate generalises
+
+| set | open photos | closed photos |
+| --- | --- | --- |
+| packshots | 0.86 – 0.97 | 0.05 – 0.06 |
+| real photos | — (all closed) | 0.02 – 0.22 |
+
+Photo 02 (red SAK with a visible spiral corkscrew) scores 0.10 — the corkscrew is
+out but the knife is closed, so "not visible" is the honest answer. The gate
+transfers cleanly from the packshot domain to the real one.
+
+### SKU level is still weak, and now we know why
+
+Running the same 12 photos through a SKU-level choice over 14 real catalogue
+Essentials SKUs gives **confidence 0.06 – 0.21** — an order of magnitude below the
+brand-level decision.
+
+The reason is now clear and it is *not* a modelling problem: the catalogue
+discriminates SKUs by tool lists (§8), but the photo has to supply the tool
+evidence first, and **a closed knife does not**. The feature pipeline is the
+bottleneck, and it is gated on the knife being open.
+
+So the demo needs to handle three photo states explicitly:
+
+```
+photo ──→ open_state probe
+             │
+             ├── closed (p ≈ 0.8+) ──→ identify brand/category only,
+             │                            then ASK for a photo of the open knife
+             │                            to pin down the SKU
+             │
+             └── open (p ≈ 0.2-)  ──→ detect tools → full SKU identification
+```
+
+That is a better product anyway: *"I can tell you this is a Swiss Army Knife with
+the Swiss cross, but to confirm the exact model I need a photo of the open knife"*
+is exactly the kind of honest, traceable interaction the README asks for.
+
+### A production constraint we hit for real
+
+The API rejects oversized images:
+
+```
+HTTP 422: AiError: Request body failed validation: images.0:
+image exceeds the decoded byte limit
+```
+
+A 3000×4000 Pixel photo (4.7 MB) fails. `tools/clef_client.py` now **downscales
+and re-encodes automatically** (to ≤1400 px, ≤900 KB JPEG), which takes the
+4.7 MB photo down to 0.22 MB and stays inside the 1,024-token-per-image cap.
+This has to happen in the client — the frontend should not have to know about it.
+
+### Summary: the domain gap was smaller than feared
+
+| | packshots | real photos |
+| --- | --- | --- |
+| brand top-1 | 6/12 (50%) – 7/12 (58%) | **9/12 (75%)** |
+| brand top-3 | 11/12 (92%) | **11/12 (92%)** |
+| confidence separation | 0.585 / 0.499 | **0.850 / 0.119** |
+| open/closed gate | clean | clean |
+
+Real photos score **better** than packshots for brand identification. The packshot
+set is the harder case: cropped, high-resolution images of generic black multi-tools
+with no context, where the only cue is a subtle logo.
+
+Reproduce with `uv run python tools/eval_real.py`.
+
+---
+
+## 11. Provider interface (keeping the model swappable)
 
 The README requires a model-independent, provider-agnostic architecture. Two
 providers are needed anyway, and they expose different shapes:
@@ -1221,7 +1335,8 @@ lettering) or the decision will be guesswork.
 - **Jev** — Visual Jev paper: https://arxiv.org/abs/2609.25845 · code: https://github.com/guanxuyu-sv/Visual-Jev · adapter: https://huggingface.co/guanxuyu/visual-jev-4b-answer-sft · benchmark: https://arxiv.org/abs/2609.37647 · Jev API docs: https://docs.typesafe.ai/models
 - **Head-to-head comparison** — "Scan or Index? large Evidence Coverage, Answer Quality, and Cost in Long-Document RAG", arXiv:2610.28957 (Jev vs OpenAI Decisions vs local Clef)
 - **OpenAI Decisions API** — https://developers.openai.com/api/docs/guides/decisions
-- **Measured here** — `tools/eval_clef.py` (Clef experiments: pairwise / attribute probes / direct brand ID) and `tools/eval_retrieval.py` (embedding baselines). Raw results in `data/clef_*.json`.
+- **Measured here** — `tools/eval_clef.py` (Clef experiments: pairwise / attribute probes / direct brand ID / feature detection), `tools/eval_real.py` (real smartphone photos) and `tools/eval_retrieval.py` (embedding baselines). Raw results in `data/clef_*.json` and `data/real_brand_results.json`.
+- **Evaluation sets** — `data/sak_ground_truth/` (12 packshots from the client PDF) and `data/real_photos/` (12 real smartphone photos, ground truth read off the brand markings).
 - **Catalogue** — `backend/data/victorinox_sak_produkte.csv` (247 products) and `backend/data/victorinox_sak_werkzeuge.csv` (1,936 article→tool rows), scraped by `backend/scraper/victorinox.py`.
 - SigLIP 2 paper: arXiv:2502.14786 · model: https://huggingface.co/google/siglip2-base-patch16-224 (Apache-2.0)
 - fastembed 0.9.0 supported models (verified by reading the installed package source):

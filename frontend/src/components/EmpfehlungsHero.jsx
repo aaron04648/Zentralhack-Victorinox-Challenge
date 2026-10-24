@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Check, ChevronRight, ExternalLink } from 'lucide-react'
-import KonfidenzRing from './KonfidenzRing.jsx'
-import { Badge, Karte, ProduktBild, StatusBadge } from './ui.jsx'
+import ProduktDaten from './ProduktDaten.jsx'
+import { Karte, ProduktBild, StatusBadge } from './ui.jsx'
 import { chf } from '../lib/format.js'
 
 const TITEL = {
@@ -12,7 +12,7 @@ const TITEL = {
 }
 
 export default function EmpfehlungsHero({ empfehlung, pfad, rang, unsicher = false }) {
-  const { produkt, score, begruendung, gruende } = empfehlung
+  const { produkt, begruendung, gruende } = empfehlung
   return (
     <motion.div key={produkt.artikelnummer} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <Karte className="overflow-hidden">
@@ -20,7 +20,6 @@ export default function EmpfehlungsHero({ empfehlung, pfad, rang, unsicher = fal
           <span className="text-xs font-semibold uppercase tracking-wider">
             {unsicher ? `Kandidat #${rang + 1}` : rang === 0 ? TITEL[pfad] ?? 'Empfehlung' : `Alternative #${rang + 1}`}
           </span>
-          {unsicher ? <Badge ton="warn">Unsicher</Badge> : rang === 0 && <Badge ton="brand">Top-Treffer</Badge>}
         </div>
 
         <div className="grid gap-4 p-4 sm:grid-cols-[220px_1fr]">
@@ -29,16 +28,11 @@ export default function EmpfehlungsHero({ empfehlung, pfad, rang, unsicher = fal
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-2xl font-bold tracking-tight">{produkt.name}</h2>
-                <div className="mt-0.5 text-sm text-zinc-500">Art.-Nr. {produkt.artikelnummer}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <StatusBadge status={produkt.lagerstatus} />
-                  <span className="text-sm font-semibold">{chf(produkt.preis_chf)}</span>
-                </div>
-              </div>
-              <KonfidenzRing wert={score} groesse={68} label="Match" />
+            <h2 className="text-2xl font-bold tracking-tight">{produkt.name}</h2>
+            <div className="mt-0.5 text-sm text-zinc-500">Art.-Nr. {produkt.artikelnummer}</div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge status={produkt.lagerstatus} />
+              <span className="text-sm font-semibold">{chf(produkt.preis_chf)}</span>
             </div>
 
             <p className="mt-4 text-[15px] leading-relaxed text-zinc-700">{begruendung}</p>
@@ -65,6 +59,11 @@ export default function EmpfehlungsHero({ empfehlung, pfad, rang, unsicher = fal
               )}
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-zinc-100 p-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Produktdaten</div>
+          <ProduktDaten produkt={produkt} />
         </div>
       </Karte>
     </motion.div>

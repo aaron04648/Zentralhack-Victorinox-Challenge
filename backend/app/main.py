@@ -1,12 +1,15 @@
 import asyncio
+import math
 import os
 import uuid
+from functools import lru_cache
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-from app import clef, jev, matching, vision
+from app import clef, embedings, jev, matching, vision
+from app.embedings import CATEGORIES, cosine_similarity, generate_category_embeddings, setup_embedding_model
 from app.katalog import load_cross_references, load_konkurrenz, load_pocket_knives, load_products
 from app.werkzeuge import GRUPPEN
 
@@ -20,6 +23,10 @@ app.add_middleware(
 )
 
 Value = str | int | float | bool
+
+class CategoryScores(BaseModel):
+    query: str
+    scores: Dict[str, float]
 
 
 class ProductFilter(BaseModel):
@@ -110,6 +117,12 @@ def matches(cell, value):
     return cell.strip().casefold() == value.strip().casefold()
 
 
+@lru_cache
+def load_empfehlbare():
+    """Taschenmesser plus Swiss Tools: die Swiss Tools nur als Ersatz für fremde Zangen-Multitools."""
+    return load_pocket_knives() + tuple(r for r in load_products() if "Swiss Tools" in r["kategorien"])
+
+
 def to_product(row):
     """Produkt im Format der API (siehe docs/api.md)."""
     return {
@@ -130,7 +143,12 @@ def to_product(row):
         "werkzeug_gruppen": row["werkzeug_gruppen"],
         "anzahl_funktionen": row["anzahl_funktionen"],
         "laenge_mm": row["laenge_mm"],
-        "material": row["material"],
+        "breite_mm": row["breite_mm"],
+        "hoehe_mm": row["hoehe_mm"],
+        "gewicht_g": row["gewicht_g"],
+        "material": row["material"] if row["material"] not in ("", "Undefiniert") else None,
+        "feststellbar": row["feststellbar"],
+        "einhandklinge": row["einhandklinge"],
         "url": row["url"],
         "bild_url": row["bild_url"],
     }
@@ -178,11 +196,12 @@ def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1,
 
 @app.get("/api/products/{artikelnummer}")
 def get_product(artikelnummer: str):
-    """Ein Taschenmesser per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
-    for row in load_pocket_knives():
+    """Ein Taschenmesser (oder Swiss Tool, Ersatz für fremde Zangen-Multitools) per Artikelnummer;
+    Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
+    for row in load_empfehlbare():
         if row["artikelnummer"] == artikelnummer:
             return to_product(row)
-    for row in load_pocket_knives():
+    for row in load_empfehlbare():
         if artikelnummer in row["varianten"]:
             return to_product(row)
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")
@@ -196,16 +215,23 @@ RUECKFRAGE_ABSTAND = 0.05      # Fallback ohne Jev: Score-Abstand Platz 1 zu 2
 MAX_BILD_BYTES = 8 * 1024 * 1024
 VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografierte Produkt ab dieser Wahrscheinlichkeit
 KATEGORIE_MALUS = 0.5          # Score-Faktor für Kandidaten ausserhalb der gewählten Kategorie
-VISUELL_ABSTAND = 2.5          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
-_matches = {}                  # match_id -> {"gruppen", "visuell"} (für das zweite Foto nach Rückfrage)
+VISUELL_ABSTAND = 2.5
+ZANGE_SICHER = 0.5             # fremdes Multitool mit Zange -> Swiss Tools kommen als Ersatz in Frage
+MIN_NACH_ZWECK = 10            # so viele Produkte bleiben mindestens nach dem Zweck-Filter
+GEWICHT_BILD_TIEBREAK = 0.05   # fremde Marke: Bildähnlichkeit entscheidet nur bei gleicher Ausstattung
+VERWENDUNG_GEWICHT = 0.5       # Stärke des Verwendungszwecks: Faktor exp(0.5 * z) auf Clefs Wahrscheinlichkeit          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
+_matches = {}                  # match_id -> Erkennungskontext (zweites Foto, Werkzeug-Korrektur ohne neue Clef-Anfrage)
 
 
 @app.on_event("startup")
 async def kacheln_laden():
     """Katalogbilder für die Clef-Bildsuche im Hintergrund vorbereiten (einmalig, danach auf Platte)."""
+    loop = asyncio.get_running_loop()
+    messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
     if clef.aktiv():
-        asyncio.get_running_loop().run_in_executor(
-            None, clef.kacheln_vorbereiten, [r for r in load_pocket_knives() if matching.produkt_gruppen(r)])
+        loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
+    # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
+    loop.run_in_executor(None, embedings.verwendung_passung, "Alltag", messer)
 
 
 def produkt_merkmale(row):
@@ -227,19 +253,14 @@ def produkt_merkmale(row):
 
 @app.post("/api/match")
 async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
-                kategorie: str | None = Form(None)):
+                kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
     """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
     inhalt = await bild.read()
     if not inhalt or len(inhalt) > MAX_BILD_BYTES:
         raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
 
     schritte = []
-    rows = load_pocket_knives()
-    messer = [r for r in rows if matching.produkt_gruppen(r)]
-
-    def kategorie_faktor(row):
-        # Weicher Filter aus dem Dropdown: andere Kategorien zählen halb, fallen aber nicht weg
-        return 1.0 if not kategorie or kategorie in row["kategorien"] else KATEGORIE_MALUS
+    messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
     bild_url = vision.bild_als_url(inhalt, bild.content_type or "image/jpeg")
     # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
     mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
@@ -273,7 +294,8 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         werkzeuge = zugeordnet
         schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "ok",
                          "detail": f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt"})
-    erkannte_gruppen = {w["gruppe"] for w in werkzeuge}
+    # Gruppe -> Wahrscheinlichkeit (1.0 = sicher, z. B. ohne Angabe oder vom Nutzer bestätigt)
+    gewichte = {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
     visuell = {}
     if mit_bildsuche:
         if isinstance(ergebnisse[1], Exception):
@@ -283,28 +305,146 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
             visuell = dict(ergebnisse[1])
     vorher = _matches.get(vorherige_match_id)
     if vorher:
-        erkannte_gruppen |= vorher["gruppen"]
+        for g, p in vorher["gewichte"].items():
+            gewichte[g] = max(gewichte.get(g, 0.0), p)
         if vorher["visuell"] and visuell:  # zwei Fotos: Mittelwert der Bildsuche
             visuell = {n: (visuell.get(n, 0) + vorher["visuell"].get(n, 0)) / 2 for n in visuell.keys() | vorher["visuell"].keys()}
         visuell = visuell or vorher["visuell"]
 
+    kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte,
+               "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False}
+    match_id = f"m_{uuid.uuid4().hex[:10]}"
+    _matches[match_id] = kontext
+    return await _auswerten(match_id, kontext)
+
+
+class Werkzeug(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    gruppe: str
+    wahrscheinlichkeit: float | None = Field(None, ge=0, le=1, description="fehlt/1.0 = sicher (bestätigt)")
+
+
+class WerkzeugKorrektur(BaseModel):
+    """Komplette, vom Nutzer korrigierte Werkzeugliste. Was fehlt, gilt als entfernt."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    werkzeuge: list[Werkzeug]
+
+
+@app.get("/api/werkzeuge")
+def get_werkzeuge():
+    """Alle Werkzeuggruppen (für Vorschläge beim Hinzufügen)."""
+    return [{"gruppe": g, "label": label, "beschreibung": beschreibung} for g, (label, beschreibung) in GRUPPEN.items()]
+
+
+@app.post("/api/match/{match_id}/werkzeuge")
+async def werkzeuge_korrigieren(match_id: str, korrektur: WerkzeugKorrektur):
+    """Werkzeuge bestätigen/hinzufügen/entfernen und ohne neues Foto erneut suchen."""
+    kontext = _matches.get(match_id)
+    if not kontext:
+        raise HTTPException(status_code=404, detail="Match nicht gefunden (Backend neu gestartet?), bitte neu scannen")
+    unbekannt = [w.gruppe for w in korrektur.werkzeuge if w.gruppe not in GRUPPEN]
+    if unbekannt:
+        raise HTTPException(status_code=422, detail=f"Unbekannte Werkzeuge: {', '.join(unbekannt)}")
+    alt = kontext["gewichte"]
+    neu = {w.gruppe: 1.0 if w.wahrscheinlichkeit is None else w.wahrscheinlichkeit for w in korrektur.werkzeuge}
+    bestaetigt = [g for g in neu if g in alt and alt[g] < 1.0 <= neu[g]]
+    hinzu = [g for g in neu if g not in alt]
+    weg = [g for g in alt if g not in neu]
+    teile = [f"{len(bestaetigt)} bestätigt" if bestaetigt else "", f"{len(hinzu)} hinzugefügt" if hinzu else "",
+             f"{len(weg)} entfernt" if weg else ""]
+    kontext = dict(kontext, gewichte=neu, nutzer_werkzeuge=True, schritte=kontext["schritte"] + [
+        {"id": "nutzer", "label": "Werkzeuge vom Nutzer korrigiert", "status": "ok",
+         "detail": ", ".join(t for t in teile if t) or "unverändert"}])
+    _matches[match_id] = kontext
+    return await _auswerten(match_id, kontext)
+
+
+async def _auswerten(match_id, kontext):
+    """Erkennung (gecacht pro match_id) -> Kandidaten, Pfad, Rückfrage, Antwort für das Frontend."""
+    erkannt, gewichte, visuell = kontext["erkannt"], kontext["gewichte"], kontext["visuell"]
+    verwendung, kategorie = kontext["verwendung"], kontext["kategorie"]
+    schritte = list(kontext["schritte"])
+    erkannte_gruppen = set(gewichte)
+    rows = load_pocket_knives()
+    messer = [r for r in rows if matching.produkt_gruppen(r)]
+
+    def kategorie_faktor(row):
+        # Weicher Filter (Kategorie-Hinweis): andere Kategorien zählen halb, fallen aber nicht weg
+        return 1.0 if not kategorie or kategorie in row["kategorien"] else KATEGORIE_MALUS
+
     marke = erkannt["marke"]
     ist_victorinox = bool(marke and "victorinox" in marke.casefold())
+    fremd = bool(marke) and not ist_victorinox
     schritte.append({"id": "marke", "label": "Marke bestimmt", "status": "ok" if marke else "warnung",
                      "detail": marke or "Marke nicht erkennbar"})
+    # Nach der Ausstattung suchen: bei fremden Marken (kein Katalogbild kann dasselbe Modell zeigen)
+    # und sobald der Nutzer die Werkzeuge korrigiert hat
+    nach_ausstattung = (fremd or kontext["nutzer_werkzeuge"]) and bool(erkannte_gruppen)
 
-    if visuell:
-        # Reihenfolge und Score aus der Bildsuche (auf Testfotos klar besser als die Werkzeuge),
-        # die Werkzeuge liefern die Begründung
+    # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
+    auswahl = messer
+    if nach_ausstattung and gewichte.get("zange", 0.0) >= ZANGE_SICHER:
+        auswahl = [r for r in load_empfehlbare() if matching.produkt_gruppen(r)]
+
+    passung = {}  # artikelnummer -> z-Wert: wie gut das Produkt zum Verwendungszweck passt
+    if verwendung:
+        try:
+            passung = await asyncio.to_thread(embedings.verwendung_passung, verwendung, auswahl)
+            schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "ok",
+                             "detail": f"„{verwendung}“ mit {len(auswahl)} Produktbeschreibungen verglichen (Embedding)"})
+        except Exception as fehler:
+            schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "warnung",
+                             "detail": f"Embedding nicht verfügbar ({fehler})"})
+
+    def zweck_faktor(nummer):
+        return math.exp(VERWENDUNG_GEWICHT * max(min(passung.get(nummer, 0.0), 3.0), -3.0))
+
+    def zweck_grund(k):
+        if passung.get(k["row"]["artikelnummer"], 0.0) >= 1.0:
+            k["gruende"].append(f"Passt zum Einsatz „{verwendung}“")
+
+    if nach_ausstattung:
+        # 1. Verwendungszweck filtert: nur Produkte, die überdurchschnittlich zum Zweck passen
+        if passung:
+            passend = [r for r in auswahl if passung[r["artikelnummer"]] >= 0]
+            if len(passend) < MIN_NACH_ZWECK:
+                passend = sorted(auswahl, key=lambda r: -passung[r["artikelnummer"]])[:MIN_NACH_ZWECK]
+            schritte.append({"id": "verwendung", "label": "Nach Einsatzzweck gefiltert", "status": "ok",
+                             "detail": f"{len(passend)} von {len(auswahl)} Produkten passen zu „{verwendung}“"})
+            auswahl = passend
+        # 2. Ausstattung entscheidet, gewichtet mit Clefs Sicherheit je Werkzeug; Bild nur als Tiebreak
+        kandidaten = matching.rangliste(erkannte_gruppen, auswahl, erkannt, top=len(auswahl), gewichte=gewichte)
+        hoechste = max(visuell.values(), default=0.0) or 1.0
+        for k in kandidaten:
+            nummer = k["row"]["artikelnummer"]
+            k["score"] = round(min(k["score"] * kategorie_faktor(k["row"])
+                                   + GEWICHT_BILD_TIEBREAK * visuell.get(nummer, 0.0) / hoechste, 1.0), 4)
+            zweck_grund(k)
+        kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
+        schritte.append({"id": "suche", "label": "Ausstattung verglichen", "status": "ok" if kandidaten else "warnung",
+                         "detail": f"{len(erkannte_gruppen)} Werkzeuge mit {len(auswahl)} Victorinox-Produkten verglichen"})
+        eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
+    elif visuell:
+        # Victorinox (oder Marke unklar): Reihenfolge und Score aus der Bildsuche, die Werkzeuge
+        # liefern die Begründung
         nach_nummer = {r["artikelnummer"]: r for r in messer}
         kandidaten = []
-        gewichtet = {n: p * kategorie_faktor(nach_nummer[n]) for n, p in visuell.items() if n in nach_nummer}
+        # Kategorie und Verwendungszweck gewichten Clefs Wahrscheinlichkeiten, danach wieder auf
+        # Summe 1 normiert: Passen Bild und Zweck zusammen, steigt die Sicherheit von Platz 1
+        gewichtet = {n: p * kategorie_faktor(nach_nummer[n]) * zweck_faktor(n)
+                     for n, p in visuell.items() if n in nach_nummer}
+        summe = sum(gewichtet.values()) or 1.0
+        gewichtet = {n: p / summe * sum(visuell.values()) for n, p in gewichtet.items()}
         for nummer, p in sorted(gewichtet.items(), key=lambda kv: -kv[1])[:3]:
             k = matching.bewerte(erkannte_gruppen, nach_nummer[nummer], erkannt) or {
                 "row": nach_nummer[nummer], "gruppen": matching.produkt_gruppen(nach_nummer[nummer]),
                 "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}
             k["score"] = round(p, 4)
-            k["gruende"].insert(0, f"Bildähnlichkeit {p:.0%}")
+            k["gruende"].insert(0, f"Bildähnlichkeit {visuell[nummer]:.0%}")
+            zweck_grund(k)
             kandidaten.append(k)
         schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "ok",
                          "detail": f"Clef hat das Foto mit {len(messer)} Katalogbildern verglichen"})
@@ -312,9 +452,10 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         eigenes = next((k for k in kandidaten[:1] if ist_victorinox and k["score"] >= VISUELL_SICHER
                         and k["score"] >= VISUELL_ABSTAND * zweiter), None)
     else:
-        kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=len(rows))
+        kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=len(rows), gewichte=gewichte)
         for k in kandidaten:
-            k["score"] = round(k["score"] * kategorie_faktor(k["row"]), 4)
+            k["score"] = round(min(k["score"] * kategorie_faktor(k["row"]) * zweck_faktor(k["row"]["artikelnummer"]), 1.0), 4)
+            zweck_grund(k)
         kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
         schritte.append({"id": "suche", "label": "Katalog durchsucht",
                          "status": "ok" if kandidaten else "warnung",
@@ -343,9 +484,6 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
                      "status": "warnung" if rueckfrage else "ok",
                      "detail": f"Top-Score {kandidaten[0]['score']:.2f}" if kandidaten else "Keine passenden Messer"})
 
-    match_id = f"m_{uuid.uuid4().hex[:10]}"
-    _matches[match_id] = {"gruppen": erkannte_gruppen, "visuell": visuell}
-
     return {
         "match_id": match_id,
         "pfad": pfad,
@@ -357,7 +495,12 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
             "produkt": to_product(eigenes["row"]) if eigenes else None,
-            "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge", "quelle": "Bilderkennung",
+            # Erkannte Werkzeuge mit Sicherheit, sicherste zuerst (1.0 = sicher/vom Nutzer bestätigt)
+            "werkzeuge": sorted(({"gruppe": g, "label": GRUPPEN[g][0], "wahrscheinlichkeit": round(p, 2)}
+                                 for g, p in gewichte.items()),
+                                key=lambda w: (-w["wahrscheinlichkeit"], w["label"])),
+            "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge",
+                          "quelle": "Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung",
                           "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],
         },
         "empfehlungen": [
@@ -383,21 +526,36 @@ def alternatives(produkt_id: str):
     knives = {row["id"]: row for row in load_pocket_knives()}
     if produkt_id not in knives and produkt_id not in load_konkurrenz():
         raise HTTPException(status_code=404, detail=f"Unbekanntes Produkt {produkt_id}")
+    return {"von": produkt_id, "alternativen": [
+        {"beziehung": r.beziehung.value, "status": r.status.value, "quelle": r.quelle, "notiz": r.notiz,
+         "produkt": to_product(knives[r.zu])}
+        for r in cross_references_fuer(produkt_id, knives)]}
+
+
+def cross_references_fuer(produkt_id, knives):
+    """Zuordnungen von produkt_id zu Victorinox-Taschenmessern, verifizierte zuerst."""
     rang = {"verifiziert": 0, "vorgeschlagen": 1, "modell_generiert": 2}
-    treffer = sorted(
-        (r for r in load_cross_references() if r.von == produkt_id and r.zu in knives),
-        key=lambda r: rang[r.status.value],
-    )
-    return {
-        "von": produkt_id,
-        "alternativen": [
-            {
-                "beziehung": r.beziehung.value,
-                "status": r.status.value,
-                "quelle": r.quelle,
-                "notiz": r.notiz,
-                "produkt": to_product(knives[r.zu]),
-            }
-            for r in treffer
-        ],
-    }
+    return sorted((r for r in load_cross_references() if r.von == produkt_id and r.zu in knives),
+                  key=lambda r: rang[r.status.value])
+
+
+@app.get("/score_categories", response_model=CategoryScores)
+def get_scores(q: str) -> CategoryScores:
+    # Falls die Anfrage leer ist, leeres Dict zurückgeben
+    if not q.strip():
+        return CategoryScores(query=q, scores={cat: 0.0 for cat in CATEGORIES})
+
+    # Suchtext einbetten
+    query_embedding = list(setup_embedding_model().embed([q]))[0]
+    
+    # Dictionary für die Antwort aufbauen
+    scores_dict = {}
+    for category, cat_emb in zip(CATEGORIES, generate_category_embeddings()):
+        score = cosine_similarity(query_embedding, cat_emb)
+        scores_dict[category] = round(score, 4)
+        
+    # Das Dictionary nach den höchsten Scores sortieren möchten
+    sorted_scores_dict = dict(sorted(scores_dict.items(), key=lambda item: item[1], reverse=True))
+    
+    # Rückgabe validiert gegen Ihr Pydantic-Modell
+    return CategoryScores(query=q, scores=sorted_scores_dict)
