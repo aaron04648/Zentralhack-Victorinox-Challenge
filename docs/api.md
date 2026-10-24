@@ -77,6 +77,9 @@ Antwort:
     "artikelnummer": "KNI.0036.1010",   // null, wenn nicht erkannt
     "kategorie": "Taschenmesser",
     "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
+    "werkzeuge": [                      // erkannte Werkzeuggruppen, sicherste zuerst
+      { "gruppe": "zange", "label": "Zange", "wahrscheinlichkeit": 0.93 }   // null = aus erstem Foto übernommen
+    ],
     "produkt": null,                    // Product, falls es ein Victorinox-Katalogprodukt ist
     "merkmale": [Merkmal, …]
   },

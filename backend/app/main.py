@@ -448,6 +448,11 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
             "produkt": to_product(eigenes["row"]) if eigenes else None,
+            # Erkannte Werkzeuge mit Sicherheit, sicherste zuerst (für die Anzeige bei fremden Messern)
+            "werkzeuge": sorted(({"gruppe": g, "label": GRUPPEN[g][0],
+                                  "wahrscheinlichkeit": round(gewichte[g], 2) if g in gewichte else None}
+                                 for g in erkannte_gruppen),
+                                key=lambda w: (-(w["wahrscheinlichkeit"] or 0), w["label"])),
             "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge", "quelle": "Bilderkennung",
                           "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],
         },
