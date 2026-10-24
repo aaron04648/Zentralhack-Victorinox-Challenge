@@ -1,5 +1,10 @@
 # Zentralhack-Victorinox-Challenge
 
+## Contributors & Contacts
+Aaron Stupf: https://www.linkedin.com/in/aaron-stupf/
+Philipp Rütimann: https://www.linkedin.com/in/philippruetimann/
+Simon Weigold: https://www.linkedin.com/in/simonweigold/
+Admir Bjelic: https://www.linkedin.com/in/admir-bjelic-418637305/
 **Victorinox Product Match Agent** — a multimodal agent that identifies a photographed
 product and recommends the best matching Victorinox alternative, with technical specs,
 a rationale and a confidence score.
@@ -52,8 +57,8 @@ The prototype must work end-to-end for **one clearly delimited product category*
 
 - Product categories other than SAK, and SAK products that are not pocket knives
   (accessories, nail care, Swiss Cards, Swiss Tools, fixed-blade knives).
-- Training models from scratch. Clef thresholds are calibrated on catalogue images; fine-tuning the
-  OpenAI vision model is optional and prepared in `backend/training/` (budget-dependent).
+- Training models from scratch. The vision model uses few-shot reference images by default;
+  fine-tuning it is optional and prepared in `backend/training/` (decided 2026-10-23, budget-dependent).
 - Production integration with Victorinox PIM / ERP / DAM / Microsoft Fabric Lakehouse.
 - Any live write-back into customer systems; feedback is captured locally for the
   prototype only.
@@ -118,21 +123,6 @@ labels by the client. These have been extracted to `data/sak_ground_truth/` and 
 used as the evaluation set for the classification workstream — see
 [docs/classification_recommendation.md](docs/classification_recommendation.md).
 
-`data/real_photos/` additionally holds 12 **real smartphone photos** of products on
-a desk — the actual demo domain, including competitor brands (Leatherman, Gerber).
-
-The downloaded 2026 Victorinox, Gerber, Leatherman and SWIZA catalogue PDFs are
-available in `~/Downloads/`. Their JPEG/JPEG 2000 image streams have been extracted
-to `data/catalogue_images/` (1,406 images, about 39 MB); `manifest.json` records the
-source PDF, PDF object number, dimensions and encoding. `product_links.json` records
-page links and image candidates for 38 Leatherman and 258 Gerber products, plus crops
-for all 133 SWIZA catalogue entries. SWIZA crops use row order and evenly spaced
-page bands; multi-product Leatherman and Gerber pages use image order to split
-candidates. Those heuristic product links are marked `needs_review`; they are catalogue
-images, not a labelled phone-photo evaluation set. Re-extract with
-`python tools/extract_catalogue_images.py`; rebuild links and crops with
-`python tools/link_catalogue_images.py`.
-
 ## Success criteria
 
 For the defined test catalogue:
@@ -168,9 +158,12 @@ POST /api/products/image
   ]
 }
 
+GET  /api/products?q=&kategorie=&limit=&offset=   catalogue search
+GET  /api/products/{artikelnummer}                 single product (variant numbers resolve too)
+POST /api/match                                    photo → recognition + recommendations (needs a vision API key, see below)
 GET  /api/products?q=&kategorie=&limit=&offset=   pocket-knife search (used by the feedback dialog)
 GET  /api/products/{artikelnummer}                 single pocket knife incl. tool list (variant numbers resolve too)
-POST /api/match                                    photo → recognition + recommendations (needs a vision API key, see below)
+POST /api/match                                    photo → recognition + recommendations (open, mocked in frontend)
 POST /api/feedback                                 correct / not correct + better hit (open, mocked in frontend)
 
 Full request/response contract: [docs/api.md](docs/api.md).
@@ -196,41 +189,7 @@ Full request/response contract: [docs/api.md](docs/api.md).
    This decides order and score of the recommendations (~10–15 s per photo, tiles are cached in
    `backend/data/katalog_kacheln/`, prepared at startup). "aktuell" if Victorinox, top ≥ 0.3 and
    ≥ 2.5 × the runner-up.
-   For **competitor brands** with their own data (SWIZA, Leatherman, Gerber: `app/konkurrenz.py` loads
-   `data/training/konkurrenz.csv` and `data/kataloge/{swiza,leatherman_2019,gerber}.json`) the Victorinox
-   visual search is **aborted** as soon as the brand is recognised (≥ 60 %), because no Victorinox photo can
-   show that model. Instead the model is looked up in the brand's own catalogue: recognised tools against
-   each model's tool list, plus one Clef request comparing the photo with up to 27 candidate images where
-   images exist (SWIZA webshop). Its complete tool list then replaces the recognised tools (Gerber lists are
-   only read from descriptions, so they are merged instead, and a model is only named when it is unique).
-   This takes ~4–6 s instead of ~11 s (SWIZA D03 → "D03 AM" via image + tools; Leatherman → FREE P4;
-   Gerber multitool → no unique model, recognised tools count). Without a model: recognised tools, weighted by Clef's probability, against the catalogue; plier
-   multitools (Leatherman, Gerber) also get the Swiss Tools as candidates.
-   Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Picknicker, Gerber folder → Sentinel,
-   Roxon → Cyber Tool M.
-   In the app the user can correct the recognised tools (any brand; double-click an unsure,
-   dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
-   re-ranks without a new Clef call. The category dropdown was removed.
-   **Live features:** the app opens a live camera in the browser (`getUserMedia`, needs https or localhost;
-   otherwise the phone's photo app opens) with an auto-shutter that fires once the picture is still and sharp
-   (measured in the browser) **and** Clef confirms that a knife is in the frame (`/api/kamera/messer`, ~0.5 s;
-   a still, empty scene no longer triggers it). **Scan with phone:** on a computer, a QR code opens a small phone page
-   (`/h/{id}`) through a `cloudflared` quick tunnel that the backend opens only for this pairing and closes as
-   soon as the photo has arrived (works in Wi-Fi networks where devices can't see each other; only `/h/...` is
-   reachable through the tunnel). The photo is analysed on the computer.
-   `/api/match/stream` streams every analysis step, including the
-   tournament rounds of the visual search. "Röntgenblick": Clef locates each recognised tool on the photo via
-   a labelled 4×4 grid (`clef.lokalisieren`, ~1 s, runs while the visual search continues); the markers
-   appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, before "Analysieren" is pressed),
-   during the analysis and on the result card, linked to the tool chips. The analysis reuses the preview
-   result (cached by image hash), so Clef is not asked twice.
-   "Zweiter Blick" (`clef.werkzeuge_pruefen`): around each located tool a crop of the original photo is
-   enlarged (2×2 crops per sheet, one Clef request per 12 tools) and Clef is asked whether exactly this tool
-   is on it. Only groups where this helped on the training split may drop a tool (thresholds per group in
-   `data/training/zweiter_blick_grenzen.json`, learned by `training/zweiter_blick.py --kalibrieren`).
-   Katalog test split: false alarms 141 → 118, precision 0.62 → 0.66, recall 0.78 → 0.77, F1 0.69 → 0.71;
-   ~4.5 s more until the tool list, the final result only ~1 s later (the visual search runs in parallel).
-3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
+3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking only without Clef):
    tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
    in the scales don't count against a product). A visible article number or model name wins.
 4. **Clarification**: ask for another photo if the top two are within 0.05, or, with OpenAI + Jev
@@ -303,7 +262,7 @@ clarification. Raw request results:
 
 Mobile-first React app in `frontend/` (Vite, JSX, Tailwind CSS v4, lucide-react, framer-motion, react-router).
 
-Flow: **Story** (`/praesentation`, motion presentation of the case and prototype) → **Scan** (camera / upload / demo examples) → **Preview** (check the photo, optional category)
+Flow: **Scan** (camera / upload / demo examples) → **Preview** (check the photo, optional category)
 → **Analyse** (agent steps live) → **Result** (recognised product with Victorinox/competitor badge and
 confidence, top recommendation with rationale, technical comparison with sources, top-3 candidates,
 clarification prompt when unsure, feedback bar) → **Product detail**.
@@ -349,19 +308,11 @@ docs/                                Challenge briefing and client documents
 infos_zentral_hack_regional_impact/  Original client files (Fragebogen, intro deck, input PDF)
 backend/                             FastAPI service + catalogue scraper
   app/main.py                        API endpoints
-  app/clef.py                        Clef vision: tools, brand, catalogue image search
-  app/konkurrenz.py                 Competitor cross-reference lookup
-  app/matching.py                    Tool-set scoring against the catalogue
   scraper/victorinox.py              Catalogue scraper
   data/                              Scraped SAK catalogue (products + per-SKU tools)
-  data/training/konkurrenz.csv      Competitor products with their exact tool lists
 frontend/                            React app (Vite, Tailwind)
-data/sak_ground_truth/               12 labelled packshots extracted from the input PDF
-data/real_photos/                   12 labelled real smartphone photos (the demo domain)
-data/catalogue_images/              JPEG/JPEG 2000 assets extracted from catalogue PDFs
+data/sak_ground_truth/               12 labelled product photos extracted from the input PDF
 tools/                               Classification workstream: Clef client + evaluation harnesses
-  extract_catalogue_images.py        Extract embedded JPEG/JPEG 2000 streams from PDFs
-  link_catalogue_images.py           Link PDF images to product pages and crop SWIZA rows
   clef_client.py                     Clef decision client (OpenRouter /api/alpha/decisions)
   tool_vocab.py                      German -> English mapping for all 147 catalogue tools
   feature_detection.py               Detects which tools are visible in a photo
@@ -381,7 +332,7 @@ pyproject.toml                       Python project definition
 The classification approach is documented in
 [docs/classification_recommendation.md](docs/classification_recommendation.md).
 
-Summary of what was measured:
+Summary of what was measured on the 12 labelled photos in `data/sak_ground_truth/`:
 
 - **Off-the-shelf image embeddings do not work here.** CLIP, SigLIP2, UniCom, nomic and
   resnet50 all produce a *negative* within-class vs between-class similarity gap —
@@ -419,8 +370,6 @@ Summary of what was measured:
 ```bash
 uv run python tools/eval_retrieval.py     # embedding baselines
 uv run python tools/eval_clef.py          # Clef decision experiments
-uv run python tools/eval_real.py          # evaluation on the real smartphone photos
-uv run python tools/eval_match_api.py     # end-to-end evaluation of /api/match
 uv run python tools/feature_detection.py photo.jpg   # detect visible tools
 ```
 
