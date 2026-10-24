@@ -10,10 +10,9 @@ from typing import Dict
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app.embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
-
-from app import clef, jev, matching, vision
+from app import clef, jev, matching, vision, embedings
 from app.werkzeuge import GRUPPEN
+from app.embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
 
 PRODUCTS_CSV = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
 
