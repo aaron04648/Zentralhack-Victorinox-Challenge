@@ -9,6 +9,8 @@ Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorin
 | `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
+| `POST /api/kamera/messer` | vorhanden: Auto-Auslöser, ist ein Messer im Kamerabild? `{"messer": 0.97}` (~0.5 s) |
+| `POST /api/handy`, `GET /api/handy/{id}`, `POST /api/handy/{id}/verbunden`, `POST`/`GET /api/handy/{id}/foto` | vorhanden: Handy als Kamera per QR-Code |
 | `POST /api/roentgen` | vorhanden: Röntgenblick direkt nach der Aufnahme (Marke + Werkzeuge mit Position) |
 | `POST /api/match/stream` | vorhanden: wie `/api/match`, aber als Live-Ablauf (NDJSON, ein Ereignis pro Zeile) |
 | `POST /api/match/{match_id}/werkzeuge` | vorhanden: Werkzeuge korrigieren und ohne neues Foto erneut suchen |
@@ -190,3 +192,24 @@ Das Ergebnis wird unter dem SHA-1 der Bildbytes gemerkt (max. 50 Fotos, nur im S
 `/api/match` bzw. `/api/match/stream` mit **denselben Bytes**, werden Erkennung und Orte übernommen
 (Schritt-Detail „aus der Vorschau übernommen“); läuft der Röntgenblick noch, wird auf ihn gewartet statt Clef
 doppelt zu fragen. Das Frontend schickt darum beide Male denselben verkleinerten Upload-Blob.
+
+## Handy als Kamera (QR-Code)
+
+Am Computer „Mit Handy scannen“: `POST /api/handy` mit `{"tunnel": true}` (App unter localhost) -> `{ id, url, tunnel }`.
+
+- **Tunnel** (Standard): Das Backend startet `cloudflared` (im Backend-Image) und öffnet
+  `https://<zufall>.trycloudflare.com` nur für diese Kopplung (~7 s, der QR-Code erscheint erst, wenn die Adresse im
+  DNS auflöst). Das Handy bekommt die schlanke Seite `/h/{id}` (ohne Build, lädt sofort) und schickt das Foto an
+  `POST /h/{id}/foto`. Über den Tunnel ist **nur** `/h/...` erreichbar, alles andere gibt 404.
+  Der Tunnel schliesst 3 s nach dem Foto, beim Schliessen des Dialogs (`DELETE /api/handy/{id}`) oder wenn der
+  Computer 60 s nicht mehr nachfragt.
+- **Direkt** (`{"tunnel": false}` oder App über eine öffentliche Adresse geöffnet): QR-Code auf `/handy/{id}` der
+  React-App, Basis `HANDY_BASIS_URL` aus `.env` bzw. die Adresse im Browser. Braucht dasselbe WLAN ohne Client-Isolation.
+
+Der Computer fragt jede Sekunde `GET /api/handy/{id}` -> `{ verbunden, nummer, tunnel }` und holt bei neuer `nummer`
+das Foto mit `GET /api/handy/{id}/foto`. Sitzungen leben 30 Minuten im Speicher.
+
+## `POST /api/kamera/messer`
+
+Auto-Auslöser der Live-Kamera: kleines Kamerabild (Form-Feld `bild`) -> `{ "messer": 0.97 }`, eine Clef-Frage.
+Ausgelöst wird nur ab 0.5; ohne Clef (503) löst die Kamera nur noch per Knopf aus.

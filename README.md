@@ -202,7 +202,12 @@ Full request/response contract: [docs/api.md](docs/api.md).
    re-ranks without a new Clef call. The category dropdown was removed; the use-case text replaces it.
    **Live features:** the app opens a live camera in the browser (`getUserMedia`, needs https or localhost;
    otherwise the phone's photo app opens) with an auto-shutter that fires once the picture is still and sharp
-   (measured in the browser, no AI call). `/api/match/stream` streams every analysis step, including the
+   (measured in the browser) **and** Clef confirms that a knife is in the frame (`/api/kamera/messer`, ~0.5 s;
+   a still, empty scene no longer triggers it). **Scan with phone:** on a computer, a QR code opens a small phone page
+   (`/h/{id}`) through a `cloudflared` quick tunnel that the backend opens only for this pairing and closes as
+   soon as the photo has arrived (works in Wi-Fi networks where devices can't see each other; only `/h/...` is
+   reachable through the tunnel). The photo is analysed on the computer.
+   `/api/match/stream` streams every analysis step, including the
    tournament rounds of the visual search. "Röntgenblick": Clef locates each recognised tool on the photo via
    a labelled 4×4 grid (`clef.lokalisieren`, ~1 s, runs while the visual search continues); the markers
    appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, while the use case is typed in),

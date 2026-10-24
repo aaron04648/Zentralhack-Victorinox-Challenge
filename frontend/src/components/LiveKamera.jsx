@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Camera, ImagePlus, Timer, TimerOff, X } from 'lucide-react'
+import * as api from '../api/client.js'
 
-// Auto-Auslöser: Das Bild wird klein (MESS_BREITE px) analysiert, ganz ohne KI.
-// - Bewegung = mittlere Helligkeitsdifferenz zum vorherigen Frame
-// - Schärfe   = mittlere Kantenstärke (Laplace), relativ zur bisher besten Schärfe
-// Ist das Bild ruhig, scharf und nicht leer, füllt sich der Ring; nach HALTEN_MS wird ausgelöst.
+// Auto-Auslöser in zwei Stufen:
+// 1. Im Browser, ohne KI (klein, MESS_BREITE px): Bewegung = mittlere Helligkeitsdifferenz zum
+//    vorherigen Frame, Schärfe = mittlere Kantenstärke (Laplace) relativ zur bisher besten.
+// 2. Ist das Bild ruhig und scharf, geht ein kleines Standbild an Clef: Ist ein Messer zu sehen?
+//    Nur bei Ja füllt sich der Ring und nach HALTEN_MS wird ausgelöst. Das Ergebnis gilt, bis sich
+//    das Bild deutlich verändert; ein Nein wird frühestens nach NEU_PRUEFEN_MS wiederholt.
 const MESS_BREITE = 160
 const TAKT_MS = 120
-const HALTEN_MS = 1300
+const HALTEN_MS = 900
+const PRUEF_BREITE = 384
+const MESSER_SICHER = 0.5
+const MAX_ABWEICHUNG = 12 // Helligkeitsstufen pro Pixel gegenüber dem geprüften Bild: darüber neue Szene
+const NEU_PRUEFEN_MS = 2500
 const MAX_BEWEGUNG = 5 // Helligkeitsstufen (0..255) pro Pixel
 const MIN_SCHAERFE_ANTEIL = 0.75 // im Verhältnis zur besten bisher gemessenen Schärfe
 const MIN_KONTRAST = 18 // Standardabweichung der Helligkeit: darunter ist nichts im Bild
@@ -47,6 +54,12 @@ function messen(ctx, b, h, vorher) {
  * Vollbild-Kamera im Browser (fragt nach der Kamera-Erlaubnis). Löst automatisch aus, sobald das
  * Bild ruhig und scharf ist, oder per Knopf. Ohne Kamera/Erlaubnis: Hinweis + Weg zur Foto-App.
  */
+const abweichung = (a, b) => {
+  let summe = 0
+  for (let i = 0; i < a.length; i++) summe += Math.abs(a[i] - b[i])
+  return summe / a.length
+}
+
 export default function LiveKamera({ onFoto, onSchliessen, onFotoApp }) {
   const video = useRef(null)
   const messCanvas = useRef(null)
@@ -61,6 +74,8 @@ export default function LiveKamera({ onFoto, onSchliessen, onFotoApp }) {
   const [hinweis, setHinweis] = useState('Kamera wird gestartet …')
   const [blitz, setBlitz] = useState(false)
   const ausgeloest = useRef(false)
+  // Messer-Prüfung: offen | laeuft | ja | nein | aus (nicht verfügbar -> nur manuell auslösen)
+  const pruefung = useRef({ status: 'offen' })
 
   // Kamera starten (Rückkamera bevorzugt) und beim Schliessen wieder freigeben
   useEffect(() => {
@@ -105,6 +120,29 @@ export default function LiveKamera({ onFoto, onSchliessen, onFotoApp }) {
     )
   }, [onFoto])
 
+  // Kleines Standbild an Clef: Ist ein Messer zu sehen? (läuft parallel zur Messschleife)
+  const messerPruefen = useCallback((v, grau) => {
+    pruefung.current = { status: 'laeuft' }
+    const canvas = document.createElement('canvas')
+    canvas.width = PRUEF_BREITE
+    canvas.height = Math.round((v.videoHeight / v.videoWidth) * PRUEF_BREITE)
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height)
+    canvas.toBlob(
+      (blob) =>
+        api
+          .messerSichtbar(blob)
+          .then((p) => {
+            pruefung.current =
+              p == null ? { status: 'aus' } : { status: p >= MESSER_SICHER ? 'ja' : 'nein', grau, zeit: performance.now() }
+          })
+          .catch(() => {
+            pruefung.current = { status: 'nein', grau, zeit: performance.now() }
+          }),
+      'image/jpeg',
+      0.7,
+    )
+  }, [])
+
   // Messschleife für den Auto-Auslöser
   useEffect(() => {
     if (!bereit) return
@@ -123,14 +161,29 @@ export default function LiveKamera({ onFoto, onSchliessen, onFotoApp }) {
       // Beste Schärfe langsam vergessen, damit ein früher Glückstreffer nicht ewig die Latte setzt
       besteSchaerfe.current = Math.max(m.schaerfe, besteSchaerfe.current * 0.995)
 
+      // Ein Prüfergebnis gilt nur für die Szene, in der es entstanden ist
+      const vorherig = pruefung.current
+      if (vorherig.grau && ['ja', 'nein'].includes(vorherig.status) && abweichung(m.grau, vorherig.grau) > MAX_ABWEICHUNG) {
+        pruefung.current = { status: 'offen' }
+      }
+
       let text
       let ok = false
       if (m.kontrast < MIN_KONTRAST) text = 'Messer ins Bild halten'
       else if (m.bewegung > MAX_BEWEGUNG) text = 'Ruhig halten …'
       else if (m.schaerfe < besteSchaerfe.current * MIN_SCHAERFE_ANTEIL) text = 'Scharf stellen …'
       else {
-        text = auto ? 'Perfekt, nicht bewegen' : 'Bereit, Auslöser drücken'
-        ok = true
+        const p = pruefung.current
+        if (p.status === 'offen' || (p.status === 'nein' && performance.now() - p.zeit > NEU_PRUEFEN_MS)) {
+          messerPruefen(v, m.grau)
+        }
+        const status = pruefung.current.status
+        if (status === 'ja') {
+          text = auto ? 'Messer erkannt, nicht bewegen' : 'Messer erkannt, Auslöser drücken'
+          ok = true
+        } else if (status === 'nein') text = 'Kein Messer erkannt, Messer ins Bild halten'
+        else if (status === 'aus') text = 'Bereit, Auslöser drücken'
+        else text = 'Suche Messer …'
       }
       setHinweis(text)
 
@@ -145,7 +198,7 @@ export default function LiveKamera({ onFoto, onSchliessen, onFotoApp }) {
       if (anteil >= 1) ausloesen()
     }, TAKT_MS)
     return () => clearInterval(t)
-  }, [bereit, auto, ausloesen])
+  }, [bereit, auto, ausloesen, messerPruefen])
 
   // Escape schliesst
   useEffect(() => {

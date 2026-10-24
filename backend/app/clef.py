@@ -185,6 +185,16 @@ def _noul(text):
             "criteria": {"true": "yes, clearly visible", "false": "no, not visible"}}
 
 
+def messer_sichtbar(bild_data_url):
+    """Eine schnelle Clef-Frage für den Auto-Auslöser der Kamera: Wahrscheinlichkeit, dass ein Messer zu sehen ist."""
+    state = [{"type": "text", "text": "Live camera frame:"},
+             {"type": "image_url", "image_url": {"url": bild_data_url}}]
+    antwort = entscheide(state, {"messer": _noul(
+        "Is a pocket knife, folding knife or multitool clearly visible in this camera frame? "
+        "Answer no for an empty background, a face, hands only, a phone or any other object.")})
+    return float((antwort.get("messer") or {}).get("noul") or 0)
+
+
 def wahrscheinlichkeiten(bild_data_url):
     """Alle Rohwahrscheinlichkeiten für ein Bild: {"werkzeuge": {gruppe: p}, "marke": {..}, "messer": p}."""
     state = [{"type": "text", "text": "Product photo of a pocket knife or multitool:"},

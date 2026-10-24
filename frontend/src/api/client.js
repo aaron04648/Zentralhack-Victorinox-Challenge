@@ -110,6 +110,64 @@ export function roentgen(bild) {
 }
 
 /**
+ * Auto-Auslöser: Ist auf dem Kamerabild ein Messer? (eine Clef-Frage, ca. 0.5 s)
+ * @returns Wahrscheinlichkeit 0..1, oder null, wenn die Prüfung nicht verfügbar ist (Mock / kein Clef)
+ */
+export async function messerSichtbar(bild) {
+  if (MOCK_MODUS === 'true') return null
+  const form = new FormData()
+  form.append('bild', bild, 'frame.jpg')
+  try {
+    return (await request('/api/kamera/messer', { method: 'POST', body: form })).messer
+  } catch (fehler) {
+    if (endpointFehlt(fehler)) return null
+    throw fehler
+  }
+}
+
+// --- Handy als Kamera: Computer zeigt QR-Code, Handy schickt das Foto zurück ---
+
+/**
+ * Neue Kopplung -> { id, url, tunnel }. tunnel: true öffnet im Backend einen https-Tunnel (cloudflared)
+ * nur für diese Kopplung; url ist dann die Tunnel-Adresse fürs Handy, sonst die WLAN-Adresse oder null.
+ */
+export function handyStarten({ tunnel = false } = {}) {
+  return request('/api/handy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tunnel }),
+  })
+}
+
+/** Dialog geschlossen: Kopplung beenden (schliesst den Tunnel, wenn ihn niemand mehr braucht) */
+export function handyBeenden(id) {
+  return fetch(`/api/handy/${encodeURIComponent(id)}`, { method: 'DELETE', keepalive: true }).catch(() => {})
+}
+
+/** -> { verbunden, nummer } (nummer = Anzahl gesendeter Fotos) */
+export function handyStatus(id) {
+  return request(`/api/handy/${encodeURIComponent(id)}`)
+}
+
+export async function handyFotoHolen(id) {
+  const res = await fetch(`/api/handy/${encodeURIComponent(id)}/foto`, { cache: 'no-store' })
+  if (!res.ok) throw new ApiFehler(res.status, res.statusText)
+  const blob = await res.blob()
+  return new File([blob], `handy-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' })
+}
+
+export async function handyVerbunden(id) {
+  const res = await fetch(`/api/handy/${encodeURIComponent(id)}/verbunden`, { method: 'POST' })
+  if (!res.ok) throw new ApiFehler(res.status, res.status === 404 ? 'Der QR-Code ist abgelaufen' : res.statusText)
+}
+
+export function handyFotoSenden(id, bild) {
+  const form = new FormData()
+  form.append('bild', bild, 'foto.jpg')
+  return request(`/api/handy/${encodeURIComponent(id)}/foto`, { method: 'POST', body: form })
+}
+
+/**
  * Vom Nutzer korrigierte Werkzeugliste schicken und ohne neues Foto erneut suchen.
  * @param {{ gruppe: string, wahrscheinlichkeit?: number | null }[]} werkzeuge  komplette Liste, 1.0 = sicher
  * @returns neues Match-Ergebnis, im Mock null (dann ändert sich nur die Anzeige)

@@ -6,6 +6,7 @@ import json
 import math
 import os
 import threading
+import time
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -15,9 +16,9 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app import clef, jev, konkurrenz, matching, vision
+from app import clef, jev, konkurrenz, matching, tunnel, vision
 from app.werkzeuge import GRUPPEN
 
 # Das Embedding-Modul ist optional: es liefert nur die experimentelle
@@ -336,6 +337,165 @@ async def match_stream(bild: UploadFile = File(...), vorherige_match_id: str | N
 
     return StreamingResponse(zeilen(), media_type="application/x-ndjson",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/kamera/messer")
+async def kamera_messer(bild: UploadFile = File(...)):
+    """Auto-Auslöser: Ist auf diesem (kleinen) Kamerabild ein Messer zu sehen? -> {"messer": p} (ca. 1 s)."""
+    inhalt = await bild.read()
+    if not inhalt or len(inhalt) > MAX_BILD_BYTES:
+        raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
+    if not clef.aktiv():
+        raise HTTPException(status_code=503, detail="Messer-Prüfung braucht Clef")
+    try:
+        p = await asyncio.to_thread(clef.messer_sichtbar, vision.bild_als_url(inhalt, bild.content_type or "image/jpeg"))
+    except Exception as fehler:
+        raise HTTPException(status_code=502, detail=f"Messer-Prüfung fehlgeschlagen: {fehler}")
+    return {"messer": round(p, 3)}
+
+
+# --- Handy als Kamera: QR-Code am Computer, Foto vom Handy kommt zurück -------------------------
+# Zwei Wege fürs Handy:
+# - Tunnel (Standard am Computer unter localhost): cloudflared öffnet https://<zufall>.trycloudflare.com
+#   nur für diese Kopplung; das Handy bekommt die schlanke Seite /h/{id}. Der Tunnel schliesst, sobald
+#   das Foto da ist, der Dialog am Computer zu ist oder der Computer nicht mehr nachfragt.
+# - Direkt: HANDY_BASIS_URL (WLAN-Adresse) bzw. die öffentliche Adresse der App -> React-Seite /handy/{id}.
+HANDY_TTL_S = 30 * 60
+HANDY_MAX = 200
+TUNNEL_LEERLAUF_S = 60          # fragt der Computer so lange nicht nach, wird der Tunnel geschlossen
+TUNNEL_SCHLIESSEN_NACH_FOTO_S = 3  # kurz warten, damit die Antwort ans Handy noch durch den Tunnel geht
+HANDY_SEITE = Path(__file__).resolve().parent / "handy_seite.html"
+_handy = OrderedDict()  # id -> {"zeit", "gesehen", "verbunden", "nummer", "foto", "typ", "tunnel"}
+
+
+@app.middleware("http")
+async def nur_handy_seite_durch_tunnel(request, call_next):
+    """Über den Tunnel ist nur /h/... erreichbar, nicht die übrige App und API."""
+    host = request.headers.get("host", "")
+    if (host.endswith(".trycloudflare.com") or "cf-ray" in request.headers) and not request.url.path.startswith("/h/"):
+        return Response("Nicht gefunden", status_code=404, media_type="text/plain")
+    return await call_next(request)
+
+
+def _handy_sitzung(sitzung_id):
+    jetzt = time.time()
+    while _handy and jetzt - next(iter(_handy.values()))["zeit"] > HANDY_TTL_S:
+        _handy.popitem(last=False)
+    sitzung = _handy.get(sitzung_id)
+    if not sitzung:
+        raise HTTPException(status_code=404, detail="Sitzung abgelaufen, bitte den QR-Code neu scannen")
+    return sitzung
+
+
+def _tunnel_aufraeumen():
+    """Tunnel schliessen, wenn ihn keine Kopplung mehr braucht (Foto da, Dialog zu, Computer weg)."""
+    jetzt = time.time()
+    gebraucht = any(s["tunnel"] and jetzt - s["gesehen"] < TUNNEL_LEERLAUF_S for s in _handy.values())
+    if not gebraucht and tunnel.offen():
+        threading.Thread(target=tunnel.schliessen, daemon=True).start()
+
+
+async def _tunnel_waechter():
+    while True:
+        await asyncio.sleep(20)
+        _tunnel_aufraeumen()
+
+
+@app.on_event("startup")
+async def tunnel_waechter_starten():
+    asyncio.create_task(_tunnel_waechter())
+
+
+@app.on_event("shutdown")
+def tunnel_beenden():
+    tunnel.schliessen()  # auch beim Neuladen (uvicorn --reload), sonst bliebe cloudflared offen
+
+
+class HandyStart(BaseModel):
+    tunnel: bool = False  # True: öffentlichen Tunnel öffnen (Computer unter localhost, Handy nicht im selben Netz)
+
+
+@app.post("/api/handy")
+async def handy_starten(start: HandyStart | None = None):
+    """Neue Kopplung -> {id, url, tunnel}. url = Adresse für den QR-Code (null: Frontend nimmt seine eigene)."""
+    sitzung_id = uuid.uuid4().hex[:12]
+    jetzt = time.time()
+    sitzung = _handy[sitzung_id] = {"zeit": jetzt, "gesehen": jetzt, "verbunden": False, "nummer": 0,
+                                    "foto": None, "typ": None, "tunnel": False}
+    while len(_handy) > HANDY_MAX:
+        _handy.popitem(last=False)
+    if start and start.tunnel:
+        if not tunnel.verfuegbar():
+            raise HTTPException(status_code=503, detail="cloudflared ist nicht installiert (Backend-Image neu bauen)")
+        sitzung["tunnel"] = True  # schon vor dem Öffnen, sonst schliesst der Wächter ihn währenddessen
+        try:
+            basis = await asyncio.to_thread(tunnel.oeffnen)
+        except Exception as fehler:
+            sitzung["tunnel"] = False
+            raise HTTPException(status_code=502, detail=f"Tunnel konnte nicht geöffnet werden ({fehler})")
+        return {"id": sitzung_id, "url": f"{basis}/h/{sitzung_id}", "tunnel": True}
+    basis = os.getenv("HANDY_BASIS_URL", "").rstrip("/")
+    return {"id": sitzung_id, "url": f"{basis}/handy/{sitzung_id}" if basis else None, "tunnel": False}
+
+
+@app.get("/api/handy/{sitzung_id}")
+def handy_status(sitzung_id: str):
+    """Für den Computer (Polling): verbunden = Handy hat die Seite geöffnet, nummer = Anzahl gesendeter Fotos."""
+    sitzung = _handy_sitzung(sitzung_id)
+    sitzung["gesehen"] = time.time()
+    return {"verbunden": sitzung["verbunden"], "nummer": sitzung["nummer"], "tunnel": sitzung["tunnel"] and tunnel.offen()}
+
+
+@app.delete("/api/handy/{sitzung_id}", status_code=204)
+def handy_beenden(sitzung_id: str):
+    """Dialog am Computer geschlossen: Kopplung beenden, Tunnel zu, wenn ihn sonst niemand braucht."""
+    sitzung = _handy.get(sitzung_id)
+    if sitzung:
+        sitzung["tunnel"] = False
+    _tunnel_aufraeumen()
+
+
+@app.post("/api/handy/{sitzung_id}/verbunden", status_code=204)
+@app.post("/h/{sitzung_id}/verbunden", status_code=204, include_in_schema=False)
+def handy_verbunden(sitzung_id: str):
+    _handy_sitzung(sitzung_id)["verbunden"] = True
+
+
+@app.post("/api/handy/{sitzung_id}/foto")
+@app.post("/h/{sitzung_id}/foto", include_in_schema=False)
+async def handy_foto_senden(sitzung_id: str, bild: UploadFile = File(...)):
+    sitzung = _handy_sitzung(sitzung_id)
+    inhalt = await bild.read()
+    if not inhalt or len(inhalt) > MAX_BILD_BYTES:
+        raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
+    sitzung.update(foto=inhalt, typ=bild.content_type or "image/jpeg", verbunden=True, nummer=sitzung["nummer"] + 1)
+    if sitzung["tunnel"]:  # Foto ist da: Tunnel gleich wieder schliessen
+        sitzung["tunnel"] = False
+        asyncio.get_running_loop().call_later(TUNNEL_SCHLIESSEN_NACH_FOTO_S, _tunnel_aufraeumen)
+    return {"nummer": sitzung["nummer"]}
+
+
+@app.get("/api/handy/{sitzung_id}/foto")
+def handy_foto_holen(sitzung_id: str):
+    sitzung = _handy_sitzung(sitzung_id)
+    if not sitzung["foto"]:
+        raise HTTPException(status_code=404, detail="Noch kein Foto")
+    return Response(sitzung["foto"], media_type=sitzung["typ"], headers={"Cache-Control": "no-store"})
+
+
+@app.get("/h/ping", include_in_schema=False)
+def handy_ping():
+    return Response("ok", media_type="text/plain")
+
+
+@app.get("/h/{sitzung_id}", include_in_schema=False)
+def handy_seite(sitzung_id: str):
+    """Schlanke Handy-Seite für den Tunnel: Foto aufnehmen, verkleinern, an den Computer schicken."""
+    if sitzung_id not in _handy:
+        return Response("<h1 style='font-family:sans-serif'>QR-Code abgelaufen</h1><p style='font-family:sans-serif'>"
+                        "Bitte am Computer erneut „Mit Handy scannen“ wählen.</p>", media_type="text/html", status_code=404)
+    html = HANDY_SEITE.read_text(encoding="utf-8").replace("{{SITZUNG}}", sitzung_id)
+    return Response(html, media_type="text/html", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/roentgen")

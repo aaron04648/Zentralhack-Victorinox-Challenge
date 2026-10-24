@@ -1,0 +1,121 @@
+<!doctype html>
+<!-- Handy-Seite für "Mit Handy scannen" über den Tunnel (/h/{id}, siehe main.py). Bewusst ohne
+     Build und Abhängigkeiten: lädt auch über eine langsame Verbindung sofort. -->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Handy als Kamera</title>
+  <style>
+    :root { --brand: #e30613; --text: #18181b; --grau: #71717a; --rand: #e4e4e7; --flaeche: #fafafa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100dvh; background: var(--flaeche); color: var(--text);
+           font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 440px; margin: 0 auto; padding: 24px 16px 40px; }
+    header { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; font-weight: 600; font-size: 14px; }
+    .logo { width: 30px; height: 30px; border-radius: 8px; background: var(--brand); position: relative; }
+    .logo::before, .logo::after { content: ""; position: absolute; background: #fff; border-radius: 1px; }
+    .logo::before { left: 13px; top: 7px; width: 4px; height: 16px; }
+    .logo::after { left: 7px; top: 13px; width: 16px; height: 4px; }
+    h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.02em; }
+    p { margin: 0; color: var(--grau); font-size: 14px; }
+    .knopf { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%;
+             margin-top: 24px; padding: 36px 16px; border: 0; border-radius: 24px; background: var(--brand); color: #fff;
+             font: inherit; font-size: 18px; font-weight: 600; box-shadow: 0 10px 24px rgba(227, 6, 19, .25); }
+    .knopf small { font-size: 13px; font-weight: 400; opacity: .85; }
+    .knopf:active { transform: scale(.99); }
+    .zweit { width: 100%; margin-top: 12px; padding: 14px; border: 1px dashed #d4d4d8; border-radius: 16px; background: #fff;
+             color: #3f3f46; font: inherit; font-size: 15px; font-weight: 500; }
+    .karte { margin-top: 24px; overflow: hidden; border: 1px solid var(--rand); border-radius: 20px; background: #fff; }
+    .karte img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #f4f4f5; }
+    .status { display: flex; gap: 10px; align-items: flex-start; padding: 16px; font-size: 15px; }
+    .status strong { display: block; }
+    .ok { color: #059669; }
+    .fehler { color: var(--brand); }
+    .kreis { width: 20px; height: 20px; flex: none; margin-top: 1px; border: 2.5px solid #e4e4e7; border-top-color: var(--brand);
+             border-radius: 50%; animation: drehen .8s linear infinite; }
+    @keyframes drehen { to { transform: rotate(360deg); } }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <header><span class="logo"></span>Product Match Agent</header>
+  <h1>Handy als Kamera</h1>
+  <p>Fotografiere das Messer. Das Foto geht an den Computer und wird dort analysiert.</p>
+
+  <div id="auswahl">
+    <button class="knopf" id="kamera">Foto aufnehmen<small>Messer aufgeklappt, ruhiger Hintergrund</small></button>
+    <button class="zweit" id="galerie">Bild aus der Galerie wählen</button>
+  </div>
+  <input type="file" id="kameraInput" accept="image/*" capture="environment" hidden>
+  <input type="file" id="galerieInput" accept="image/*" hidden>
+
+  <div class="karte" id="ergebnis" hidden>
+    <img id="vorschau" alt="Dein Foto">
+    <div class="status" id="status"></div>
+  </div>
+</main>
+<script>
+  const SITZUNG = "{{SITZUNG}}"
+  const MAX_SEITE = 1600
+  const $ = (id) => document.getElementById(id)
+
+  fetch(`/h/${SITZUNG}/verbunden`, { method: "POST" }).then((res) => {
+    if (res.status === 404) zeige("fehler", "QR-Code abgelaufen", "Bitte am Computer erneut „Mit Handy scannen“ wählen.")
+  })
+
+  $("kamera").onclick = () => $("kameraInput").click()
+  $("galerie").onclick = () => $("galerieInput").click()
+  $("kameraInput").onchange = $("galerieInput").onchange = (e) => {
+    const datei = e.target.files[0]
+    e.target.value = ""
+    if (datei) senden(datei)
+  }
+
+  function zeige(art, titel, text) {
+    $("ergebnis").hidden = false
+    const symbol = art === "laeuft" ? '<span class="kreis"></span>' : `<span class="${art}">${art === "ok" ? "✓" : "!"}</span>`
+    $("status").innerHTML = `${symbol}<div><strong class="${art === "fehler" ? "fehler" : ""}"></strong><p></p></div>`
+    $("status").querySelector("strong").textContent = titel
+    $("status").querySelector("p").textContent = text
+  }
+
+  // Foto auf höchstens 1600 px verkleinern (schneller Upload, gleiche Grösse wie in der App)
+  async function verkleinern(datei) {
+    const url = URL.createObjectURL(datei)
+    try {
+      const bild = new Image()
+      bild.src = url
+      await bild.decode()
+      const faktor = Math.min(1, MAX_SEITE / Math.max(bild.naturalWidth, bild.naturalHeight))
+      const canvas = document.createElement("canvas")
+      canvas.width = Math.round(bild.naturalWidth * faktor)
+      canvas.height = Math.round(bild.naturalHeight * faktor)
+      canvas.getContext("2d").drawImage(bild, 0, 0, canvas.width, canvas.height)
+      return (await new Promise((fertig) => canvas.toBlob(fertig, "image/jpeg", 0.85))) || datei
+    } catch {
+      return datei
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  async function senden(datei) {
+    $("auswahl").hidden = true
+    $("vorschau").src = URL.createObjectURL(datei)
+    zeige("laeuft", "Wird an den Computer geschickt …", "")
+    try {
+      const form = new FormData()
+      form.append("bild", await verkleinern(datei), "foto.jpg")
+      const res = await fetch(`/h/${SITZUNG}/foto`, { method: "POST", body: form })
+      if (!res.ok) throw new Error(res.status === 404 ? "QR-Code abgelaufen" : `Fehler ${res.status}`)
+      zeige("ok", "Foto gesendet", "Das Ergebnis erscheint auf dem Computer. Du kannst diese Seite schliessen.")
+    } catch (fehler) {
+      $("auswahl").hidden = false
+      zeige("fehler", "Senden fehlgeschlagen", `${fehler.message}. Bitte nochmals versuchen.`)
+    }
+  }
+</script>
+</body>
+</html>

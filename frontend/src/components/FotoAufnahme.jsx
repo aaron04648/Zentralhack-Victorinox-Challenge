@@ -1,20 +1,26 @@
 import { useRef, useState } from 'react'
-import { Camera, ImagePlus } from 'lucide-react'
+import { Camera, ImagePlus, Smartphone } from 'lucide-react'
+import HandyKoppeln from './HandyKoppeln.jsx'
 import LiveKamera from './LiveKamera.jsx'
 import { Button } from './ui.jsx'
 
 // Live-Kamera braucht getUserMedia, das Browser nur über https oder localhost freigeben.
 // Sonst (z. B. Handy über http://192.168…) öffnet der Kamera-Button die Foto-App.
 const LIVE_KAMERA = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia) && window.isSecureContext
+// "Mit Handy scannen" nur am Computer anbieten (Maus statt Touch)
+const AM_COMPUTER = typeof window !== 'undefined' && !window.matchMedia?.('(pointer: coarse)').matches
 
 /**
  * Zwei Wege zum Foto: Live-Kamera mit Auto-Auslöser (Fallback: Foto-App) und Galerie/Datei.
+ * Am Computer zusätzlich "Mit Handy scannen" (QR-Code, das Handy schickt das Foto zurück).
  * `kompakt` = zwei Buttons nebeneinander, sonst die grosse Variante für die Startseite.
+ * `ohneHandy` = ohne Handy-Kopplung (auf der Handy-Seite selbst).
  */
-export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = false }) {
+export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = false, ohneHandy = false }) {
   const kamera = useRef(null)
   const galerie = useRef(null)
   const [live, setLive] = useState(false)
+  const [handy, setHandy] = useState(false)
 
   function kameraOeffnen() {
     if (LIVE_KAMERA) setLive(true)
@@ -42,6 +48,15 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
             setLive(false)
             kamera.current.click()
           }}
+        />
+      )}
+      {handy && (
+        <HandyKoppeln
+          onFoto={(datei) => {
+            setHandy(false)
+            onDatei(datei)
+          }}
+          onSchliessen={() => setHandy(false)}
         />
       )}
     </>
@@ -98,6 +113,16 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
         <ImagePlus className="size-5 text-zinc-500" />
         Bild hochladen <span className="hidden text-zinc-400 sm:inline">oder hierher ziehen</span>
       </button>
+      {AM_COMPUTER && !ohneHandy && (
+        <button
+          disabled={deaktiviert}
+          onClick={() => setHandy(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-60"
+        >
+          <Smartphone className="size-5 text-zinc-500" />
+          Mit Handy scannen <span className="hidden text-zinc-400 sm:inline">per QR-Code</span>
+        </button>
+      )}
     </div>
   )
 }

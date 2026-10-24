@@ -5,6 +5,7 @@ import AnalyzePage from './pages/AnalyzePage.jsx'
 import ResultPage from './pages/ResultPage.jsx'
 import ProductPage from './pages/ProductPage.jsx'
 import PresentationPage from './pages/PresentationPage.jsx'
+import HandyPage from './pages/HandyPage.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/analyse/:scanId" element={<AnalyzePage />} />
           <Route path="/ergebnis/:scanId" element={<ResultPage />} />
           <Route path="/produkt/:artikelnummer" element={<ProductPage />} />
+          <Route path="/handy/:sitzungId" element={<HandyPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
