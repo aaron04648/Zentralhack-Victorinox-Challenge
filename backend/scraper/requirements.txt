@@ -1,0 +1,3 @@
+# Nur für die Katalog-Importe aus PDFs (scraper/kataloge), nicht im Backend-Container nötig.
+# Zusätzlich für SWIZA: Tesseract OCR als Programm im PATH (macOS: brew install tesseract).
+pymupdf==2.0
