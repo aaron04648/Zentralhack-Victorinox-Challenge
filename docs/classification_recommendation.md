@@ -508,11 +508,10 @@ product, since multi-view is what makes embedding retrieval work.
    products, which is the *other* half of the challenge ("find the Victorinox
    alternative for this competitor knife").
 
-5. **The scrape misses some variants.** `0.8226.22` (Synergy X Alox) is absent
-   though the near-identical `0.8226.20` is present, and `0.9411` has 5 variants
-   captured while `0.8226` has 1. Can Aaron check whether variant suffixes are being
-   scraped inconsistently? This matters because the client PDF labels
-   `0.8226.22`.
+5. **Does the API need to select exact colour variants?** The catalogue row for
+   canonical article `0.8226.20` includes `0.8226.22` among its three variants. The
+   full API can recommend the Synergy X Alox family but currently returns the
+   canonical article, not the exact labelled colour variant.
 
 6. **What are the cross-reference tables?** The README says they exist "in part". If
    a competitor SKU already maps to a Victorinox SKU, that mapping should *override*
@@ -817,8 +816,23 @@ should drive the design.
   trying, but the real value is that disagreement *is* the abstention signal.
 - **Cost is negligible:** $0.00003 per decision on flash. 1,000 demo calls ≈ $0.03.
 
-**The pairwise framing fails — do not use it.** Asking *"is photo B the same product
-as photo A?"* over all 66 pairs gave:
+The earlier pairwise experiment asked *"is photo B the same product as photo A?"*
+for all 66 pairs. Its results are below.
+
+**Correction, 2026-10-24:** The table above is the earlier five-option experiment and
+used the raw labels without the page 13/22 photo mapping corrections. The current
+seven-brand evaluation applies the corrected photo labels and reaches **11/12 top-1,
+12/12 top-3** with Clef Flash. The updated production prompt, including Benchmade and
+the unknown/other fallbacks, scores the same. Clef 27B ties the score but is more
+confident on its one error. Three prompt variants and trimmed images were compared on
+these same 12 examples, so this is a prompt-tuned in-sample result. The one miss is a
+low-resolution Gerber folder ranked as Benchmade. Reproduce the production brand stage
+with `python3 tools/eval_clef_pdf.py --candidate-set production`; raw probabilities are
+in `data/clef_pdf_*.json`.
+
+The **9/12 top-1, 11/12 top-3** result documented in §10 is from the separate, harder
+PXL smartphone set (`data/real_photos/`), not the PDF packshots. See the dataset-specific
+labels and score definitions before comparing the two.
 
 | | result |
 | --- | --- |
@@ -928,7 +942,7 @@ distinguish them, but the *catalogue* can.
 | SAK / Essentials / EVOKE ALOX | `0.9411.D20` | **yes** |
 | SAK / Trades&Crafts / Swiss Tool | `3.0323.L` | **yes** |
 | SAK / Trades&Crafts / Swiss Tool Spirit XBS | `3.0224.3CN` | **yes** |
-| SAK / Essentials / Synergy X Alox | `0.8226.22` | no — closest is `0.8226.20` |
+| SAK / Essentials / Synergy X Alox | `0.8226.22` | yes — listed as a variant of `0.8226.20` |
 | Roxon / Swiza / The Helton (competitor brands) | — | **not present** |
 
 Two consequences:
@@ -938,10 +952,10 @@ Two consequences:
    cross-reference tables the client mentioned are therefore *not* in this scrape, and
    the competitor → Victorinox mapping still has to come from somewhere else. This is
    the single most important open question (§6).
-2. **`0.8226.22` is missing** while `0.8226.20` (the same model, different variant
-   suffix) is present. Worth asking Aaron whether the variant suffixes are being
-   captured inconsistently — the scrape has 5 variants of `0.9411` but only 1 of
-   `0.8226`, and `0.8226.22` was clearly a real product.
+2. **The canonical product family is present, but exact variant selection is not
+   measured as a family match.** The label `0.8226.22` resolves to canonical
+   `0.8226.20`; the current app recommends the family but does not choose that
+   specific variant.
 
 ### Revised architecture
 
@@ -1152,9 +1166,11 @@ photos taken with a Pixel phone of products on a desk: real distractions (a drin
 can, a power cable), mostly **closed** knives, and — importantly — **competitor
 brands** (Leatherman, Gerber), which is the case the project is actually about.
 
-Ground truth was established by **reading the brand markings directly off the
-photos** (`LEATHERMAN® Rev™`, `GERBER`, the Swiss cross shield, the cm scale), not
-from a model prediction.
+Some labels are directly confirmed by markings (`LEATHERMAN® Rev™`, `GERBER`, the
+Victorinox shield, the cm scale). A later photo review found that the original class
+labels for PXL photos 07, 10, and 12 need correction or confirmation; see
+`data/real_photos/README.md`. The archived direct-brand metrics below use those legacy
+labels and are not the latest full-pipeline result.
 
 ### Brand decision: 9/12 top-1, 11/12 top-3 — and a very clean confidence split
 
@@ -1174,13 +1190,30 @@ black multi-tool.
 with **100% precision** and abstains on the other 3. The margin (top1 − top2)
 separates just as cleanly: 0.910 when correct vs 0.036 when wrong.
 
-The two misses are exactly the ones you would hope for:
+Against the original labels, the archived misses were:
 
 - **the ruler photos (2×)** — a flat metal bar with a centimetre scale does not
   look like a knife, and the model ranked the SAK options above `ruler`. Both score
   below 0.12 confidence, so abstention catches them.
 - **photo 07** — a black SAK photographed edge-on, read as `gerber` (0.437) over
   `sak_black` (0.113). Confidence 0.213, again caught by abstention.
+
+### Full local `/api/match` run
+
+All 12 photos were run through the current backend on 2026-10-24. It returns one
+brand, detected tools, and three Victorinox recommendations; it does not expose a
+brand top-3 list.
+
+| label view | brand correct | confidence ≥ 0.6 |
+| --- | ---: | ---: |
+| legacy `labels.json` | **9/12** | — |
+| reviewed labels (photo 12 excluded) | **8/11** | **7/7 correct at 7/11 coverage** |
+
+The three errors against the reviewed labels are photo 06 (Roxon for Victorinox),
+photo 07 (Victorinox for Gerber), and photo 10 (Benchmade for Gerber). Photo 12 was
+predicted as Benchmade, but its maker is unconfirmed. No exact SKUs or correct
+Victorinox substitutes are labelled on this set, so recommendation accuracy cannot
+be measured here. The full responses are in `data/api_match_both_sets.json`.
 
 ### The open/closed gate generalises
 

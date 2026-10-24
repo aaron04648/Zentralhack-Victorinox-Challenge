@@ -7,15 +7,11 @@ import {
   Check,
   CircleAlert,
   Clock,
-  Database,
-  Layers,
-  MessageSquare,
   Plus,
   ScanSearch,
   Sparkles,
   Target,
   Users,
-  Workflow,
   Zap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -26,12 +22,11 @@ const chapters = [
   { id: 'ausgangspunkt', nummer: '01', label: 'Ausgangspunkt' },
   { id: 'loesung', nummer: '02', label: 'Die Lösung' },
   { id: 'beweis', nummer: '03', label: 'Der Beweis' },
-  { id: 'ergebnisse', nummer: '04', label: 'Ergebnisse' },
-  { id: 'architektur', nummer: '05', label: 'Architektur' },
-  { id: 'clef', nummer: '06', label: 'So arbeitet Clef' },
-  { id: 'clef-vorschlag', nummer: '07', label: 'Entscheidungslogik' },
-  { id: 'naechster-schritt', nummer: '08', label: 'Roadmap' },
-  { id: 'team', nummer: '09', label: 'Das Team' },
+  { id: 'architektur', nummer: '04', label: 'Architektur' },
+  { id: 'clef', nummer: '05', label: 'So arbeitet Clef' },
+  { id: 'ergebnisse', nummer: '06', label: 'Ergebnisse' },
+  { id: 'naechster-schritt', nummer: '07', label: 'Roadmap' },
+  { id: 'team', nummer: '08', label: 'Das Team' },
 ]
 
 const TEAM = ['Admir', 'Simon', 'Philipp', 'Aaron']
@@ -86,15 +81,6 @@ const KRITERIEN = [
     detail: 'pro Entscheidung des Vision-Modells (Clef über OpenRouter)',
     status: 'erfuellt',
   },
-]
-
-// Bausteine aus der Challenge-Beschreibung und wo sie bei uns liegen
-const BAUSTEINE = [
-  { icon: ScanSearch, rolle: 'Vision Agent', modul: 'vision.py · clef.py', text: 'Clef (Apache-2.0) über OpenRouter, alternativ Azure OpenAI – per VISION_ANBIETER umschaltbar.' },
-  { icon: Database, rolle: 'Product Data Agent', modul: 'Produktdaten · Kataloge', text: '153 Victorinox-Taschenmesser von victorinox.com, ergänzt um Katalog 2026 sowie SWIZA, Leatherman und Gerber.' },
-  { icon: Layers, rolle: 'Vektorindex', modul: 'embeddings.py', text: 'Semantische Suche über Verwendungszwecke („Wandern“, „Picknick und Wein“).' },
-  { icon: Target, rolle: 'Recommendation Agent', modul: 'matching.py · konkurrenz.py', text: 'Werkzeug-Abgleich über 32 Werkzeuggruppen plus Konkurrenz-Zuordnung.' },
-  { icon: MessageSquare, rolle: 'Feedback', modul: '/api/feedback', text: 'Richtig/falsch aus dem Alltag fliesst zurück in die Bewertung.' },
 ]
 
 const LEISTE = 48 // Höhe der Kapitel-Leiste
@@ -288,7 +274,7 @@ function useFolienSteuerung() {
   }, [])
 }
 
-/** Folie 6: Clefs Bildklassifikation, ohne den anschliessenden Produktabgleich. */
+/** Folie 5: Clefs Bildklassifikation, ohne den anschliessenden Produktabgleich. */
 function ClefErkennung() {
   return (
     <div className="mx-auto max-w-5xl">
@@ -312,30 +298,6 @@ function ClefErkennung() {
         </div>
       </div>
       <div className="mt-5 flex flex-col gap-3 border-l-2 border-brand pl-4 sm:flex-row sm:items-center sm:justify-between sm:pl-5"><div><div className="font-semibold">Der Server wertet die Antworten aus</div><div className="text-sm text-slate-500">Gelernte Schwellen entscheiden, welche Werkzeuge als erkannt gelten. Bei der Marke zählt auch der Abstand zur nächstbesten Antwort.</div></div><div className="shrink-0 rounded-xl bg-white px-4 py-2 text-xs text-slate-700 ring-1 ring-slate-200">Strukturierte Erkennung</div></div>
-    </div>
-  )
-}
-
-/** Folie 7: Entscheidungsbaum für den Produktabgleich nach der Erkennung. */
-function ClefVorschlag() {
-  return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mt-5 overflow-x-auto pb-2">
-        <div className="mx-auto min-w-[720px] max-w-4xl">
-          <div className="flex justify-center"><div className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white">Marke erkannt</div></div>
-          <svg className="h-12 w-full" viewBox="0 0 800 48" preserveAspectRatio="none" aria-hidden="true"><path d="M400 0 V18 H200 V48 M400 18 H600 V48" fill="none" stroke="#cbd5e1" strokeWidth="2" /></svg>
-          <div className="grid grid-cols-2 gap-16">
-            <div className="text-center"><span className="inline-block rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Konkurrenzprodukt</span><div className="mt-3 text-sm font-semibold text-slate-800">Querverweis und Werkzeugliste</div><div className="mt-1 text-xs text-slate-500">Bekanntes Modell zuordnen</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Victorinox nach Werkzeugen ordnen</div><div className="mt-1 text-[11px] text-slate-400">Bildvergleich hilft bei Gleichstand</div></div>
-            <div className="text-center"><span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Victorinox oder unbekannt</span><div className="mt-3 text-sm font-semibold text-slate-800">Katalogbilder vergleichen</div><div className="mt-1 text-xs text-slate-500">Kundenfoto mit Victorinox-Produkten</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Nach Bildtreffer ordnen</div><div className="mt-1 text-[11px] text-slate-400">Ohne Bildtreffer: Werkzeuge vergleichen</div></div>
-          </div>
-          <svg className="h-12 w-full" viewBox="0 0 800 48" preserveAspectRatio="none" aria-hidden="true"><path d="M200 0 V18 H400 V48 M600 0 V18 H400" fill="none" stroke="#cbd5e1" strokeWidth="2" /></svg>
-          <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm text-slate-700">Treffer aus der gewählten Kategorie erhalten das volle Gewicht</div>
-          <div className="mx-auto h-8 w-px bg-slate-300" />
-          <div className="flex justify-center"><div className="rounded-full bg-brand px-7 py-3 text-sm font-semibold text-white">Drei Victorinox-Vorschläge</div></div>
-          <div className="mx-auto h-7 w-px bg-slate-300" />
-          <div className="text-center text-sm"><span className="font-semibold text-slate-800">Genug Abstand zwischen Treffern?</span><span className="px-2 text-slate-400">Nein → Rückfrage</span><span className="text-slate-400"> · Ja → Ergebnis zeigen</span></div>
-        </div>
-      </div>
     </div>
   )
 }
@@ -490,13 +452,66 @@ export default function PresentationPage() {
           </div>
         </Kapitel>
 
-        {/* 04 · Erfolgskriterien mit Messwerten */}
+        {/* 04 · Architektur und Entwicklung */}
         <Kapitel {...chapters[3]} className="border-b border-slate-200">
-          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
-            <Titel akzent="gemessen, nicht behauptet.">Eure Erfolgskriterien –</Titel>
-            <p className="max-w-xs text-sm text-slate-600">Gemessen auf echten Smartphone-Fotos, nicht auf Produktbildern aus dem Shop.</p>
+          <Titel akzent="mit klaren Abzweigungen.">Vom Foto zur Empfehlung</Titel>
+          <div className="mx-auto mt-4 max-w-6xl">
+            <div className="mx-auto max-w-2xl rounded-2xl bg-slate-900 px-6 py-4 text-center text-white shadow-lg">
+              <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-300"><Camera className="size-4" /> FastAPI · <span className="font-mono">/api/match/stream</span></div>
+              <div className="mt-2 text-xl font-bold">Foto analysieren</div>
+              <div className="mt-1 text-sm text-slate-300">Marke & Werkzeuge erkennen · bei Clef parallel Victorinox-Bilder vergleichen</div>
+            </div>
+
+            <svg className="hidden h-10 w-full md:block" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M500 0 V40" fill="none" stroke="#cbd5e1" strokeWidth="3" />
+            </svg>
+            <div className="mx-auto max-w-md rounded-xl border border-slate-300 bg-slate-100 px-5 py-3 text-center text-sm font-bold text-slate-800">Konkurrenzmarke mit eigenem Katalog erkannt?</div>
+            <svg className="hidden h-14 w-full md:block" viewBox="0 0 1000 56" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M500 0 V24 H250 V56 M500 24 H750 V56" fill="none" stroke="#cbd5e1" strokeWidth="3" />
+            </svg>
+            <div className="grid gap-4 md:grid-cols-2 md:px-8">
+              <div className="relative rounded-2xl border-2 border-red-200 bg-red-50 p-5 sm:p-6">
+                <div className="mb-3 inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-800">Ja</div>
+                <h3 className="text-lg font-bold text-slate-900">Konkurrenzmarke</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">Modell dort suchen und die bekannte Werkzeugliste für den Victorinox-Abgleich nutzen. Ohne Modelltreffer gelten die erkannten Werkzeuge.</p>
+              </div>
+              <div className="relative rounded-2xl border-2 border-slate-200 bg-white p-5 sm:p-6">
+                <div className="mb-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">Nein · oder unklar</div>
+                <h3 className="text-lg font-bold text-slate-900">Victorinox, unbekannt oder kein Modelltreffer</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">Bei Victorinox ordnen Bildtreffer die Vorschläge. Sonst entscheidet der Werkzeug-Abgleich; Bildähnlichkeit hilft als Zusatz.</p>
+              </div>
+            </div>
+
+            <svg className="hidden h-14 w-full md:block" viewBox="0 0 1000 56" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M250 0 V28 H500 V56 M750 0 V28 H500" fill="none" stroke="#cbd5e1" strokeWidth="3" />
+            </svg>
+            <div className="mx-auto mt-4 max-w-2xl rounded-2xl border-2 border-red-200 bg-white px-6 py-4 text-center shadow-sm">
+              <div className="flex items-center justify-center gap-2 text-lg font-bold text-slate-900"><Target className="size-5 text-brand" />Top-3 Victorinox-Vorschläge</div>
+              <p className="mt-2 text-sm text-slate-600">Bei fehlenden Werkzeugen oder knappem Abstand bittet die App um weitere Angaben oder ein besseres Foto.</p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="mr-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Tech-Stack</span>
+              {['Python · FastAPI', 'React · Vite', 'Clef · OpenRouter', 'OpenAI / Azure (optional)', 'fastembed (experimentell)', 'Docker'].map((t) => (
+                <span key={t} className="rounded-full bg-white px-3 py-1.5 text-xs text-slate-700 ring-1 ring-slate-200">{t}</span>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-slate-500">
+              <span>153 Victorinox-Taschenmesser + verfügbare Konkurrenzkataloge</span>
+              <span>Vision-Anbieter per Umgebungsvariable wählbar</span>
+              <span>Feedback wird lokal gespeichert; kein automatisches Training</span>
+            </div>
           </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        </Kapitel>
+
+        {/* 05 · Wie Clef arbeitet */}
+        <Kapitel {...chapters[4]} className="border-b border-slate-200">
+          <ClefErkennung />
+        </Kapitel>
+
+        {/* 06 · Erfolgskriterien mit Messwerten */}
+        <Kapitel {...chapters[5]} className="border-b border-slate-200">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {KRITERIEN.map((k, index) => (
               <motion.div key={k.kriterium} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }} viewport={{ once: true }}>
                 <Karte className="h-full px-5 py-4">
@@ -538,52 +553,8 @@ export default function PresentationPage() {
           </div>
         </Kapitel>
 
-        {/* 05 · Architektur und Entwicklung */}
-        <Kapitel {...chapters[4]} className="border-b border-slate-200">
-          <Titel akzent="über APIs austauschbar.">Modular gebaut,</Titel>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">Jeder Baustein aus eurer Challenge-Beschreibung hat bei uns ein eigenes Modul. Ein FastAPI-Orchestrator ruft sie nacheinander auf und streamt jeden Schritt live ins Frontend.</p>
-          <div className="mt-8 grid items-stretch gap-3 lg:grid-cols-[auto_1fr_auto]">
-            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-slate-200 bg-white p-5 lg:flex-col">
-              <Camera className="size-7 text-brand" /><span className="text-sm font-semibold">Foto</span>
-            </div>
-            <div className="rounded-[28px] border-2 border-dashed border-red-200 bg-white/60 p-4">
-              <div className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-slate-700"><Workflow className="size-4 text-brand" /> Orchestrator · FastAPI <span className="font-mono text-xs font-normal text-slate-500">/api/match/stream</span></div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                {BAUSTEINE.map(({ icon: Icon, rolle, modul, text }) => (
-                  <div key={rolle} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <Icon className="size-5 text-brand" />
-                    <div className="mt-3 text-sm font-bold">{rolle}</div>
-                    <div className="font-mono text-[11px] text-slate-500">{modul}</div>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-red-200 bg-red-50 p-5 lg:flex-col">
-              <Target className="size-7 text-brand" /><span className="text-sm font-semibold">Top-3</span>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Stack</span>
-            {['Python · FastAPI', 'React · Vite', 'Clef · OpenRouter', 'Azure OpenAI (optional)', 'fastembed', 'Docker'].map((t) => (
-              <span key={t} className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-200">{t}</span>
-            ))}
-            <span className="ml-2 text-sm text-slate-600">· Vision-Modell per Umgebungsvariable wechselbar, ohne Code zu ändern.</span>
-          </div>
-        </Kapitel>
-
-        {/* 06 · Wie Clef arbeitet */}
-        <Kapitel {...chapters[5]} className="border-b border-slate-200">
-          <ClefErkennung />
-        </Kapitel>
-
-        {/* 07 · Vom Clef-Ergebnis zum Vorschlag */}
-        <Kapitel {...chapters[6]} className="border-b border-slate-200">
-          <ClefVorschlag />
-        </Kapitel>
-
-        {/* 08 · Roadmap */}
-        <Kapitel {...chapters[7]}>
+        {/* 07 · Roadmap */}
+        <Kapitel {...chapters[6]}>
           <Titel akzent="zum Werkzeug im Alltag.">Vom Hackathon-Prototyp</Titel>
           <div className="mt-10 grid gap-4 md:grid-cols-4">
             {[
@@ -603,8 +574,8 @@ export default function PresentationPage() {
           </div>
         </Kapitel>
 
-        {/* 09 · Team und Abschluss */}
-        <Kapitel {...chapters[8]} className="border-t border-slate-200">
+        {/* 08 · Team und Abschluss */}
+        <Kapitel {...chapters[7]} className="border-t border-slate-200">
           <div className="grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-center">
             <figure className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
               <img src="/team.webp" alt="Das Team vor dem Product Match Agent am Zentralhack" className="aspect-[4/3] w-full rounded-[22px] object-cover" />

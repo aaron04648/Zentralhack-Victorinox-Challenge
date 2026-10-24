@@ -218,7 +218,7 @@ client's 12 labelled photos from the input PDF (`data/sak_ground_truth/`, mounte
 Matching upper bound (perfect tool detection): top-1 88 %, top-3 100 % of 32 test knives; with scale
 parts and one more tool missed, top-3 is still 94 %.
 
-Measured with Clef (`clef-flash`), honest numbers:
+Earlier offline Clef evaluation (`clef-flash`, before the updated brand prompt):
 
 | test | tool matching | visual search |
 | --- | --- | --- |
@@ -232,6 +232,31 @@ the visual ranking made results worse, so tools only explain the recommendation.
 get plausible Victorinox replacements (Leatherman → Swiss Tool BS, Gerber multitool → Swiss Tool
 Spirit X, Gerber/Benchmade folders → Evoke BSH Alox). Note: `labels.json` assigns the sticky notes of
 PDF pages 13 and 22 by column, not by photo; `training/evaluieren.py` corrects this (`FOTO_KORREKTUR`).
+
+Latest end-to-end `/api/match` evaluation on both sets (local backend, 2026-10-24):
+
+| set | result |
+| --- | --- |
+| PDF packshots, corrected brand labels | **11/12 correct (92%)** |
+| PDF packshots, exact labelled Victorinox SKU in top 3 | **2/5 (40%)** |
+| PDF packshots, product family in top 3 (including catalogue variants) | **3/5 (60%)** |
+| PXL photos, labels as originally recorded | **9/12 correct (75%)** |
+| PXL photos, visibly corrected labels (photo 12 unconfirmed/excluded) | **8/11 correct (73%)** |
+| PXL known labels at confidence ≥ 0.6 | **7/7 correct, 7/11 coverage** |
+
+The PXL label review found that photos 07 and 10 show Gerber marks despite their old
+`sak_black` labels; photo 12 is a non-SAK locking folder whose maker is not confirmed.
+The corrected PXL score therefore excludes photo 12. There are no exact product or
+replacement labels for the PXL set, so its recommendation quality cannot be scored.
+For the PDF set, `0.8226.22` is a colour variant under catalogue article `0.8226.20`:
+the API returns that family at rank 2, but does not resolve the exact variant. The
+other competitor replacement recommendations also lack Sven-labelled Victorinox
+substitutes, so they need product-expert review. Confidence ≥ 0.6 separates all
+observed errors in these small sets, but needs validation on new images before being
+treated as a reliable production threshold. The endpoint asked for clarification on
+9/12 PDF and 10/12 PXL cases; two low-confidence PXL predictions still had no
+clarification. Raw request results:
+[`data/api_match_both_sets.json`](data/api_match_both_sets.json).
 
 ## Frontend
 
@@ -292,6 +317,10 @@ tools/                               Classification workstream: Clef client + ev
   tool_vocab.py                      German -> English mapping for all 147 catalogue tools
   feature_detection.py               Detects which tools are visible in a photo
   eval_clef.py                       Clef decision experiments
+  eval_clef_pdf.py                   Corrected Sven PDF packshot brand evaluation
+  eval_real.py                       Evaluation on the real smartphone photos
+  eval_match_api.py                  End-to-end evaluation of /api/match
+  eval_api_sets.py                   Full /api/match run on PDF and PXL sets
   eval_retrieval.py                  Embedding retrieval baselines
 main.py                              Entry point
 embeddings.py                        Embedding pipeline (in progress)
@@ -309,10 +338,34 @@ Summary of what was measured on the 12 labelled photos in `data/sak_ground_truth
   resnet50 all produce a *negative* within-class vs between-class similarity gap —
   worse than chance at telling SAK variants apart. Best top-1 was **2/12**.
 - **[Cloudflare Clef](https://huggingface.co/Cloudflare/clef)** (Apache-2.0,
-  multimodal, Jev/SystemOne-compatible) does work: **top-3 = 11/12 (92%)**, which
-  meets the success criterion above, at ~$0.00003 per decision.
+  multimodal, Jev/SystemOne-compatible) does work. On the **real smartphone photos**
+  it reaches **top-1 = 9/12 (75%), top-3 = 11/12 (92%)**, and its confidence
+  separates cleanly (0.850 when correct vs 0.119 when wrong), so at confidence ≥ 0.3
+  it shows 9/12 at 100% precision and abstains on the rest. ~$0.00003 per decision.
+- On Sven's separate **PDF packshots**, the updated production Clef brand question,
+  scored with the corrected page 13/22 photo mapping, reaches **11/12 top-1 and 12/12
+  top-3**. This is an in-sample result on 12 clean images; the one top-1 miss is a
+  low-resolution Gerber folder ranked as Benchmade. This is the brand stage, not the
+  complete `/api/match` pipeline. Reproduce with
+  `python3 tools/eval_clef_pdf.py --candidate-set production`.
 - It is reachable on OpenRouter at `POST /api/alpha/decisions` — **not**
   `/chat/completions`, and it is **not** listed in the model catalogue.
+- **The brand question must describe visible features, not brand names.** Victorinox and SWIZA
+  both put a cross on the handle; what separates them is the shape of the emblem (shield outline
+  vs. circle badge). With per-option criteria describing what is *visible* the live pipeline
+  reaches **top-1 = 9/13** on the 12 packshots plus the SWIZA D03 (was 8/12). Asking the brand
+  question in its own request instead of bundling it with the 12 tool questions helps: bundled,
+  the probability mass is shared and the brand is read worse.
+- **The brand question needs an abstention option.** "unclear" lets the model say "I cannot tell"
+  instead of guessing; when it wins, the app reports the brand as unknown with confidence 0 and
+  asks a clarifying question. On the latest full API run, reviewed PXL labels score **8/11**;
+  confidence ≥ 0.6 retained **7/11** with all 7 correct. The sample is too small to treat that
+  threshold as calibrated.
+- **A closed knife shows no tools.** The catalogue's tool lists are the discriminator, not the
+  photo. For known competitor products the cross-reference table
+  (`backend/data/training/konkurrenz.csv`) provides the exact tool set, which replaces the noisy
+  photo detection: for the client's reference example (SWIZA D03 AM) it identifies the article
+  `KNI.0036.6330` and its 8 tools from the table.
 
 ```bash
 uv run python tools/eval_retrieval.py     # embedding baselines

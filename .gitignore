@@ -10,3 +10,8 @@ __pycache__/
 backend/data/training/ft_*.jsonl
 backend/data/katalog_kacheln/
 backend/data/.fastembed/
+
+# Extrahierte Katalogbilder (aus PDFs jederzeit neu erzeugbar; Metadaten bleiben versioniert)
+data/catalogue_images/**/*.jpg
+data/catalogue_images/**/*.jp2
+data/catalogue_images/**/*.png

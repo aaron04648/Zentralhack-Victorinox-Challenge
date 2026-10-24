@@ -10,8 +10,11 @@ the app has to handle.
 
 ## Ground truth
 
-Established by **reading the markings directly off the photos**, not from a model
-prediction. Three of the products carry legible brand marks:
+The original labels were assembled by inspecting the photos. A review for the latest
+full-pipeline run found three conflicts: photos 07 and 10 show Gerber marks, while
+photo 12 is a one-hand locking folder rather than a Victorinox SAK; its maker is not
+confirmed. The table distinguishes these reviewed labels from the legacy classes in
+`labels.json`.
 
 - photo 01 — engraved `LEATHERMAN® Rev™`
 - photo 03 — engraved `GERBER`
@@ -25,20 +28,22 @@ prediction. Three of the products carry legible brand marks:
 | `04_..._070652715.MP.jpg` | `sak_red` | Victorinox SAK, red + Swiss cross shield |
 | `05_..._070657633.jpg` | `sak_red` | Victorinox SAK, red + Swiss cross shield |
 | `06_..._070707946.jpg` | `sak_black` | Victorinox SAK, black carbon scales, closed |
-| `07_..._070713477.jpg` | `sak_black` | Victorinox SAK, black, closed, side view |
+| `07_..._070713477.jpg` | `gerber` (reviewed) | Black folding knife with Gerber shield mark; legacy label was `sak_black` |
 | `08_..._070734192.jpg` | `ruler` | Victorinox metal ruler / cm scale |
 | `09_..._070739736.jpg` | `ruler` | Victorinox metal ruler / cm scale (marked VICTORINOX) |
-| `10_..._070745178.jpg` | `sak_black` | Victorinox SAK, black, closed |
+| `10_..._070745178.jpg` | `gerber` (reviewed) | Gerber FAST DRAW folding knife; legacy label was `sak_black` |
 | `11_..._070749922.jpg` | `sak_red` | Victorinox SAK, red, closed |
-| `12_..._070755770.jpg` | `sak_black` | Victorinox SAK, black textured, closed |
+| `12_..._070755770.jpg` | `other / unconfirmed` | Black locking folder; visible mark is too small to confirm the maker; legacy label was `sak_black` |
 
-Distribution: 4× `sak_red`, 4× `sak_black`, 2× `ruler`, 1× `leatherman`, 1× `gerber`.
+The legacy labels contain 4× `sak_red`, 4× `sak_black`, 2× `ruler`, 1× `leatherman`,
+and 1× `gerber`. The reviewed labels move photos 07/10 to Gerber and photo 12 to an
+unconfirmed other brand.
 
 Note this set contains **competitor brands** (Leatherman, Gerber) — the case the
 project actually cares about — whereas `data/sak_ground_truth/` is mostly
 competitors too but with clean backgrounds.
 
-## Results
+## Archived direct Clef result (legacy labels)
 
 Brand decision with `cloudflare/clef-flash`, five options covering all classes:
 
@@ -61,6 +66,10 @@ The two misses are informative:
 - **photo 07** — a black SAK seen edge-on, read as `gerber` (0.437) over
   `sak_black` (0.113). Confidence 0.213, so again caught by abstention.
 
+This is the archived standalone experiment against the original `labels.json`
+classes. It is not the full app pipeline, and photos 07, 10, and 12 now have label
+caveats above; use the latest full API figures below for the current labels.
+
 ## The open/closed gate generalises
 
 `open_state` separates cleanly on both sets:
@@ -81,6 +90,28 @@ brand-level decision. The model cannot tell SKUs apart from a closed knife in a
 desk photo. This matches the packshot finding: the catalogue's tool lists
 discriminate, but the *photo* has to supply the tool evidence first, and a closed
 knife does not.
+
+## Full local API run (2026-10-24)
+
+All 12 photos were sent through the complete local `/api/match` flow after the
+production brand-prompt update:
+
+| scoring view | brand accuracy |
+| --- | --- |
+| original labels in `labels.json` | **9/12** |
+| reviewed labels, excluding photo 12 (maker unconfirmed) | **8/11** |
+| reviewed known labels at confidence ≥ 0.6 | **7/7 correct, 7/11 coverage** |
+
+Errors on the reviewed known labels are photos 06 (Roxon for Victorinox), 07
+(Victorinox for Gerber), and 10 (Benchmade for Gerber). Photo 12 was predicted as
+Benchmade, but the maker has not been verified. No exact product SKUs or ground-truth
+Victorinox replacements are labelled for this photo set, so recommendation accuracy
+cannot be scored. Full outputs, including ranked Victorinox recommendations, are in
+[`../api_match_both_sets.json`](../api_match_both_sets.json).
+
+The pipeline asked for clarification on 10/12 photos. Two low-confidence brand results
+(photos 02 and 12, both below 0.6) did not trigger a clarification, so the tested
+confidence cutoff is not yet consistently enforced in the response flow.
 
 ## Reproducing
 

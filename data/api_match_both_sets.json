@@ -1,0 +1,4187 @@
+{
+  "started_at_utc": "2026-10-24T12:50:53.313452+00:00",
+  "endpoint": "http://127.0.0.1:8000/api/match",
+  "sets": {
+    "pdf_packshots": {
+      "completed": 12,
+      "brand_correct_corrected_labels": 11,
+      "brand_denominator_corrected_labels": 12,
+      "brand_correct_legacy_labels": 11,
+      "brand_denominator_legacy_labels": 12,
+      "brand_confidence_at_least_0_6_correct": 11,
+      "brand_confidence_at_least_0_6_coverage": 11,
+      "sku_rows": 5,
+      "sku_matchable_in_catalogue": 5,
+      "sku_in_top3_all_labelled": 2,
+      "sku_in_top3_matchable": 2,
+      "mean_seconds": 14.74,
+      "sku_family_in_top3": 3,
+      "clarification_requests": 9,
+      "low_confidence_without_clarification": 0
+    },
+    "pxl_phone_photos": {
+      "completed": 12,
+      "brand_correct_corrected_labels": 8,
+      "brand_denominator_corrected_labels": 11,
+      "brand_correct_legacy_labels": 9,
+      "brand_denominator_legacy_labels": 12,
+      "brand_confidence_at_least_0_6_correct": 7,
+      "brand_confidence_at_least_0_6_coverage": 7,
+      "sku_rows": 0,
+      "sku_matchable_in_catalogue": 0,
+      "sku_in_top3_all_labelled": 0,
+      "sku_in_top3_matchable": 0,
+      "mean_seconds": 14.8,
+      "sku_family_in_top3": 0,
+      "clarification_requests": 10,
+      "low_confidence_without_clarification": 2
+    }
+  },
+  "rows": [
+    {
+      "set": "pdf_packshots",
+      "file": "p1_Im1_obj3.png",
+      "truth_brand": "Roxon",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Roxon",
+      "brand_confidence": 0.897,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.89,
+          "position": {
+            "x": 0.718,
+            "y": 0.152,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.77,
+          "position": {
+            "x": 0.422,
+            "y": 0.822,
+            "sicherheit": 0.24
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.73,
+          "position": {
+            "x": 0.799,
+            "y": 0.381,
+            "sicherheit": 0.45
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.7,
+          "position": {
+            "x": 0.793,
+            "y": 0.374,
+            "sicherheit": 0.43
+          }
+        },
+        {
+          "gruppe": "stecknadel",
+          "label": "Stecknadel",
+          "wahrscheinlichkeit": 0.66,
+          "position": {
+            "x": 0.138,
+            "y": 0.614,
+            "sicherheit": 0.71
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.63,
+          "position": {
+            "x": 0.143,
+            "y": 0.628,
+            "sicherheit": 0.71
+          }
+        },
+        {
+          "gruppe": "zange",
+          "label": "Zange",
+          "wahrscheinlichkeit": 0.59,
+          "position": {
+            "x": 0.79,
+            "y": 0.624,
+            "sicherheit": 0.39
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.52,
+          "position": {
+            "x": 0.342,
+            "y": 0.857,
+            "sicherheit": 0.6
+          }
+        },
+        {
+          "gruppe": "bits",
+          "label": "Bit-Halter",
+          "wahrscheinlichkeit": 0.43,
+          "position": {
+            "x": 0.332,
+            "y": 0.851,
+            "sicherheit": 0.52
+          }
+        },
+        {
+          "gruppe": "zahnstocher",
+          "label": "Zahnstocher",
+          "wahrscheinlichkeit": 0.41,
+          "position": {
+            "x": 0.133,
+            "y": 0.614,
+            "sicherheit": 0.73
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.4,
+          "position": {
+            "x": 0.784,
+            "y": 0.405,
+            "sicherheit": 0.32
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.3,
+          "position": {
+            "x": 0.755,
+            "y": 0.597,
+            "sicherheit": 0.15
+          }
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.29,
+          "position": null
+        },
+        {
+          "gruppe": "mini_schraubendreher",
+          "label": "Mini-Schraubendreher",
+          "wahrscheinlichkeit": 0.28,
+          "position": null
+        },
+        {
+          "gruppe": "schraubendreher_kreuz",
+          "label": "Kreuzschraubendreher",
+          "wahrscheinlichkeit": 0.18,
+          "position": null
+        },
+        {
+          "gruppe": "holzmeissel",
+          "label": "Holzmeissel",
+          "wahrscheinlichkeit": 0.07,
+          "position": null
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.06,
+          "position": null
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "1.7775.T",
+          "name": "Cyber Tool L",
+          "score": -0.026,
+          "reasons": [
+            "14 von 17 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6795.XXL",
+          "name": "Swiss Champ XXL",
+          "score": -0.0329,
+          "reasons": [
+            "14 von 17 erkannten Werkzeugen vorhanden",
+            "11 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6795",
+          "name": "Swiss Champ",
+          "score": -0.0728,
+          "reasons": [
+            "14 von 17 erkannten Werkzeugen vorhanden",
+            "12 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 17.11,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Roxon, 17 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Roxon"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "17 Werkzeuge mit 167 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score -0.03"
+        }
+      ],
+      "legacy_truth_brand": "Roxon"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p1_Im2_obj5.png",
+      "truth_brand": "Helton",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "The Helton",
+      "brand_confidence": 0.905,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 0.92,
+          "position": {
+            "x": 0.627,
+            "y": 0.857,
+            "sicherheit": 0.56
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.84,
+          "position": {
+            "x": 0.712,
+            "y": 0.176,
+            "sicherheit": 0.42
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.56,
+          "position": {
+            "x": 0.191,
+            "y": 0.334,
+            "sicherheit": 0.46
+          }
+        },
+        {
+          "gruppe": "metallfeile",
+          "label": "Metallfeile",
+          "wahrscheinlichkeit": 0.45,
+          "position": {
+            "x": 0.297,
+            "y": 0.837,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.4,
+          "position": {
+            "x": 0.217,
+            "y": 0.22,
+            "sicherheit": 0.26
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.37,
+          "position": {
+            "x": 0.203,
+            "y": 0.339,
+            "sicherheit": 0.38
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.31,
+          "position": {
+            "x": 0.208,
+            "y": 0.357,
+            "sicherheit": 0.28
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.19,
+          "position": {
+            "x": 0.225,
+            "y": 0.367,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.17,
+          "position": {
+            "x": 0.205,
+            "y": 0.293,
+            "sicherheit": 0.3
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.18,
+            "y": 0.226,
+            "sicherheit": 0.4
+          }
+        },
+        {
+          "gruppe": "holzmeissel",
+          "label": "Holzmeissel",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.326,
+            "y": 0.806,
+            "sicherheit": 0.21
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "1.3763",
+          "name": "Ranger",
+          "score": 0.5147,
+          "reasons": [
+            "10 von 11 erkannten Werkzeugen vorhanden",
+            "8 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.3773",
+          "name": "Handyman",
+          "score": 0.5038,
+          "reasons": [
+            "10 von 11 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.7775.T",
+          "name": "Cyber Tool L",
+          "score": 0.487,
+          "reasons": [
+            "10 von 11 erkannten Werkzeugen vorhanden",
+            "13 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 17.55,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "The Helton, 11 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "11 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "The Helton"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "11 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.51"
+        }
+      ],
+      "legacy_truth_brand": "Helton"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p1_Im3_obj7.png",
+      "truth_brand": "Swiza",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "SWIZA",
+      "brand_confidence": 0.902,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": "D03 AM",
+      "recognized_tools": [
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.801,
+            "y": 0.594,
+            "sicherheit": 0.17
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.237,
+            "y": 0.833,
+            "sicherheit": 0.29
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.329,
+            "y": 0.222,
+            "sicherheit": 0.12
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.194,
+            "y": 0.142,
+            "sicherheit": 0.38
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.17,
+            "y": 0.569,
+            "sicherheit": 0.6
+          }
+        },
+        {
+          "gruppe": "korkenzieher",
+          "label": "Korkenzieher",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.602,
+            "y": 0.634,
+            "sicherheit": 0.63
+          }
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.866,
+            "y": 0.61,
+            "sicherheit": 0.8
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.335,
+            "y": 0.235,
+            "sicherheit": 0.1
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8353.3",
+          "name": "Picknicker",
+          "score": 1.0,
+          "reasons": [
+            "Alle 8 erkannten Werkzeuge vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (9 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "1.3603",
+          "name": "Spartan",
+          "score": 1.0,
+          "reasons": [
+            "Alle 8 erkannten Werkzeuge vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (10 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.8363",
+          "name": "Forester",
+          "score": 1.0,
+          "reasons": [
+            "Alle 8 erkannten Werkzeuge vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (10 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 11.49,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "SWIZA, 11 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Übersprungen: SWIZA erkannt (90%), Modell wird im SWIZA-Katalog gesucht"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "11 Werkzeuge markiert"
+        },
+        {
+          "id": "markenkatalog",
+          "label": "Modell im SWIZA-Katalog bestimmt",
+          "status": "ok",
+          "detail": "D03 AM (KNI.0036.6330): Werkzeuge (11 Varianten gleich ausgestattet), 8 Werkzeuge laut swiza.com"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "SWIZA"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "8 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 1.00"
+        }
+      ],
+      "legacy_truth_brand": "Swiza"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p1_Im4_obj9.png",
+      "truth_brand": "Victorinox",
+      "truth_sku": "1.3603",
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.925,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "korkenzieher",
+          "label": "Korkenzieher",
+          "wahrscheinlichkeit": 0.97,
+          "position": {
+            "x": 0.64,
+            "y": 0.844,
+            "sicherheit": 0.6
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.83,
+          "position": {
+            "x": 0.232,
+            "y": 0.373,
+            "sicherheit": 0.38
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.82,
+          "position": {
+            "x": 0.804,
+            "y": 0.15,
+            "sicherheit": 0.5
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.81,
+          "position": {
+            "x": 0.801,
+            "y": 0.158,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.8,
+          "position": {
+            "x": 0.377,
+            "y": 0.615,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.24,
+            "y": 0.62,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.09,
+          "position": {
+            "x": 0.222,
+            "y": 0.634,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.08,
+          "position": {
+            "x": 0.215,
+            "y": 0.636,
+            "sicherheit": 0.39
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.327,
+            "y": 0.59,
+            "sicherheit": 0.17
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": 2,
+      "expected_sku_in_top3": true,
+      "recommendations": [
+        {
+          "artikelnummer": "0.2503",
+          "name": "Recruit",
+          "score": 0.2281,
+          "reasons": [
+            "Bildähnlichkeit 23%",
+            "6 von 9 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "1.3603",
+          "name": "Spartan",
+          "score": 0.1635,
+          "reasons": [
+            "Bildähnlichkeit 16%",
+            "8 von 9 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (10 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.3803",
+          "name": "Sportsman",
+          "score": 0.1293,
+          "reasons": [
+            "Bildähnlichkeit 13%",
+            "7 von 9 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (11 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": null,
+      "seconds": 15.71,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 9 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "9 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "ok",
+          "detail": "Top-Score 0.23"
+        }
+      ],
+      "legacy_truth_brand": "Victorinox",
+      "truth_sku_canonical": "1.3603",
+      "sku_family_rank": 2,
+      "expected_sku_family_in_top3": true
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p1_Im5_obj11.png",
+      "truth_brand": "Victorinox",
+      "truth_sku": "0.8226.22",
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.893,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 0.94,
+          "position": {
+            "x": 0.318,
+            "y": 0.617,
+            "sicherheit": 0.54
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.72,
+          "position": {
+            "x": 0.232,
+            "y": 0.373,
+            "sicherheit": 0.52
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.6,
+          "position": {
+            "x": 0.631,
+            "y": 0.154,
+            "sicherheit": 0.31
+          }
+        },
+        {
+          "gruppe": "metallsaege",
+          "label": "Metallsäge",
+          "wahrscheinlichkeit": 0.59,
+          "position": {
+            "x": 0.649,
+            "y": 0.145,
+            "sicherheit": 0.31
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.53,
+          "position": {
+            "x": 0.361,
+            "y": 0.804,
+            "sicherheit": 0.15
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.49,
+          "position": {
+            "x": 0.629,
+            "y": 0.177,
+            "sicherheit": 0.22
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.47,
+          "position": {
+            "x": 0.196,
+            "y": 0.172,
+            "sicherheit": 0.25
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.37,
+          "position": {
+            "x": 0.242,
+            "y": 0.843,
+            "sicherheit": 0.13
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.14,
+          "position": {
+            "x": 0.223,
+            "y": 0.202,
+            "sicherheit": 0.14
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.09,
+          "position": {
+            "x": 0.228,
+            "y": 0.219,
+            "sicherheit": 0.12
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.08,
+          "position": {
+            "x": 0.226,
+            "y": 0.199,
+            "sicherheit": 0.12
+          }
+        },
+        {
+          "gruppe": "holzmeissel",
+          "label": "Holzmeissel",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.227,
+            "y": 0.219,
+            "sicherheit": 0.12
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8231.L26",
+          "name": "Pioneer X Alox Limited Edition 2026",
+          "score": 0.1724,
+          "reasons": [
+            "Bildähnlichkeit 17%",
+            "7 von 12 erkannten Werkzeugen vorhanden",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8226.20",
+          "name": "Synergy X Alox",
+          "score": 0.1265,
+          "reasons": [
+            "Bildähnlichkeit 13%",
+            "6 von 12 erkannten Werkzeugen vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.6223.2LIB",
+          "name": "Classic SD Zodiac Signs",
+          "score": 0.0936,
+          "reasons": [
+            "Bildähnlichkeit 9%",
+            "3 von 12 erkannten Werkzeugen vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 15.7,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 12 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.17"
+        }
+      ],
+      "legacy_truth_brand": "Victorinox",
+      "truth_sku_canonical": "0.8226.20",
+      "sku_family_rank": 2,
+      "expected_sku_family_in_top3": true
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p13_Im1_obj16.png",
+      "truth_brand": "Leatherman",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Leatherman",
+      "brand_confidence": 0.91,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": "FREE P4",
+      "recognized_tools": [
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.857,
+            "y": 0.852,
+            "sicherheit": 0.71
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.784,
+            "y": 0.775,
+            "sicherheit": 0.17
+          }
+        },
+        {
+          "gruppe": "holzsaege",
+          "label": "Holzsäge",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.387,
+            "y": 0.656,
+            "sicherheit": 0.53
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.836,
+            "y": 0.836,
+            "sicherheit": 0.53
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.826,
+            "y": 0.818,
+            "sicherheit": 0.39
+          }
+        },
+        {
+          "gruppe": "klinge_wellenschliff",
+          "label": "Klinge mit Wellenschliff",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.632,
+            "y": 0.678,
+            "sicherheit": 0.33
+          }
+        },
+        {
+          "gruppe": "schraubendreher_kreuz",
+          "label": "Kreuzschraubendreher",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "massstab",
+          "label": "Massstab",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "metallfeile",
+          "label": "Metallfeile",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.145,
+            "y": 0.859,
+            "sicherheit": 0.77
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 1.0,
+          "position": null
+        },
+        {
+          "gruppe": "zange",
+          "label": "Zange",
+          "wahrscheinlichkeit": 1.0,
+          "position": {
+            "x": 0.616,
+            "y": 0.139,
+            "sicherheit": 0.72
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "3.0327.MN",
+          "name": "Swiss Tool MX",
+          "score": 0.7636,
+          "reasons": [
+            "13 von 14 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (15 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "3.0327.N",
+          "name": "Swiss Tool X",
+          "score": 0.7636,
+          "reasons": [
+            "13 von 14 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (15 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "3.0323.3CN",
+          "name": "Swiss Tool BS",
+          "score": 0.7636,
+          "reasons": [
+            "13 von 14 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (15 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 5.78,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Leatherman, 18 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Übersprungen: Leatherman erkannt (91%), Modell wird im Leatherman-Katalog gesucht"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "markenkatalog",
+          "label": "Modell im Leatherman-Katalog bestimmt",
+          "status": "ok",
+          "detail": "FREE P4: Werkzeuge, 14 Werkzeuge laut Katalog Leatherman"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Leatherman"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "14 Werkzeuge mit 167 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.76"
+        }
+      ],
+      "legacy_truth_brand": "Leatherman"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p13_Im2_obj18.png",
+      "truth_brand": "Victorinox",
+      "truth_sku": "3.0224.3CN",
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.806,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.74,
+          "position": {
+            "x": 0.761,
+            "y": 0.337,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.73,
+          "position": {
+            "x": 0.766,
+            "y": 0.34,
+            "sicherheit": 0.25
+          }
+        },
+        {
+          "gruppe": "holzsaege",
+          "label": "Holzsäge",
+          "wahrscheinlichkeit": 0.69,
+          "position": {
+            "x": 0.262,
+            "y": 0.613,
+            "sicherheit": 0.45
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.62,
+          "position": {
+            "x": 0.375,
+            "y": 0.18,
+            "sicherheit": 0.2
+          }
+        },
+        {
+          "gruppe": "metallsaege",
+          "label": "Metallsäge",
+          "wahrscheinlichkeit": 0.52,
+          "position": {
+            "x": 0.346,
+            "y": 0.583,
+            "sicherheit": 0.26
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.43,
+          "position": {
+            "x": 0.222,
+            "y": 0.259,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "metallfeile",
+          "label": "Metallfeile",
+          "wahrscheinlichkeit": 0.43,
+          "position": {
+            "x": 0.631,
+            "y": 0.572,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "fischentschupper",
+          "label": "Fischentschupper",
+          "wahrscheinlichkeit": 0.29,
+          "position": {
+            "x": 0.771,
+            "y": 0.369,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 0.29,
+          "position": {
+            "x": 0.759,
+            "y": 0.415,
+            "sicherheit": 0.13
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.24,
+          "position": {
+            "x": 0.64,
+            "y": 0.34,
+            "sicherheit": 0.15
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.24,
+          "position": {
+            "x": 0.397,
+            "y": 0.19,
+            "sicherheit": 0.19
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.13,
+          "position": {
+            "x": 0.573,
+            "y": 0.208,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.12,
+          "position": null
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.11,
+          "position": null
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.07,
+          "position": null
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.9563.C31P",
+          "name": "Ranger 55 Grip Onyx Black",
+          "score": 0.2292,
+          "reasons": [
+            "Bildähnlichkeit 23%",
+            "6 von 15 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6791.63",
+          "name": "Swiss Champ Wood",
+          "score": 0.061,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "13 von 15 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6795.XXL",
+          "name": "Swiss Champ XXL",
+          "score": 0.0427,
+          "reasons": [
+            "Bildähnlichkeit 4%",
+            "11 von 15 erkannten Werkzeugen vorhanden",
+            "14 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": null,
+      "seconds": 21.08,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 15 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "ok",
+          "detail": "Top-Score 0.23"
+        }
+      ],
+      "legacy_truth_brand": "Victorinox",
+      "truth_sku_canonical": "3.0224.3CN",
+      "sku_family_rank": null,
+      "expected_sku_family_in_top3": false
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p13_Im3_obj19.png",
+      "truth_brand": "Gerber",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Gerber",
+      "brand_confidence": 0.903,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "zange",
+          "label": "Zange",
+          "wahrscheinlichkeit": 0.92,
+          "position": {
+            "x": 0.606,
+            "y": 0.137,
+            "sicherheit": 0.76
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.71,
+          "position": {
+            "x": 0.622,
+            "y": 0.706,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "metallfeile",
+          "label": "Metallfeile",
+          "wahrscheinlichkeit": 0.68,
+          "position": {
+            "x": 0.672,
+            "y": 0.856,
+            "sicherheit": 0.64
+          }
+        },
+        {
+          "gruppe": "metallsaege",
+          "label": "Metallsäge",
+          "wahrscheinlichkeit": 0.67,
+          "position": {
+            "x": 0.679,
+            "y": 0.817,
+            "sicherheit": 0.32
+          }
+        },
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 0.53,
+          "position": {
+            "x": 0.239,
+            "y": 0.838,
+            "sicherheit": 0.37
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.5,
+          "position": {
+            "x": 0.332,
+            "y": 0.773,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.47,
+          "position": {
+            "x": 0.298,
+            "y": 0.625,
+            "sicherheit": 0.52
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.38,
+          "position": {
+            "x": 0.332,
+            "y": 0.747,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.38,
+          "position": {
+            "x": 0.338,
+            "y": 0.755,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.35,
+          "position": {
+            "x": 0.347,
+            "y": 0.669,
+            "sicherheit": 0.15
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.2,
+          "position": {
+            "x": 0.361,
+            "y": 0.749,
+            "sicherheit": 0.14
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.15,
+          "position": {
+            "x": 0.326,
+            "y": 0.808,
+            "sicherheit": 0.3
+          }
+        },
+        {
+          "gruppe": "mini_schraubendreher",
+          "label": "Mini-Schraubendreher",
+          "wahrscheinlichkeit": 0.11,
+          "position": null
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.11,
+          "position": null
+        },
+        {
+          "gruppe": "schraubendreher_kreuz",
+          "label": "Kreuzschraubendreher",
+          "wahrscheinlichkeit": 0.09,
+          "position": null
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.06,
+          "position": null
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "1.6794.T7",
+          "name": "Swiss Champ",
+          "score": 0.5382,
+          "reasons": [
+            "15 von 16 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6795",
+          "name": "Swiss Champ",
+          "score": 0.5382,
+          "reasons": [
+            "15 von 16 erkannten Werkzeugen vorhanden",
+            "11 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "3.0235.L",
+          "name": "Swiss Tool Spirit X Plus",
+          "score": 0.3951,
+          "reasons": [
+            "14 von 16 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (18 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 6.46,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Gerber, 16 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Übersprungen: Gerber erkannt (90%), Modell wird im Gerber-Katalog gesucht"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "markenkatalog",
+          "label": "Modell im Gerber-Katalog gesucht",
+          "status": "warnung",
+          "detail": "29 Kandidaten, 27 Modelle gleich gut passend, keines eindeutig; es zählen die erkannten Werkzeuge"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Gerber"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "16 Werkzeuge mit 167 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.54"
+        }
+      ],
+      "legacy_truth_brand": "Gerber"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p13_Im4_obj21.png",
+      "truth_brand": "Victorinox",
+      "truth_sku": "3.0323.L",
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.766,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "massstab",
+          "label": "Massstab",
+          "wahrscheinlichkeit": 0.94,
+          "position": {
+            "x": 0.561,
+            "y": 0.424,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "schere",
+          "label": "Schere",
+          "wahrscheinlichkeit": 0.88,
+          "position": {
+            "x": 0.84,
+            "y": 0.538,
+            "sicherheit": 0.44
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.7,
+          "position": {
+            "x": 0.608,
+            "y": 0.186,
+            "sicherheit": 0.31
+          }
+        },
+        {
+          "gruppe": "metallfeile",
+          "label": "Metallfeile",
+          "wahrscheinlichkeit": 0.7,
+          "position": {
+            "x": 0.655,
+            "y": 0.594,
+            "sicherheit": 0.35
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.59,
+          "position": {
+            "x": 0.607,
+            "y": 0.211,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.54,
+          "position": {
+            "x": 0.224,
+            "y": 0.589,
+            "sicherheit": 0.3
+          }
+        },
+        {
+          "gruppe": "zange",
+          "label": "Zange",
+          "wahrscheinlichkeit": 0.48,
+          "position": {
+            "x": 0.637,
+            "y": 0.241,
+            "sicherheit": 0.16
+          }
+        },
+        {
+          "gruppe": "holzsaege",
+          "label": "Holzsäge",
+          "wahrscheinlichkeit": 0.46,
+          "position": {
+            "x": 0.27,
+            "y": 0.616,
+            "sicherheit": 0.45
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.35,
+          "position": {
+            "x": 0.217,
+            "y": 0.208,
+            "sicherheit": 0.28
+          }
+        },
+        {
+          "gruppe": "klinge_spezial",
+          "label": "Spezialklinge",
+          "wahrscheinlichkeit": 0.35,
+          "position": {
+            "x": 0.195,
+            "y": 0.22,
+            "sicherheit": 0.19
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.23,
+          "position": {
+            "x": 0.605,
+            "y": 0.344,
+            "sicherheit": 0.12
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.23,
+          "position": {
+            "x": 0.199,
+            "y": 0.601,
+            "sicherheit": 0.43
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.18,
+          "position": null
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.13,
+          "position": null
+        },
+        {
+          "gruppe": "mini_schraubendreher",
+          "label": "Mini-Schraubendreher",
+          "wahrscheinlichkeit": 0.1,
+          "position": null
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.07,
+          "position": null
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "1.6794.T7",
+          "name": "Swiss Champ",
+          "score": 0.1031,
+          "reasons": [
+            "Bildähnlichkeit 10%",
+            "14 von 16 erkannten Werkzeugen vorhanden",
+            "10 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8271.26",
+          "name": "Farmer X Alox",
+          "score": 0.0948,
+          "reasons": [
+            "Bildähnlichkeit 9%",
+            "8 von 16 erkannten Werkzeugen vorhanden",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.6795.XXL",
+          "name": "Swiss Champ XXL",
+          "score": 0.0785,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "12 von 16 erkannten Werkzeugen vorhanden",
+            "13 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 16.33,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 16 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "12 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.10"
+        }
+      ],
+      "legacy_truth_brand": "Victorinox",
+      "truth_sku_canonical": "3.0323.L",
+      "sku_family_rank": null,
+      "expected_sku_family_in_top3": false
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p22_Im1_obj24.png",
+      "truth_brand": "Gerber",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Benchmade",
+      "brand_confidence": 0.453,
+      "brand_hit": false,
+      "legacy_brand_hit": false,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.87,
+          "position": {
+            "x": 0.176,
+            "y": 0.423,
+            "sicherheit": 0.44
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.25,
+            "y": 0.557,
+            "sicherheit": 0.14
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8413.3",
+          "name": "Sentinel",
+          "score": 0.864,
+          "reasons": [
+            "1 von 2 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (3 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.2300.26",
+          "name": "Bantam Alox",
+          "score": 0.8325,
+          "reasons": [
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.2303",
+          "name": "Bantam",
+          "score": 0.8259,
+          "reasons": [
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 15.19,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Benchmade, 2 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "2 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Benchmade"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "2 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.86"
+        }
+      ],
+      "legacy_truth_brand": "Gerber"
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p22_Im2_obj26.png",
+      "truth_brand": "Victorinox",
+      "truth_sku": "0.9411.D20",
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.892,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.87,
+          "position": {
+            "x": 0.223,
+            "y": 0.13,
+            "sicherheit": 0.55
+          }
+        },
+        {
+          "gruppe": "klinge_spezial",
+          "label": "Spezialklinge",
+          "wahrscheinlichkeit": 0.37,
+          "position": {
+            "x": 0.19,
+            "y": 0.137,
+            "sicherheit": 0.58
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.247,
+            "y": 0.789,
+            "sicherheit": 0.13
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "aktuell",
+      "sku_rank": 1,
+      "expected_sku_in_top3": true,
+      "recommendations": [
+        {
+          "artikelnummer": "0.9411.D20",
+          "name": "Evoke Alox",
+          "score": 0.639,
+          "reasons": [
+            "Bildähnlichkeit 64%",
+            "1 von 3 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (2 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.8006.20",
+          "name": "Onefold Alox",
+          "score": 0.0366,
+          "reasons": [
+            "Bildähnlichkeit 4%",
+            "1 von 3 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (2 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "3.9040.B1",
+          "name": "Okuliermesser Kombi S",
+          "score": 0.031,
+          "reasons": [
+            "Bildähnlichkeit 3%",
+            "1 von 3 erkannten Werkzeugen vorhanden",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (1 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": null,
+      "seconds": 20.9,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 3 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "3 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "ok",
+          "detail": "Top-Score 0.64"
+        }
+      ],
+      "legacy_truth_brand": "Victorinox",
+      "truth_sku_canonical": "0.9411.D20",
+      "sku_family_rank": 1,
+      "expected_sku_family_in_top3": true
+    },
+    {
+      "set": "pdf_packshots",
+      "file": "p22_Im3_obj27.png",
+      "truth_brand": "Benchmade",
+      "truth_sku": null,
+      "label_source": "Sven annotation with page 13/22 correction",
+      "http_status": 200,
+      "prediction_brand": "Benchmade",
+      "brand_confidence": 0.818,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.75,
+          "position": {
+            "x": 0.167,
+            "y": 0.622,
+            "sicherheit": 0.7
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8000.26",
+          "name": "Swiss Army 1 Alox",
+          "score": 1.0,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (1 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.9411.M9",
+          "name": "Hunter Pro",
+          "score": 1.0,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (1 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.9410.J26",
+          "name": "Evoke Wood Damast Limited Edition 2026",
+          "score": 1.0,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "Ähnlicher Funktionsumfang (1 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 13.53,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Benchmade, 1 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "1 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Benchmade"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "1 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 1.00"
+        }
+      ],
+      "legacy_truth_brand": "Benchmade"
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "01_PXL_20261024_070613768.jpg",
+      "truth_brand": "Leatherman",
+      "truth_sku": null,
+      "legacy_class": "leatherman",
+      "legacy_truth_brand": "Leatherman",
+      "label_source": "visible engraved brand",
+      "http_status": 200,
+      "prediction_brand": "Leatherman",
+      "brand_confidence": 0.7,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.42,
+          "position": {
+            "x": 0.39,
+            "y": 0.621,
+            "sicherheit": 0.35
+          }
+        },
+        {
+          "gruppe": "zahnstocher",
+          "label": "Zahnstocher",
+          "wahrscheinlichkeit": 0.34,
+          "position": {
+            "x": 0.855,
+            "y": 0.617,
+            "sicherheit": 0.79
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.29,
+          "position": {
+            "x": 0.427,
+            "y": 0.61,
+            "sicherheit": 0.3
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.22,
+          "position": {
+            "x": 0.409,
+            "y": 0.612,
+            "sicherheit": 0.33
+          }
+        },
+        {
+          "gruppe": "mini_schraubendreher",
+          "label": "Mini-Schraubendreher",
+          "wahrscheinlichkeit": 0.11,
+          "position": {
+            "x": 0.403,
+            "y": 0.634,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.397,
+            "y": 0.633,
+            "sicherheit": 0.24
+          }
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.397,
+            "y": 0.626,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.402,
+            "y": 0.627,
+            "sicherheit": 0.32
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.383,
+            "y": 0.633,
+            "sicherheit": 0.26
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "1.7725.T",
+          "name": "Cyber Tool M",
+          "score": 0.3336,
+          "reasons": [
+            "8 von 9 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.7915.T",
+          "name": "Huntsman Lite",
+          "score": 0.3287,
+          "reasons": [
+            "8 von 9 erkannten Werkzeugen vorhanden",
+            "10 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "1.7775.T",
+          "name": "Cyber Tool L",
+          "score": 0.3143,
+          "reasons": [
+            "8 von 9 erkannten Werkzeugen vorhanden",
+            "15 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 5.56,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Leatherman, 9 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Übersprungen: Leatherman erkannt (70%), Modell wird im Leatherman-Katalog gesucht"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "9 Werkzeuge markiert"
+        },
+        {
+          "id": "markenkatalog",
+          "label": "Modell im Leatherman-Katalog gesucht",
+          "status": "warnung",
+          "detail": "0 Kandidaten, kein Modell der Marke passt zu den erkannten Werkzeugen; es zählen die erkannten Werkzeuge"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Leatherman"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "9 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.33"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "02_PXL_20261024_070633052.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "sak_red",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.497,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "korkenzieher",
+          "label": "Korkenzieher",
+          "wahrscheinlichkeit": 0.95,
+          "position": {
+            "x": 0.347,
+            "y": 0.62,
+            "sicherheit": 0.72
+          }
+        },
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.4,
+          "position": {
+            "x": 0.322,
+            "y": 0.645,
+            "sicherheit": 0.28
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.39,
+          "position": {
+            "x": 0.369,
+            "y": 0.622,
+            "sicherheit": 0.36
+          }
+        },
+        {
+          "gruppe": "klinge_klein",
+          "label": "Klinge, klein",
+          "wahrscheinlichkeit": 0.14,
+          "position": {
+            "x": 0.349,
+            "y": 0.632,
+            "sicherheit": 0.31
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.335,
+            "y": 0.621,
+            "sicherheit": 0.43
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.08,
+          "position": {
+            "x": 0.242,
+            "y": 0.631,
+            "sicherheit": 0.25
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.34,
+            "y": 0.629,
+            "sicherheit": 0.32
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.3303",
+          "name": "Waiter",
+          "score": 0.1583,
+          "reasons": [
+            "Bildähnlichkeit 16%",
+            "5 von 7 erkannten Werkzeugen vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.8313.W",
+          "name": "Cheese Master",
+          "score": 0.0931,
+          "reasons": [
+            "Bildähnlichkeit 9%",
+            "2 von 7 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (6 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "1.3703",
+          "name": "Climber",
+          "score": 0.083,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "6 von 7 erkannten Werkzeugen vorhanden",
+            "6 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": null,
+      "seconds": 17.44,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 7 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "7 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "ok",
+          "detail": "Top-Score 0.16"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "03_PXL_20261024_070643393.jpg",
+      "truth_brand": "Gerber",
+      "truth_sku": null,
+      "legacy_class": "gerber",
+      "legacy_truth_brand": "Gerber",
+      "label_source": "visible engraved brand",
+      "http_status": 200,
+      "prediction_brand": "Gerber",
+      "brand_confidence": 0.884,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.22,
+          "position": {
+            "x": 0.562,
+            "y": 0.613,
+            "sicherheit": 0.35
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.417,
+            "y": 0.603,
+            "sicherheit": 0.26
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.2300.26",
+          "name": "Bantam Alox",
+          "score": 0.7752,
+          "reasons": [
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8170.20",
+          "name": "Companion Slim Alox",
+          "score": 0.7752,
+          "reasons": [
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.2303",
+          "name": "Bantam",
+          "score": 0.7752,
+          "reasons": [
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 3.34,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Gerber, 2 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Übersprungen: Gerber erkannt (88%), Modell wird im Gerber-Katalog gesucht"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "2 Werkzeuge markiert"
+        },
+        {
+          "id": "markenkatalog",
+          "label": "Modell im Gerber-Katalog gesucht",
+          "status": "warnung",
+          "detail": "0 Kandidaten, kein Modell der Marke passt zu den erkannten Werkzeugen; es zählen die erkannten Werkzeuge"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Gerber"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "2 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.78"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "04_PXL_20261024_070652715.MP.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "sak_red",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.899,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.58,
+          "position": {
+            "x": 0.319,
+            "y": 0.623,
+            "sicherheit": 0.41
+          }
+        },
+        {
+          "gruppe": "zahnstocher",
+          "label": "Zahnstocher",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.216,
+            "y": 0.147,
+            "sicherheit": 0.53
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.18,
+            "y": 0.637,
+            "sicherheit": 0.43
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8006.20",
+          "name": "Onefold Alox",
+          "score": 0.1589,
+          "reasons": [
+            "Bildähnlichkeit 16%",
+            "1 von 3 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (2 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.9411.D20",
+          "name": "Evoke Alox",
+          "score": 0.1125,
+          "reasons": [
+            "Bildähnlichkeit 11%",
+            "1 von 3 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (2 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "3.9040.B1",
+          "name": "Okuliermesser Kombi S",
+          "score": 0.1019,
+          "reasons": [
+            "Bildähnlichkeit 10%",
+            "0 von 3 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (1 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 19.73,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 3 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "3 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.16"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "05_PXL_20261024_070657633.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "sak_red",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.885,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.65,
+          "position": {
+            "x": 0.391,
+            "y": 0.646,
+            "sicherheit": 0.26
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.11,
+          "position": {
+            "x": 0.397,
+            "y": 0.646,
+            "sicherheit": 0.26
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.377,
+            "y": 0.657,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.361,
+            "y": 0.655,
+            "sicherheit": 0.25
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.356,
+            "y": 0.647,
+            "sicherheit": 0.37
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.382,
+            "y": 0.648,
+            "sicherheit": 0.3
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.2303",
+          "name": "Bantam",
+          "score": 0.0772,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "3 von 6 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (7 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.2503",
+          "name": "Recruit",
+          "score": 0.0761,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "3 von 6 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.6423.91",
+          "name": "Wenger",
+          "score": 0.0711,
+          "reasons": [
+            "Bildähnlichkeit 7%",
+            "0 von 6 erkannten Werkzeugen vorhanden",
+            "6 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (6 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 16.31,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 6 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "6 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.08"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "06_PXL_20261024_070707946.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "sak_black",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Roxon",
+      "brand_confidence": 0.454,
+      "brand_hit": false,
+      "legacy_brand_hit": false,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "holzsaege",
+          "label": "Holzsäge",
+          "wahrscheinlichkeit": 0.46,
+          "position": {
+            "x": 0.33,
+            "y": 0.618,
+            "sicherheit": 0.54
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.37,
+          "position": {
+            "x": 0.327,
+            "y": 0.598,
+            "sicherheit": 0.36
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.36,
+          "position": {
+            "x": 0.329,
+            "y": 0.617,
+            "sicherheit": 0.35
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.3,
+          "position": {
+            "x": 0.329,
+            "y": 0.603,
+            "sicherheit": 0.26
+          }
+        },
+        {
+          "gruppe": "korkenzieher",
+          "label": "Korkenzieher",
+          "wahrscheinlichkeit": 0.3,
+          "position": {
+            "x": 0.316,
+            "y": 0.618,
+            "sicherheit": 0.44
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.28,
+          "position": {
+            "x": 0.331,
+            "y": 0.61,
+            "sicherheit": 0.32
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.09,
+          "position": {
+            "x": 0.251,
+            "y": 0.598,
+            "sicherheit": 0.28
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.249,
+            "y": 0.613,
+            "sicherheit": 0.27
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8361.MC",
+          "name": "Forester M Grip",
+          "score": 0.6496,
+          "reasons": [
+            "7 von 8 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.8361.63",
+          "name": "Forester Wood",
+          "score": 0.6364,
+          "reasons": [
+            "7 von 8 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.9561.63",
+          "name": "Ranger 55 Wood",
+          "score": 0.6364,
+          "reasons": [
+            "7 von 8 erkannten Werkzeugen vorhanden",
+            "1 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 14.51,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Roxon, 8 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "8 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Roxon"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "8 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.65"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "07_PXL_20261024_070713477.jpg",
+      "truth_brand": "Gerber",
+      "truth_sku": null,
+      "legacy_class": "sak_black",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "manual visual correction to legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.206,
+      "brand_hit": false,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.36,
+          "position": {
+            "x": 0.213,
+            "y": 0.604,
+            "sicherheit": 0.48
+          }
+        },
+        {
+          "gruppe": "kistenoeffner",
+          "label": "Kistenöffner",
+          "wahrscheinlichkeit": 0.34,
+          "position": {
+            "x": 0.229,
+            "y": 0.599,
+            "sicherheit": 0.35
+          }
+        },
+        {
+          "gruppe": "kapselheber",
+          "label": "Kapselheber",
+          "wahrscheinlichkeit": 0.32,
+          "position": {
+            "x": 0.234,
+            "y": 0.595,
+            "sicherheit": 0.3
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.3,
+          "position": {
+            "x": 0.356,
+            "y": 0.574,
+            "sicherheit": 0.24
+          }
+        },
+        {
+          "gruppe": "dosenoeffner",
+          "label": "Dosenöffner",
+          "wahrscheinlichkeit": 0.29,
+          "position": {
+            "x": 0.248,
+            "y": 0.59,
+            "sicherheit": 0.22
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.21,
+          "position": {
+            "x": 0.341,
+            "y": 0.578,
+            "sicherheit": 0.38
+          }
+        },
+        {
+          "gruppe": "mini_schraubendreher",
+          "label": "Mini-Schraubendreher",
+          "wahrscheinlichkeit": 0.17,
+          "position": {
+            "x": 0.365,
+            "y": 0.576,
+            "sicherheit": 0.32
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.244,
+            "y": 0.592,
+            "sicherheit": 0.27
+          }
+        },
+        {
+          "gruppe": "schraubendreher_kreuz",
+          "label": "Kreuzschraubendreher",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.362,
+            "y": 0.566,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "holzmeissel",
+          "label": "Holzmeissel",
+          "wahrscheinlichkeit": 0.07,
+          "position": {
+            "x": 0.251,
+            "y": 0.592,
+            "sicherheit": 0.24
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.9563.C31P",
+          "name": "Ranger 55 Grip Onyx Black",
+          "score": 0.086,
+          "reasons": [
+            "Bildähnlichkeit 9%",
+            "3 von 10 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (8 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.9798.MWC8",
+          "name": "Ranger Boatsman MW Grip",
+          "score": 0.0697,
+          "reasons": [
+            "Bildähnlichkeit 7%",
+            "3 von 10 erkannten Werkzeugen vorhanden",
+            "6 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (9 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.6223.942",
+          "name": "Classic SD",
+          "score": 0.0583,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "1 von 10 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 17.82,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 10 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "10 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.09"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "08_PXL_20261024_070734192.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "ruler",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.872,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.12,
+          "position": {
+            "x": 0.363,
+            "y": 0.582,
+            "sicherheit": 0.25
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.353,
+            "y": 0.593,
+            "sicherheit": 0.22
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8241.26",
+          "name": "Farmer Alox",
+          "score": 0.0619,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8120.26",
+          "name": "Electrician Alox",
+          "score": 0.0614,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "Alle 2 erkannten Werkzeuge vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.9798.MWC8",
+          "name": "Ranger Boatsman MW Grip",
+          "score": 0.0575,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "1 von 2 erkannten Werkzeugen vorhanden",
+            "8 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 16.02,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 2 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "2 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.06"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "09_PXL_20261024_070739736.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "ruler",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.867,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "massstab",
+          "label": "Massstab",
+          "wahrscheinlichkeit": 0.94,
+          "position": {
+            "x": 0.574,
+            "y": 0.406,
+            "sicherheit": 0.21
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.09,
+          "position": {
+            "x": 0.668,
+            "y": 0.617,
+            "sicherheit": 0.23
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.746,
+            "y": 0.601,
+            "sicherheit": 0.11
+          }
+        },
+        {
+          "gruppe": "pinzette",
+          "label": "Pinzette",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.648,
+            "y": 0.607,
+            "sicherheit": 0.26
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.6385",
+          "name": "Mini Champ",
+          "score": 0.0753,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "3 von 4 erkannten Werkzeugen vorhanden",
+            "9 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8231.L26",
+          "name": "Pioneer X Alox Limited Edition 2026",
+          "score": 0.0701,
+          "reasons": [
+            "Bildähnlichkeit 7%",
+            "2 von 4 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8271.26",
+          "name": "Farmer X Alox",
+          "score": 0.064,
+          "reasons": [
+            "Bildähnlichkeit 6%",
+            "2 von 4 erkannten Werkzeugen vorhanden",
+            "6 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 16.34,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 4 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "4 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.08"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "10_PXL_20261024_070745178.jpg",
+      "truth_brand": "Gerber",
+      "truth_sku": null,
+      "legacy_class": "sak_black",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "manual visual correction to legacy label",
+      "http_status": 200,
+      "prediction_brand": "Benchmade",
+      "brand_confidence": 0.237,
+      "brand_hit": false,
+      "legacy_brand_hit": false,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.357,
+            "y": 0.587,
+            "sicherheit": 0.35
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.6261.20",
+          "name": "Companion S Alox",
+          "score": 0.7561,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "3 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.6263",
+          "name": "Jetsetter",
+          "score": 0.7561,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.2300.26",
+          "name": "Bantam Alox",
+          "score": 0.7546,
+          "reasons": [
+            "Alle 1 erkannten Werkzeuge vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 14.08,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Benchmade, 1 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "1 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Benchmade"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "1 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.76"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "11_PXL_20261024_070749922.jpg",
+      "truth_brand": "Victorinox",
+      "truth_sku": null,
+      "legacy_class": "sak_red",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "Swiss cross or Victorinox marking / legacy label",
+      "http_status": 200,
+      "prediction_brand": "Victorinox",
+      "brand_confidence": 0.913,
+      "brand_hit": true,
+      "legacy_brand_hit": true,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.08,
+          "position": {
+            "x": 0.414,
+            "y": 0.598,
+            "sicherheit": 0.39
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.395,
+            "y": 0.589,
+            "sicherheit": 0.21
+          }
+        },
+        {
+          "gruppe": "schraubendreher_flach",
+          "label": "Schraubendreher (flach)",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.387,
+            "y": 0.603,
+            "sicherheit": 0.37
+          }
+        },
+        {
+          "gruppe": "zahnstocher",
+          "label": "Zahnstocher",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.581,
+            "y": 0.601,
+            "sicherheit": 0.21
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "nachfolger",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.2303",
+          "name": "Bantam",
+          "score": 0.1237,
+          "reasons": [
+            "Bildähnlichkeit 12%",
+            "3 von 4 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.6423.91",
+          "name": "Wenger",
+          "score": 0.0855,
+          "reasons": [
+            "Bildähnlichkeit 9%",
+            "1 von 4 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (6 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.6223.E103G",
+          "name": "Geschenke für besondere Anlässe",
+          "score": 0.0835,
+          "reasons": [
+            "Bildähnlichkeit 8%",
+            "2 von 4 erkannten Werkzeugen vorhanden",
+            "4 zusätzliche Werkzeuge",
+            "Ähnlicher Funktionsumfang (6 Werkzeuge)"
+          ]
+        }
+      ],
+      "clarification": {
+        "frage": "Mehrere Messer passen ähnlich gut.",
+        "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."
+      },
+      "seconds": 17.87,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Victorinox, 4 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "4 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Victorinox"
+        },
+        {
+          "id": "suche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "warnung",
+          "detail": "Top-Score 0.12"
+        }
+      ]
+    },
+    {
+      "set": "pxl_phone_photos",
+      "file": "12_PXL_20261024_070755770.jpg",
+      "truth_brand": null,
+      "truth_sku": null,
+      "legacy_class": "sak_black",
+      "legacy_truth_brand": "Victorinox",
+      "label_source": "manual visual correction to legacy label",
+      "http_status": 200,
+      "prediction_brand": "Benchmade",
+      "brand_confidence": 0.492,
+      "brand_hit": false,
+      "legacy_brand_hit": false,
+      "prediction_model": null,
+      "recognized_tools": [
+        {
+          "gruppe": "trageclip",
+          "label": "Trageclip",
+          "wahrscheinlichkeit": 0.94,
+          "position": {
+            "x": 0.754,
+            "y": 0.455,
+            "sicherheit": 0.18
+          }
+        },
+        {
+          "gruppe": "klinge_gross",
+          "label": "Klinge, gross",
+          "wahrscheinlichkeit": 0.22,
+          "position": {
+            "x": 0.367,
+            "y": 0.312,
+            "sicherheit": 0.37
+          }
+        },
+        {
+          "gruppe": "mehrzweckhaken",
+          "label": "Mehrzweckhaken",
+          "wahrscheinlichkeit": 0.1,
+          "position": {
+            "x": 0.361,
+            "y": 0.414,
+            "sicherheit": 0.21
+          }
+        },
+        {
+          "gruppe": "ahle",
+          "label": "Ahle",
+          "wahrscheinlichkeit": 0.06,
+          "position": {
+            "x": 0.344,
+            "y": 0.326,
+            "sicherheit": 0.28
+          }
+        },
+        {
+          "gruppe": "drahtwerkzeug",
+          "label": "Draht-/Kabelwerkzeug",
+          "wahrscheinlichkeit": 0.05,
+          "position": {
+            "x": 0.351,
+            "y": 0.36,
+            "sicherheit": 0.17
+          }
+        }
+      ],
+      "recognized_category": "Taschenmesser (SAK)",
+      "path": "ersatz",
+      "sku_rank": null,
+      "expected_sku_in_top3": false,
+      "recommendations": [
+        {
+          "artikelnummer": "0.8416.M3",
+          "name": "Sentinel Clip",
+          "score": 0.2997,
+          "reasons": [
+            "2 von 5 erkannten Werkzeugen vorhanden",
+            "2 zusätzliche Werkzeuge",
+            "An Lager",
+            "Ähnlicher Funktionsumfang (4 Werkzeuge)"
+          ]
+        },
+        {
+          "artikelnummer": "0.8216.20",
+          "name": "Synergy Alox",
+          "score": 0.2323,
+          "reasons": [
+            "3 von 5 erkannten Werkzeugen vorhanden",
+            "5 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        },
+        {
+          "artikelnummer": "0.8226.20",
+          "name": "Synergy X Alox",
+          "score": 0.2242,
+          "reasons": [
+            "3 von 5 erkannten Werkzeugen vorhanden",
+            "6 zusätzliche Werkzeuge",
+            "An Lager"
+          ]
+        }
+      ],
+      "clarification": null,
+      "seconds": 18.53,
+      "steps": [
+        {
+          "id": "vision",
+          "label": "Bild analysiert",
+          "status": "ok",
+          "detail": "Benchmade, 5 Werkzeuge erkannt (cloudflare/clef-flash)"
+        },
+        {
+          "id": "roentgen",
+          "label": "Werkzeuge auf dem Foto verortet",
+          "status": "ok",
+          "detail": "5 Werkzeuge markiert"
+        },
+        {
+          "id": "bildsuche",
+          "label": "Katalogbilder verglichen",
+          "status": "ok",
+          "detail": "Clef hat das Foto mit 151 Katalogbildern verglichen"
+        },
+        {
+          "id": "marke",
+          "label": "Marke bestimmt",
+          "status": "ok",
+          "detail": "Benchmade"
+        },
+        {
+          "id": "suche",
+          "label": "Ausstattung verglichen",
+          "status": "ok",
+          "detail": "5 Werkzeuge mit 151 Victorinox-Produkten verglichen"
+        },
+        {
+          "id": "empfehlung",
+          "label": "Empfehlung erstellt",
+          "status": "ok",
+          "detail": "Top-Score 0.30"
+        }
+      ]
+    }
+  ]
+}
