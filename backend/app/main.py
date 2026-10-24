@@ -56,8 +56,6 @@ app.add_middleware(
 
 Value = str | int | float | bool
 
-category_embeddings = generate_category_embeddings() if EMBEDDINGS_AKTIV else []
-
 class CategoryScores(BaseModel):
     query: str
     scores: Dict[str, float]
@@ -285,9 +283,6 @@ async def kacheln_laden():
     if clef.aktiv():
         loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
         loop.run_in_executor(None, clef.kacheln_vorbereiten, konkurrenz.bild_rows(konkurrenz.produkte()))
-    # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
-    if EMBEDDINGS_AKTIV:
-        loop.run_in_executor(None, embeddings.verwendung_passung, "Alltag", messer)
 
 
 def produkt_merkmale(row):
@@ -885,7 +880,7 @@ async def _auswerten(match_id, kontext):
             k["score"] = round(min(k["score"] * kategorie_faktor(k["row"])
                                    + GEWICHT_BILD_TIEBREAK * visuell.get(nummer, 0.0) / hoechste, 1.0), 4)
             zweck_grund(k)
-        kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
+        kandidaten = sorted(kandidaten, key=matching.sortierschluessel)[:3]
         schritte.append({"id": "suche", "label": "Ausstattung verglichen", "status": "ok" if kandidaten else "warnung",
                          "detail": f"{len(erkannte_gruppen)} Werkzeuge mit {len(auswahl)} Victorinox-Produkten verglichen"})
         eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
@@ -918,7 +913,7 @@ async def _auswerten(match_id, kontext):
         for k in kandidaten:
             k["score"] = round(min(k["score"] * kategorie_faktor(k["row"]) * zweck_faktor(k["row"]["artikelnummer"]), 1.0), 4)
             zweck_grund(k)
-        kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
+        kandidaten = sorted(kandidaten, key=matching.sortierschluessel)[:3]
         schritte.append({"id": "suche", "label": "Katalog durchsucht",
                          "status": "ok" if kandidaten else "warnung",
                          "detail": f"{len(messer)} Messer über die Werkzeuge verglichen"})
