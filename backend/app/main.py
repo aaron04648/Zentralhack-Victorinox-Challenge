@@ -7,6 +7,7 @@ import math
 import os
 import uuid
 from collections import OrderedDict
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -15,9 +16,30 @@ from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app import clef, embedings, jev, matching, vision
-from app.embedings import CATEGORIES, cosine_similarity, generate_category_embeddings, setup_embedding_model
+from app import clef, jev, konkurrenz, matching, vision
 from app.werkzeuge import GRUPPEN
+
+# Das Embedding-Modul ist optional: es liefert nur die experimentelle
+# /score_categories-Route. Wenn es nicht verfuegbar ist (fehlende Abhaengigkeiten,
+# laufende Umbauten), startet der Kern der Demo trotzdem.
+try:
+    from app import embeddings
+    from app.embeddings import (CATEGORIES, cosine_similarity,
+                                generate_category_embeddings, setup_embedding_model)
+    EMBEDDINGS_AKTIV = True
+except Exception:  # pragma: no cover - abhaengig von der lokalen Umgebung
+    embeddings = None
+    CATEGORIES: list[str] = []
+    EMBEDDINGS_AKTIV = False
+
+    def generate_category_embeddings():
+        return []
+
+    def setup_embedding_model():
+        raise RuntimeError("Embedding-Modul nicht verfuegbar")
+
+    def cosine_similarity(a, b):
+        return 0.0
 
 PRODUCTS_CSV = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
 
@@ -31,6 +53,8 @@ app.add_middleware(
 )
 
 Value = str | int | float | bool
+
+category_embeddings = generate_category_embeddings() if EMBEDDINGS_AKTIV else []
 
 class CategoryScores(BaseModel):
     query: str
@@ -258,7 +282,8 @@ async def kacheln_laden():
     if clef.aktiv():
         loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
     # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
-    loop.run_in_executor(None, embedings.verwendung_passung, "Alltag", messer)
+    if EMBEDDINGS_AKTIV:
+        loop.run_in_executor(None, embeddings.verwendung_passung, "Alltag", messer)
 
 
 def produkt_merkmale(row):
@@ -573,7 +598,30 @@ async def _auswerten(match_id, kontext):
     # und sobald der Nutzer die Werkzeuge korrigiert hat
     nach_ausstattung = (fremd or kontext["nutzer_werkzeuge"]) and bool(erkannte_gruppen)
 
+    # Querverweis auf die Konkurrenz: steht das Produkt in der Tabelle aus
+    # backend/data/training/konkurrenz.csv, kennen wir seine Werkzeugliste genau.
+    # Das ist verlaesslicher als die Bilderkennung, die nur offene Werkzeuge sieht
+    # und bei geschlossenen Messern danebenliegt.
+    konkurrenz_produkt = None
+    # Hat der Nutzer die Werkzeuge korrigiert, gilt seine Liste und nicht die Tabelle
+    if fremd and erkannte_gruppen and not kontext["nutzer_werkzeuge"]:
+        try:
+            konkurrenz_produkt = konkurrenz.finde_besten(marke, erkannte_gruppen)
+        except Exception as fehler:
+            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "warnung",
+                             "detail": f"Querverweistabelle nicht nutzbar ({fehler})"})
+        if konkurrenz_produkt:
+            erkannte_gruppen = set(konkurrenz_produkt.werkzeug_gruppen)
+            gewichte_aus_tabelle = {g: 1.0 for g in erkannte_gruppen}
+            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "ok",
+                             "detail": f"{konkurrenz_produkt.name} ({konkurrenz_produkt.artikelnummer}) – "
+                                       f"{len(erkannte_gruppen)} Werkzeuge aus der Querverweistabelle"})
+
+    # Fremde Marke: Kein Katalogbild kann dasselbe Modell zeigen, darum zählt die Ausstattung.
     # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
+    if konkurrenz_produkt:
+        # Die Werkzeugliste aus der Querverweistabelle gilt: alle Gruppen zählen voll.
+        gewichte = dict(gewichte_aus_tabelle)
     auswahl = messer
     if nach_ausstattung and gewichte.get("zange", 0.0) >= ZANGE_SICHER:
         auswahl = [r for r in load_empfehlbare() if matching.produkt_gruppen(r)]
@@ -581,7 +629,7 @@ async def _auswerten(match_id, kontext):
     passung = {}  # artikelnummer -> z-Wert: wie gut das Produkt zum Verwendungszweck passt
     if verwendung:
         try:
-            passung = await asyncio.to_thread(embedings.verwendung_passung, verwendung, auswahl)
+            passung = await asyncio.to_thread(embeddings.verwendung_passung, verwendung, auswahl)
             schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "ok",
                              "detail": f"„{verwendung}“ mit {len(auswahl)} Produktbeschreibungen verglichen (Embedding)"})
         except Exception as fehler:
@@ -679,14 +727,17 @@ async def _auswerten(match_id, kontext):
         "erkannt": {
             "marke": marke,
             "ist_victorinox": ist_victorinox,
-            "modell": erkannt["modell"],
-            "artikelnummer": erkannt["artikelnummer_sichtbar"],
+            "modell": (konkurrenz_produkt.name if konkurrenz_produkt else erkannt["modell"]),
+            "artikelnummer": (konkurrenz_produkt.artikelnummer if konkurrenz_produkt
+                              else erkannt["artikelnummer_sichtbar"]),
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
             "produkt": to_product(eigenes["row"]) if eigenes else None,
             "werkzeuge": _werkzeug_liste(gewichte, kontext.get("orte", {})),
             "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge",
-                          "quelle": "Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung",
+                          "quelle": ("Querverweistabelle " + konkurrenz_produkt.marke
+                                     if konkurrenz_produkt
+                                     else ("Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung")),
                           "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],
         },
         "empfehlungen": [
@@ -710,6 +761,9 @@ def get_scores(q: str) -> CategoryScores:
     if not q.strip():
         return CategoryScores(query=q, scores={cat: 0.0 for cat in CATEGORIES})
 
+    if not EMBEDDINGS_AKTIV:
+        raise HTTPException(status_code=503, detail="Embedding-Modul nicht verfuegbar")
+
     # Suchtext einbetten
     query_embedding = list(setup_embedding_model().embed([q]))[0]
     
@@ -724,3 +778,42 @@ def get_scores(q: str) -> CategoryScores:
     
     # Rückgabe validiert gegen Ihr Pydantic-Modell
     return CategoryScores(query=q, scores=sorted_scores_dict)
+
+
+# --- Feedback -------------------------------------------------------------------
+# Das Feedback landet für den Prototyp lokal (JSONL-Datei neben den Katalogdaten).
+# Es gibt bewusst keinen Rückkanal in die Systeme des Kunden.
+
+FEEDBACK_CSV = Path(__file__).resolve().parent.parent / "data" / "feedback.jsonl"
+
+
+class FeedbackBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    match_id: str | None = None
+    korrekt: bool = False
+    gewaehlte_artikelnummer: str | None = None
+
+
+@app.post("/api/feedback")
+def feedback(body: FeedbackBody):
+    """Nimmt das Nutzerfeedback entgegen und legt es lokal ab."""
+    eintrag = {
+        "zeit": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "match_id": body.match_id,
+        "korrekt": body.korrekt,
+        "gewaehlte_artikelnummer": body.gewaehlte_artikelnummer,
+    }
+    try:
+        FEEDBACK_CSV.parent.mkdir(parents=True, exist_ok=True)
+        with FEEDBACK_CSV.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(eintrag, ensure_ascii=False) + "\n")
+    except OSError as fehler:
+        raise HTTPException(status_code=500, detail=f"Feedback konnte nicht gespeichert werden: {fehler}")
+    return {"gespeichert": True, "anzahl": _feedback_anzahl()}
+
+
+def _feedback_anzahl() -> int:
+    if not FEEDBACK_CSV.exists():
+        return 0
+    return sum(1 for _ in FEEDBACK_CSV.open(encoding="utf-8"))
