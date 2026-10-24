@@ -43,7 +43,9 @@ cmd_sync() {
 cmd_up() {
   # --no-cache: die Images enthalten den Quellcode (COPY . .). Ohne das nutzt Docker
   # den alten Layer und der Container laeuft mit dem Stand des letzten Builds.
-  ssh "$HOMELAB_HOST" "cd '$REMOTE_DIR' && docker compose -f deploy/docker-compose.homelab.yml up -d --build --no-cache"
+  # (docker compose up kennt --no-cache nicht, deshalb build und up getrennt.)
+  ssh "$HOMELAB_HOST" "cd '$REMOTE_DIR' && docker compose -f deploy/docker-compose.homelab.yml build --no-cache"
+  ssh "$HOMELAB_HOST" "cd '$REMOTE_DIR' && docker compose -f deploy/docker-compose.homelab.yml up -d --force-recreate"
   sleep 3
   ssh "$HOMELAB_HOST" "cd '$REMOTE_DIR' && docker compose -f deploy/docker-compose.homelab.yml ps"
 }

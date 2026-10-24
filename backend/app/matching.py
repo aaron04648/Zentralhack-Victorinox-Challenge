@@ -15,6 +15,7 @@ GEWICHT_ABDECKUNG = 0.65
 GEWICHT_PRAEZISION = 0.30
 BONUS_LIEFERBAR = 0.05
 BONUS_UMFANG = 0.10
+MALUS_FEHLEND = 0.25      # je fehlendem Werkzeug: ein Ersatz muss das Original können
 # Stecken in der Schale und sind auf Fotos selten zu sehen: zählen nicht gegen ein Produkt
 SCHALENTEILE = {"pinzette", "zahnstocher", "kugelschreiber", "stecknadel"}
 
@@ -55,6 +56,11 @@ def bewerte(erkannte_gruppen, row, erkannt=None, gewichte=None):
         gruende.append(f"Alle {len(erkannte_gruppen)} erkannten Werkzeuge vorhanden")
     else:
         gruende.append(f"{len(gemeinsam)} von {len(erkannte_gruppen)} erkannten Werkzeugen vorhanden")
+        # Fehlende Werkzeuge sind der harte Ausschlussgrund: ein Ersatz, der etwas
+        # nicht kann, was das Original kann, taugt nicht als Ersatz. Ohne diesen
+        # Abschlag gewinnt ein kleineres Modell (weniger Extra-Werkzeuge = hoehere
+        # Praezision) gegenueber einem, das alles kann.
+        score -= MALUS_FEHLEND * len(fehlend)
     if zusaetzlich:
         gruende.append(f"{len(zusaetzlich)} zusätzliche Werkzeuge")
     if lieferbar:
@@ -97,8 +103,24 @@ def bewerte(erkannte_gruppen, row, erkannt=None, gewichte=None):
 
 def rangliste(erkannte_gruppen, rows, erkannt=None, top=3, gewichte=None):
     bewertet = [b for row in rows if (b := bewerte(erkannte_gruppen, row, erkannt, gewichte))]
-    bewertet.sort(key=lambda b: (-b["score"], len(b["zusaetzlich"]), b["row"]["name"]))
+    bewertet.sort(key=sortierschluessel)
     return bewertet[:top]
+
+
+def sortierschluessel(b):
+    """Sortierung der Kandidaten: Score, dann Ausstattungsnähe, dann Preis.
+
+    Der Preis ist der letzte Tiebreak: Wenn mehrere Produkte die erkannten
+    Werkzeuge gleich gut abdecken, ist das günstigere der ehrlichere Ersatz -
+    der Kunde soll kein Geld für ein Mehr an Funktionen ausgeben, das er nicht
+    braucht. Bei gleichem Preis entscheidet der Produktname (stabil, reproduzierbar).
+    """
+    preis = b["row"].get("preis_chf") or ""
+    try:
+        preis = float(preis)
+    except (TypeError, ValueError):
+        preis = 1e9
+    return (-b["score"], len(b["zusaetzlich"]), preis, b["row"]["name"])
 
 
 def begruendung(b):
