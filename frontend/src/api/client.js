@@ -61,6 +61,25 @@ export function match(bild, { kategorie, verwendung, vorherigeMatchId, demo } = 
   )
 }
 
+/**
+ * Vom Nutzer korrigierte Werkzeugliste schicken und ohne neues Foto erneut suchen.
+ * @param {{ gruppe: string, wahrscheinlichkeit?: number | null }[]} werkzeuge  komplette Liste, 1.0 = sicher
+ * @returns neues Match-Ergebnis, im Mock null (dann ändert sich nur die Anzeige)
+ */
+export function werkzeugeKorrigieren(matchId, werkzeuge) {
+  return mitFallback(
+    async () => ({
+      modus: 'live',
+      ...(await request(`/api/match/${encodeURIComponent(matchId)}/werkzeuge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ werkzeuge }),
+      })),
+    }),
+    async () => null,
+  )
+}
+
 export function feedback({ matchId, korrekt, gewaehlteArtikelnummer }) {
   const body = {
     match_id: matchId,

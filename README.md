@@ -187,6 +187,9 @@ Full request/response contract: [docs/api.md](docs/api.md).
    (`verwendung`, embedding in `embedings.py`) first filters to products that fit above average.
    Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Spartan (with "picnic and wine"
    → Picknicker), Gerber folder → Sentinel, Roxon → Cyber Tool M.
+   In the app the user can correct the recognised tools (any brand; double-click an unsure,
+   dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
+   re-ranks without a new Clef call. The category dropdown was removed; the use-case text replaces it.
 3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
    tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
    in the scales don't count against a product). A visible article number or model name wins.

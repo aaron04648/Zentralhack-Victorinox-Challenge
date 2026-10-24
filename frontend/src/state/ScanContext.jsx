@@ -72,6 +72,29 @@ export function ScanProvider({ children }) {
 
   const warteAuf = useCallback((id) => anfragen.current[id] ?? null, [])
 
+  // Werkzeuge bestätigen/hinzufügen/entfernen -> Backend sucht ohne neues Foto erneut
+  const korrigiereWerkzeuge = useCallback(
+    async (id, werkzeuge) => {
+      const scan = scans[id]
+      const alt = scan.ergebnis
+      aktualisiere(id, {
+        sucheLaeuft: true,
+        ergebnis: { ...alt, erkannt: { ...alt.erkannt, werkzeuge } },
+      })
+      try {
+        const neu = await api.werkzeugeKorrigieren(alt.match_id, werkzeuge.filter((w) => w.gruppe))
+        aktualisiere(id, {
+          sucheLaeuft: false,
+          korrekturFehler: null,
+          ergebnis: neu ?? { ...alt, erkannt: { ...alt.erkannt, werkzeuge } },
+        })
+      } catch (fehler) {
+        aktualisiere(id, { sucheLaeuft: false, ergebnis: alt, korrekturFehler: fehler.message })
+      }
+    },
+    [scans, aktualisiere],
+  )
+
   const sendeFeedback = useCallback(
     async (id, { korrekt, gewaehlteArtikelnummer }) => {
       const scan = scans[id]
@@ -86,7 +109,7 @@ export function ScanProvider({ children }) {
     .sort((a, b) => b.zeit - a.zeit)
 
   return (
-    <ScanContext.Provider value={{ scans, verlauf, starteScan, warteAuf, sendeFeedback }}>
+    <ScanContext.Provider value={{ scans, verlauf, starteScan, warteAuf, sendeFeedback, korrigiereWerkzeuge }}>
       {children}
     </ScanContext.Provider>
   )

@@ -9,6 +9,8 @@ Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorin
 | `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
+| `POST /api/match/{match_id}/werkzeuge` | vorhanden: Werkzeuge korrigieren und ohne neues Foto erneut suchen |
+| `GET /api/werkzeuge` | vorhanden: alle Werkzeuggruppen (Vorschläge beim Hinzufügen) |
 | `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
 | `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
 
@@ -34,6 +36,11 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
   "farben": ["rot", "schwarz"],
   "anzahl_werkzeuge": 12,              // null, wenn die CSV keine Angabe hat
   "werkzeuge": ["Klinge, gross", "Korkenzieher", "Dosenöffner | Schraubendreher 3 mm"],  // " | " = Kombi-Werkzeug
+  "laenge_mm": 91, "breite_mm": 26, "hoehe_mm": 14,   // null, wenn unbekannt
+  "gewicht_g": 59,
+  "material": "ABS/Cellidor",          // Schalenmaterial, null bei "Undefiniert"
+  "feststellbar": false,               // feststellbare Klinge, null = unbekannt
+  "einhandklinge": false,
   "url": "https://www.victorinox.com/...",
   "bild_url": "https://imageengine.victorinox.com/transform/..."
 }
@@ -126,3 +133,21 @@ oder `erkannt.konfidenz < 0.6` (`KONFIDENZ_SCHWELLE` in `frontend/src/lib/format
 
 Bei `korrekt: true` enthält `gewaehlte_artikelnummer` die angezeigte Empfehlung, bei `false` den vom
 Nutzer gewählten besseren Treffer (oder `null`). Antwort beliebig, z. B. `{ "gespeichert": true }`.
+
+
+## `POST /api/match/{match_id}/werkzeuge`
+
+Der Nutzer bestätigt unsichere Werkzeuge (Doppelklick), entfernt oder ergänzt welche. Das Backend sucht
+mit der korrigierten Liste erneut, ohne neue Bilderkennung (Clef-Ergebnis ist pro `match_id` im Speicher;
+nach einem Backend-Neustart 404 → neu scannen). Danach wird immer nach Ausstattung gesucht.
+
+```jsonc
+{ "werkzeuge": [
+    { "gruppe": "zange" },                                   // ohne Wahrscheinlichkeit = sicher
+    { "gruppe": "schere", "wahrscheinlichkeit": 1.0 },       // bestätigt
+    { "gruppe": "ahle", "wahrscheinlichkeit": 0.2 }          // bleibt unsicher, zählt weniger
+] }
+```
+
+Komplette Liste; was fehlt, gilt als entfernt. Antwort: wie `POST /api/match` (gleiche `match_id`).
+Gruppen-Keys: `GET /api/werkzeuge` → `[{ "gruppe", "label", "beschreibung" }]`.

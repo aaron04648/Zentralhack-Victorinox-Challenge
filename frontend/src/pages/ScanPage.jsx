@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, RotateCcw, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
-import KategorieAuswahl from '../components/KategorieAuswahl.jsx'
 import VerwendungEingabe from '../components/VerwendungEingabe.jsx'
 import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { ladeDemoDatei } from '../lib/image.js'
-import { prozent } from '../lib/format.js'
 
 // Feste Beispiele, damit die Live-Demo auch ohne Kamera/Licht funktioniert.
 // `demo` wählt im Mock das passende Szenario; das echte Backend bekommt nur das Bild.
@@ -22,9 +20,8 @@ export default function ScanPage() {
   const navigate = useNavigate()
   const [laedt, setLaedt] = useState(false)
   const [fehler, setFehler] = useState(null)
-  // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionale Kategorie, dann "Analysieren"
+  // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionaler Verwendungszweck, dann "Analysieren"
   const [entwurf, setEntwurf] = useState(null)
-  const [kategorie, setKategorie] = useState('')
   const [verwendung, setVerwendung] = useState('')
 
   useEffect(() => () => entwurf && URL.revokeObjectURL(entwurf.url), [entwurf])
@@ -39,7 +36,7 @@ export default function ScanPage() {
     setLaedt(true)
     setFehler(null)
     try {
-      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie, verwendung: verwendung.trim() })
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, verwendung: verwendung.trim() })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -68,7 +65,6 @@ export default function ScanPage() {
             </div>
             <div className="space-y-4 p-4">
               <VerwendungEingabe wert={verwendung} onAendern={setVerwendung} deaktiviert={laedt} />
-              <KategorieAuswahl wert={kategorie} onAendern={setKategorie} deaktiviert={laedt} />
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <Button icon={ScanLine} onClick={scanne} disabled={laedt} className="py-3 text-base">
                   Analysieren
@@ -120,7 +116,7 @@ export default function ScanPage() {
                       {erkannt.modell ? `${erkannt.marke} ${erkannt.modell}` : `${erkannt.marke}, Modell unklar`}
                     </div>
                     <div className="truncate text-xs text-zinc-500">
-                      → {top?.produkt.name} · {prozent(top?.score)}
+                      → {top?.produkt.name}
                     </div>
                   </div>
                   <ChevronRight className="size-4 text-zinc-400" />
