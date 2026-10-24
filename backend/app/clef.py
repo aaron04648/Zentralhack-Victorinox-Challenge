@@ -81,7 +81,7 @@ assert set(WERKZEUG_EN) == set(GRUPPEN), "WERKZEUG_EN muss alle Gruppen abdecken
 # Die Kriterien beschreiben, was *im Foto* zu sehen ist (Form des Emblems, Schalenfarbe,
 # Prägung), nicht den Markennamen allein - sonst kann das Modell die Marke nicht
 # unterscheiden. Gemessen auf den 12 Referenzfotos + dem SWIZA D03 (siehe
-# tools/eval_marke.py, Variante "a"): top-1 9/13.
+# tools/eval_marke_real.py): top-1 9/13.
 #
 # Wichtig: Victorinox und SWIZA tragen beide ein Kreuz. Der Unterschied ist die Form:
 # Victorinox = Kreuz in einem Schild mit spitzen Schultern, SWIZA = Kreuz in einem

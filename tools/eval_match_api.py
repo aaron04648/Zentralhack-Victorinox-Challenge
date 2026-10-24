@@ -11,7 +11,7 @@ Two metrics, because they answer different questions:
   (0.8226.22) is not in the catalogue at all.
 
 Usage:
-    python tools/eval_match_api.py --url https://homelab.tailb8858a.ts.net
+    python tools/eval_match_api.py --url http://localhost:8000
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def marke_richtig(erkannt: str, erwartet: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default="http://localhost:8100")
+    parser.add_argument("--url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=240.0)
     args = parser.parse_args()
 

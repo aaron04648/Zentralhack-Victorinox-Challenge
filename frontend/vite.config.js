@@ -7,8 +7,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 3000,
-    // Erlaubt Zugriff ueber Tailscale Serve / Funnel (Hostname homelab.tailb8858a.ts.net).
-    allowedHosts: true,
     proxy: {
       '/api': process.env.API_TARGET || 'http://localhost:8000',
     },

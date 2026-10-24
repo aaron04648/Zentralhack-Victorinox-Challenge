@@ -5,7 +5,7 @@ products on a desk, mostly closed knives), so they are far more representative
 than the clean catalogue packshots in data/sak_ground_truth/.
 
 Usage:
-    python tools/eval_real.py --url https://homelab.tailb8858a.ts.net
+    python tools/eval_real.py --url http://localhost:8000
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ KLASSE_MARKE = {
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default="http://localhost:8100")
+    parser.add_argument("--url", default="http://localhost:8000")
     parser.add_argument("--timeout", type=float, default=240.0)
     args = parser.parse_args()
 

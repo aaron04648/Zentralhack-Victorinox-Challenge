@@ -121,6 +121,18 @@ used as the evaluation set for the classification workstream — see
 `data/real_photos/` additionally holds 12 **real smartphone photos** of products on
 a desk — the actual demo domain, including competitor brands (Leatherman, Gerber).
 
+The downloaded 2026 Victorinox, Gerber, Leatherman and SWIZA catalogue PDFs are
+available in `~/Downloads/`. Their JPEG/JPEG 2000 image streams have been extracted
+to `data/catalogue_images/` (1,406 images, about 39 MB); `manifest.json` records the
+source PDF, PDF object number, dimensions and encoding. `product_links.json` records
+page links and image candidates for 38 Leatherman and 258 Gerber products, plus crops
+for all 133 SWIZA catalogue entries. SWIZA crops use row order and evenly spaced
+page bands; multi-product Leatherman and Gerber pages use image order to split
+candidates. Those heuristic product links are marked `needs_review`; they are catalogue
+images, not a labelled phone-photo evaluation set. Re-extract with
+`python tools/extract_catalogue_images.py`; rebuild links and crops with
+`python tools/link_catalogue_images.py`.
+
 ## Success criteria
 
 For the defined test catalogue:
@@ -313,15 +325,12 @@ backend/                             FastAPI service + catalogue scraper
   data/                              Scraped SAK catalogue (products + per-SKU tools)
   data/training/konkurrenz.csv      Competitor products with their exact tool lists
 frontend/                            React app (Vite, Tailwind)
-  Dockerfile.prod                    Production build (vite build -> nginx)
-  nginx.conf                         SPA fallback + /api proxy
-deploy/                              Deployment runbook for the homelab
-  homelab.sh                        sync / up / serve / status / logs
-  docker-compose.homelab.yml        Compose stack for the homelab
-  README.md                          Deployment details and the pitfalls
 data/sak_ground_truth/               12 labelled packshots extracted from the input PDF
 data/real_photos/                   12 labelled real smartphone photos (the demo domain)
+data/catalogue_images/              JPEG/JPEG 2000 assets extracted from catalogue PDFs
 tools/                               Classification workstream: Clef client + evaluation harnesses
+  extract_catalogue_images.py        Extract embedded JPEG/JPEG 2000 streams from PDFs
+  link_catalogue_images.py           Link PDF images to product pages and crop SWIZA rows
   clef_client.py                     Clef decision client (OpenRouter /api/alpha/decisions)
   tool_vocab.py                      German -> English mapping for all 147 catalogue tools
   feature_detection.py               Detects which tools are visible in a photo
@@ -390,24 +399,6 @@ The backend and frontend run via Docker:
 ```bash
 docker compose up --build -V
 ```
-
-## Deployment (Homelab, Tailscale)
-
-Backend and frontend run as Docker containers on the homelab (`simon@homelab`) and are published
-with **Tailscale Serve** over HTTPS. The local machine only transfers the repo (`rsync`); the build
-runs on the homelab, so no Node or Python toolchain is needed here.
-
-```bash
-./deploy/homelab.sh sync && ./deploy/homelab.sh up    # transfer, build, start
-./deploy/homelab.sh status                           # container + Tailscale status
-./deploy/homelab.sh logs                              # backend logs
-```
-
-The app is then reachable at **https://homelab.tailb8858a.ts.net/** from any device in the tailnet
-(e.g. the Pixel), with a valid TLS certificate and no VPN or hotspot setup.
-
-Details, port choices and the two container pitfalls that cost time (uvicorn `--reload` vs. module
-name binding, Docker layer cache) are in [deploy/README.md](deploy/README.md).
 
 ## References
 
