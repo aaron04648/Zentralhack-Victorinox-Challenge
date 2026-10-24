@@ -38,7 +38,11 @@ The prototype must work end-to-end for **one clearly delimited product category*
 
 ### Scope of this prototype
 
-- **In scope:** the **SAK (Swiss Army Knife)** category only.
+- **In scope:** **pocket knives** from the SAK (Swiss Army Knife) category only.
+  The catalogue CSV also contains accessories, nail care, Swiss Cards, fixed-blade knives
+  (Venture) and Swiss Tools (pliers); these are filtered out by `is_pocket_knife()` in
+  `backend/app/main.py`, leaving **153 of 247** products. New backend code should read the
+  catalogue via `load_pocket_knives()`.
 - **Competitor brands considered:** Swiss Army Knife (own), Swiza, Roxon, The Helton,
   Leatherman, Gerber Gear, Benchmade Knives.
 - **Reference example:** SWIZA D03 AM (Black), SKU `KNI.0036.1010` — used as the
@@ -46,9 +50,10 @@ The prototype must work end-to-end for **one clearly delimited product category*
 
 ### Out of scope for the prototype
 
-- Product categories other than SAK.
-- Training models from scratch. The vision model uses few-shot reference images by default;
-  fine-tuning it is optional and prepared in `backend/training/` (decided 2026-10-23, budget-dependent).
+- Product categories other than SAK, and SAK products that are not pocket knives
+  (accessories, nail care, Swiss Cards, Swiss Tools, fixed-blade knives).
+- Training models from scratch. Clef thresholds are calibrated on catalogue images; fine-tuning the
+  OpenAI vision model is optional and prepared in `backend/training/` (budget-dependent).
 - Production integration with Victorinox PIM / ERP / DAM / Microsoft Fabric Lakehouse.
 - Any live write-back into customer systems; feedback is captured locally for the
   prototype only.
@@ -148,8 +153,8 @@ POST /api/products/image
   ]
 }
 
-GET  /api/products?q=&kategorie=&limit=&offset=   catalogue search
-GET  /api/products/{artikelnummer}                 single product (variant numbers resolve too)
+GET  /api/products?q=&kategorie=&limit=&offset=   pocket-knife search (used by the feedback dialog)
+GET  /api/products/{artikelnummer}                 single pocket knife incl. tool list (variant numbers resolve too)
 POST /api/match                                    photo → recognition + recommendations (needs a vision API key, see below)
 POST /api/feedback                                 correct / not correct + better hit (open, mocked in frontend)
 
@@ -224,13 +229,35 @@ PDF pages 13 and 22 by column, not by photo; `training/evaluieren.py` corrects t
 
 Mobile-first React app in `frontend/` (Vite, JSX, Tailwind CSS v4, lucide-react, framer-motion, react-router).
 
-Flow: **Scan** (camera / upload / demo examples) → **Analyse** (agent steps live) → **Result**
-(recognised product with Victorinox/competitor badge and confidence, top recommendation with rationale,
-technical comparison with sources, top-3 candidates, clarification prompt when unsure, feedback bar)
-→ **Product detail** / **Catalogue**.
+Flow: **Scan** (camera / upload / demo examples) → **Preview** (check the photo, optional category)
+→ **Analyse** (agent steps live) → **Result** (recognised product with Victorinox/competitor badge and
+confidence, top recommendation with rationale, technical comparison with sources, top-3 candidates,
+clarification prompt when unsure, feedback bar) → **Product detail**.
+
+### Category hint
+
+After choosing a photo the user can optionally pick a category. It is sent to `POST /api/match` as the
+form field `kategorie` and is meant to narrow the candidate set (the "category" filter in the
+classification pipeline, see `docs/classification_recommendation.md` §8). The values are exactly the
+pocket-knife values of the CSV column `kategorien`:
+
+| Value (`kategorie`) | Label in the app | Typical models | Knives |
+| --- | --- | --- | --- |
+| *(empty)* | Automatisch erkennen | — | 153 |
+| `Everyday` | Alltag (Everyday) | Classic SD, Spartan, Climber | 79 |
+| `Outdoor & Sports` | Outdoor & Sport | Huntsman, Ranger Grip, Hunter Pro | 51 |
+| `Trades & Crafts` | Handwerk & Garten | Swiss Champ, Handyman, Okuliermesser | 30 |
+
+Products can be in several categories. The hint is a soft filter: if the recognition is very
+confident about a product outside the chosen category, it should still win. The options live in
+`frontend/src/lib/kategorien.js`. On a follow-up photo after a clarification prompt, the category of the
+first photo is reused.
+
+### Mock
 
 As long as `/api/match` and `/api/feedback` do not exist, the frontend falls back to a mock
-(`frontend/src/api/mock.js`, real catalogue products, technical features clearly labelled as demo data).
+(`frontend/src/api/mock.js`). Its products and tool lists are real catalogue rows; what was supposedly
+recognised on the photo is fixed per demo example and labelled "Bilderkennung (Demo)".
 Mock results show a "Demo-Modus" badge. `VITE_USE_MOCK=true|false|auto` (default `auto`) controls this.
 
 ```bash

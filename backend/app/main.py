@@ -106,6 +106,28 @@ def to_number(value):
         return None
 
 
+# Scope des Prototyps: nur Taschenmesser (siehe README). Die CSV enthält das ganze
+# SAK-Sortiment inkl. Zubehör, Nagelpflege, Swiss Cards und Swiss Tools (Zangen).
+MESSER_KATEGORIEN = ("Everyday", "Outdoor & Sports", "Trades & Crafts")
+KEINE_MESSER_SHOP = ("Personal Care", "Accessoires")
+KEINE_MESSER_NAMEN = ("Swiss Card", "Smart Card", "Grillgabel", "Golf Tool", "Venture")
+
+
+def is_pocket_knife(row):
+    kategorien = split_list(row["kategorien"], ";")
+    return (
+        any(k in kategorien for k in MESSER_KATEGORIEN)
+        and "Swiss Tools" not in kategorien
+        and row["shop_kategorie"].replace("\xa0", " ") not in KEINE_MESSER_SHOP
+        and not any(name in row["name"] for name in KEINE_MESSER_NAMEN)
+    )
+
+
+@lru_cache
+def load_pocket_knives():
+    return [row for row in load_products() if is_pocket_knife(row)]
+
+
 def to_product(row):
     """CSV-Zeile als bereinigtes Produkt für das Frontend (Listen statt Strings, Zahlen statt Text)."""
     preis = to_number(row["preis_chf"])
@@ -119,7 +141,9 @@ def to_product(row):
         "lagerstatus": row["lagerstatus"] or None,
         "varianten_artikelnummern": split_list(row["varianten_artikelnummern"]),
         "farben": split_list(row["farben"]),
-        "werkzeuge": split_list(row.get("werkzeuge", ""), " / "),
+        "anzahl_werkzeuge": int(row["anzahl_werkzeuge"]) if row["anzahl_werkzeuge"].isdigit() else None,
+        # " / " trennt Werkzeuge; " | " verbindet Teile eines Kombi-Werkzeugs und bleibt drin
+        "werkzeuge": split_list(row["werkzeuge"], " / "),
         "werkzeug_gruppen": split_list(row.get("werkzeug_gruppen", "")),
         "anzahl_funktionen": to_number(row.get("anzahl_funktionen")),
         "laenge_mm": to_number(row.get("laenge_mm")),
@@ -154,12 +178,12 @@ def product_image(body: ProductFilter):
 
 @app.get("/api/products")
 def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)):
-    """Katalog-Suche. `q` sucht in Name, Artikelnummer (inkl. Varianten) und Farben,
-    `kategorie` filtert auf eine der Hauptkategorien (z. B. "Everyday")."""
+    """Suche über die Taschenmesser. `q` sucht in Name, Artikelnummer (inkl. Varianten) und Farben,
+    `kategorie` filtert auf eine der Messer-Kategorien (z. B. "Everyday")."""
     needle = q.strip().casefold()
     kategorie = kategorie.strip().casefold()
     found = []
-    for row in load_products():
+    for row in load_pocket_knives():
         if kategorie and kategorie not in (k.casefold() for k in split_list(row["kategorien"], ";")):
             continue
         haystack = " ".join((row["name"], row["artikelnummer"], row["varianten_artikelnummern"], row["farben"]))
@@ -171,11 +195,11 @@ def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1,
 
 @app.get("/api/products/{artikelnummer}")
 def get_product(artikelnummer: str):
-    """Ein Produkt per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
-    for row in load_products():
+    """Ein Taschenmesser per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
+    for row in load_pocket_knives():
         if row["artikelnummer"] == artikelnummer:
             return to_product(row)
-    for row in load_products():
+    for row in load_pocket_knives():
         if artikelnummer in split_list(row["varianten_artikelnummern"]):
             return to_product(row)
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")
@@ -188,6 +212,7 @@ RUECKFRAGE_SCHWELLE = 0.5      # Jev: Wahrscheinlichkeit "nicht unterscheidbar"
 RUECKFRAGE_ABSTAND = 0.05      # Fallback ohne Jev: Score-Abstand Platz 1 zu 2
 MAX_BILD_BYTES = 8 * 1024 * 1024
 VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografierte Produkt ab dieser Wahrscheinlichkeit
+KATEGORIE_MALUS = 0.5          # Score-Faktor für Kandidaten ausserhalb der gewählten Kategorie
 VISUELL_ABSTAND = 2.5          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
 _matches = {}                  # match_id -> {"gruppen", "visuell"} (für das zweite Foto nach Rückfrage)
 
@@ -197,7 +222,7 @@ async def kacheln_laden():
     """Katalogbilder für die Clef-Bildsuche im Hintergrund vorbereiten (einmalig, danach auf Platte)."""
     if clef.aktiv():
         asyncio.get_running_loop().run_in_executor(
-            None, clef.kacheln_vorbereiten, [r for r in load_products() if matching.produkt_gruppen(r)])
+            None, clef.kacheln_vorbereiten, [r for r in load_pocket_knives() if matching.produkt_gruppen(r)])
 
 
 def produkt_merkmale(row):
@@ -218,15 +243,20 @@ def produkt_merkmale(row):
 
 
 @app.post("/api/match")
-async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None)):
+async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
+                kategorie: str | None = Form(None)):
     """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
     inhalt = await bild.read()
     if not inhalt or len(inhalt) > MAX_BILD_BYTES:
         raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
 
     schritte = []
-    rows = load_products()
+    rows = load_pocket_knives()
     messer = [r for r in rows if matching.produkt_gruppen(r)]
+
+    def kategorie_faktor(row):
+        # Weicher Filter aus dem Dropdown: andere Kategorien zählen halb, fallen aber nicht weg
+        return 1.0 if not kategorie or kategorie in split_list(row["kategorien"], ";") else KATEGORIE_MALUS
     bild_url = vision.bild_als_url(inhalt, bild.content_type or "image/jpeg")
     # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
     mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
@@ -285,7 +315,8 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         # die Werkzeuge liefern die Begründung
         nach_nummer = {r["artikelnummer"]: r for r in messer}
         kandidaten = []
-        for nummer, p in sorted(visuell.items(), key=lambda kv: -kv[1])[:3]:
+        gewichtet = {n: p * kategorie_faktor(nach_nummer[n]) for n, p in visuell.items() if n in nach_nummer}
+        for nummer, p in sorted(gewichtet.items(), key=lambda kv: -kv[1])[:3]:
             k = matching.bewerte(erkannte_gruppen, nach_nummer[nummer], erkannt) or {
                 "row": nach_nummer[nummer], "gruppen": matching.produkt_gruppen(nach_nummer[nummer]),
                 "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}
@@ -298,7 +329,10 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         eigenes = next((k for k in kandidaten[:1] if ist_victorinox and k["score"] >= VISUELL_SICHER
                         and k["score"] >= VISUELL_ABSTAND * zweiter), None)
     else:
-        kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=3)
+        kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=len(rows))
+        for k in kandidaten:
+            k["score"] = round(k["score"] * kategorie_faktor(k["row"]), 4)
+        kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
         schritte.append({"id": "suche", "label": "Katalog durchsucht",
                          "status": "ok" if kandidaten else "warnung",
                          "detail": f"{len(messer)} Messer über die Werkzeuge verglichen"})

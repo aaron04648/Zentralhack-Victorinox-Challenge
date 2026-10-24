@@ -41,18 +41,20 @@ export function ScanProvider({ children }) {
   }, [])
 
   const starteScan = useCallback(
-    async (datei, { demo, vorherigerScanId } = {}) => {
+    async (datei, { demo, kategorie, vorherigerScanId } = {}) => {
       const id = Date.now().toString(36)
       const { upload, vorschau } = await bereiteFotoVor(datei)
-      const vorherigeMatchId = vorherigerScanId ? scans[vorherigerScanId]?.ergebnis?.match_id : undefined
+      const vorheriger = vorherigerScanId ? scans[vorherigerScanId] : null
+      const vorherigeMatchId = vorheriger?.ergebnis?.match_id
+      kategorie = kategorie ?? vorheriger?.kategorie ?? ''
 
       setScans((alt) => ({
         ...alt,
-        [id]: { id, zeit: Date.now(), vorschau, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
+        [id]: { id, zeit: Date.now(), vorschau, kategorie, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
       }))
 
       anfragen.current[id] = api
-        .match(upload, { demo, vorherigeMatchId })
+        .match(upload, { demo, kategorie, vorherigeMatchId })
         .then((ergebnis) => {
           aktualisiere(id, { status: 'fertig', ergebnis })
           return ergebnis

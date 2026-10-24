@@ -4,7 +4,6 @@ import ScanPage from './pages/ScanPage.jsx'
 import AnalyzePage from './pages/AnalyzePage.jsx'
 import ResultPage from './pages/ResultPage.jsx'
 import ProductPage from './pages/ProductPage.jsx'
-import CatalogPage from './pages/CatalogPage.jsx'
 
 export default function App() {
   return (
@@ -16,7 +15,6 @@ export default function App() {
           <Route path="/analyse/:scanId" element={<AnalyzePage />} />
           <Route path="/ergebnis/:scanId" element={<ResultPage />} />
           <Route path="/produkt/:artikelnummer" element={<ProductPage />} />
-          <Route path="/katalog" element={<CatalogPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

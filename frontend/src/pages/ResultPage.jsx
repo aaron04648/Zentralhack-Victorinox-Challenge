@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, ChevronLeft, FlaskConical, RotateCcw } from 'lucide-react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ArrowRight, FlaskConical, RotateCcw } from 'lucide-react'
 import ErkennungsKarte from '../components/ErkennungsKarte.jsx'
 import EmpfehlungsHero from '../components/EmpfehlungsHero.jsx'
 import VergleichsTabelle from '../components/VergleichsTabelle.jsx'
@@ -10,6 +10,7 @@ import FeedbackLeiste from '../components/FeedbackLeiste.jsx'
 import { Abschnitt, Badge, Button } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { KONFIDENZ_SCHWELLE } from '../lib/format.js'
+import { kategorieLabel } from '../lib/kategorien.js'
 
 const PFAD_TEXT = {
   ersatz: 'Konkurrenzprodukt erkannt: Das ist der funktional beste Victorinox-Ersatz.',
@@ -45,19 +46,20 @@ function Ergebnis({ scanId }) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900">
-          <ChevronLeft className="size-4" /> Neuer Scan
-        </Link>
-        {modus === 'mock' && (
+      {modus === 'mock' && (
+        <div className="mb-3 flex justify-end">
           <Badge ton="dunkel" icon={FlaskConical}>Demo-Modus · Mock-Daten</Badge>
-        )}
-      </div>
+        </div>
+      )}
 
       <ErkennungsKarte vorschau={scan.vorschau} erkannt={erkannt} />
 
-      {scan.vorherigerScanId && (
-        <p className="mt-2 px-1 text-xs text-zinc-500">Mit zweitem Foto präzisiert.</p>
+      {(scan.vorherigerScanId || scan.kategorie) && (
+        <p className="mt-2 px-1 text-xs text-zinc-500">
+          {[scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
       )}
 
       <div className="mt-4">

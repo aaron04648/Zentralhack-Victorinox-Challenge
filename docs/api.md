@@ -32,6 +32,8 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
   "lagerstatus": "inStock",            // "inStock" | "outOfStock" | null
   "varianten_artikelnummern": ["1.3603", "1.3603.3"],
   "farben": ["rot", "schwarz"],
+  "anzahl_werkzeuge": 12,              // null, wenn die CSV keine Angabe hat
+  "werkzeuge": ["Klinge, gross", "Korkenzieher", "Dosenöffner | Schraubendreher 3 mm"],  // " | " = Kombi-Werkzeug
   "url": "https://www.victorinox.com/...",
   "bild_url": "https://imageengine.victorinox.com/transform/..."
 }
@@ -40,8 +42,11 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
 ### `GET /api/products?q=&kategorie=&limit=50&offset=0`
 
 `q` sucht in Name, Artikelnummer, Varianten-Artikelnummern und Farben (ohne Gross-/Kleinschreibung).
-`kategorie` ist eine der Hauptkategorien (`Everyday`, `Outdoor & Sports`, `Trades & Crafts`, `Swiss Tools`,
-`Accessoires`, `Personalisieren`). Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
+`kategorie` ist eine der Messer-Kategorien (`Everyday`, `Outdoor & Sports`, `Trades & Crafts`).
+Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
+
+Beide Produkt-Endpoints liefern **nur Taschenmesser** (153 von 247 CSV-Zeilen, siehe `is_pocket_knife()` in
+`backend/app/main.py`). Zubehör, Nagelpflege, Swiss Cards, Swiss Tools und Venture ergeben 404 bzw. keinen Treffer.
 
 ### `GET /api/products/{artikelnummer}`
 
@@ -54,6 +59,7 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | Feld | Typ | |
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
+| `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte der CSV-Spalte `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:
@@ -67,7 +73,7 @@ Antwort:
     "ist_victorinox": false,
     "modell": "D03 AM (Black)",         // null, wenn unklar
     "artikelnummer": "KNI.0036.1010",   // null, wenn nicht erkannt
-    "kategorie": "Taschenmesser (SAK)",
+    "kategorie": "Taschenmesser",
     "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
     "produkt": null,                    // Product, falls es ein Victorinox-Katalogprodukt ist
     "merkmale": [Merkmal, …]
@@ -91,10 +97,10 @@ gestellt. `wert` darf string, number oder string[] sein (Listen werden als Chips
 `quelle` wird in der UI angezeigt: **keine Werte ohne Quelle**, lieber weglassen.
 
 ```json
-{ "key": "laenge", "label": "Länge", "wert": "91 mm", "quelle": "Produktstammdaten" }
+{ "key": "funktionen", "label": "Funktionen", "wert": 12, "quelle": "Produktdaten victorinox.com" }
 ```
 
-Bekannte Keys: `laenge`, `funktionen`, `werkzeuge`, `schale`. Weitere Keys werden automatisch als Zeile angezeigt.
+Bekannte Keys: `funktionen` (= `anzahl_werkzeuge`), `werkzeuge` (= `werkzeuge`, im Vokabular des Katalogs, damit sie vergleichbar sind), `farben`. Weitere Keys werden automatisch als Zeile angezeigt.
 
 **Schritt**: für die Agenten-Ansicht während der Analyse.
 
