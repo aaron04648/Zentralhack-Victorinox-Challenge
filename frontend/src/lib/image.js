@@ -22,7 +22,7 @@ function zeichne(img, maxSeite) {
   return canvas
 }
 
-/** Liefert { upload: Blob (max. 1600 px), vorschau: dataURL (max. 320 px) }. */
+/** Liefert { upload: Blob (max. 1600 px), vorschau: dataURL (max. 640 px, für den Röntgenblick) }. */
 export async function bereiteFotoVor(datei) {
   const url = URL.createObjectURL(datei)
   try {
@@ -30,7 +30,7 @@ export async function bereiteFotoVor(datei) {
     const upload = await new Promise((resolve) =>
       zeichne(img, 1600).toBlob(resolve, 'image/jpeg', 0.85),
     )
-    const vorschau = zeichne(img, 320).toDataURL('image/jpeg', 0.75)
+    const vorschau = zeichne(img, 640).toDataURL('image/jpeg', 0.72)
     return { upload: upload ?? datei, vorschau }
   } finally {
     URL.revokeObjectURL(url)

@@ -1,14 +1,25 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Camera, ImagePlus } from 'lucide-react'
+import LiveKamera from './LiveKamera.jsx'
 import { Button } from './ui.jsx'
 
+// Live-Kamera braucht getUserMedia, das Browser nur über https oder localhost freigeben.
+// Sonst (z. B. Handy über http://192.168…) öffnet der Kamera-Button die Foto-App.
+const LIVE_KAMERA = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia) && window.isSecureContext
+
 /**
- * Zwei Wege zum Foto: Kamera (öffnet am Handy direkt die Rückkamera) und Galerie/Datei.
+ * Zwei Wege zum Foto: Live-Kamera mit Auto-Auslöser (Fallback: Foto-App) und Galerie/Datei.
  * `kompakt` = zwei Buttons nebeneinander, sonst die grosse Variante für die Startseite.
  */
 export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = false }) {
   const kamera = useRef(null)
   const galerie = useRef(null)
+  const [live, setLive] = useState(false)
+
+  function kameraOeffnen() {
+    if (LIVE_KAMERA) setLive(true)
+    else kamera.current.click()
+  }
 
   function gewaehlt(event) {
     const datei = event.target.files?.[0]
@@ -20,6 +31,19 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
     <>
       <input ref={kamera} type="file" accept="image/*" capture="environment" hidden onChange={gewaehlt} />
       <input ref={galerie} type="file" accept="image/*" hidden onChange={gewaehlt} />
+      {live && (
+        <LiveKamera
+          onFoto={(datei) => {
+            setLive(false)
+            onDatei(datei)
+          }}
+          onSchliessen={() => setLive(false)}
+          onFotoApp={() => {
+            setLive(false)
+            kamera.current.click()
+          }}
+        />
+      )}
     </>
   )
 
@@ -27,7 +51,7 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
     return (
       <div className="flex gap-2">
         {inputs}
-        <Button icon={Camera} disabled={deaktiviert} onClick={() => kamera.current.click()}>
+        <Button icon={Camera} disabled={deaktiviert} onClick={kameraOeffnen}>
           Neues Foto
         </Button>
         <Button variante="sekundaer" icon={ImagePlus} disabled={deaktiviert} onClick={() => galerie.current.click()}>
@@ -50,7 +74,7 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
       {inputs}
       <button
         disabled={deaktiviert}
-        onClick={() => kamera.current.click()}
+        onClick={kameraOeffnen}
         className="group relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl bg-brand px-6 py-10 text-white shadow-lg shadow-brand/25 transition active:scale-[0.99] disabled:opacity-60"
       >
         <span className="pointer-events-none absolute inset-4 rounded-2xl border border-white/25" />
@@ -62,7 +86,9 @@ export default function FotoAufnahme({ onDatei, kompakt = false, deaktiviert = f
           <Camera className="size-8" />
         </span>
         <span className="text-lg font-semibold">Foto aufnehmen</span>
-        <span className="text-sm text-white/80">Messer möglichst aufgeklappt, auf ruhigem Hintergrund</span>
+        <span className="text-sm text-white/80">
+          {LIVE_KAMERA ? 'Live-Kamera mit Auto-Auslöser · ' : ''}Messer aufgeklappt, ruhiger Hintergrund
+        </span>
       </button>
       <button
         disabled={deaktiviert}

@@ -41,9 +41,10 @@ export function ScanProvider({ children }) {
   }, [])
 
   const starteScan = useCallback(
-    async (datei, { demo, kategorie, verwendung, vorherigerScanId } = {}) => {
+    async (datei, { demo, kategorie, verwendung, vorherigerScanId, vorbereitet } = {}) => {
       const id = Date.now().toString(36)
-      const { upload, vorschau } = await bereiteFotoVor(datei)
+      // vorbereitet: schon verkleinertes Foto aus der Vorschau, damit das Backend den Röntgenblick wiederverwendet
+      const { upload, vorschau } = vorbereitet ?? (await bereiteFotoVor(datei))
       const vorheriger = vorherigerScanId ? scans[vorherigerScanId] : null
       const vorherigeMatchId = vorheriger?.ergebnis?.match_id
       kategorie = kategorie ?? vorheriger?.kategorie ?? ''
@@ -54,8 +55,26 @@ export function ScanProvider({ children }) {
         [id]: { id, zeit: Date.now(), vorschau, kategorie, verwendung, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
       }))
 
+      // Live-Ablauf: Schritte (gleiche id = Update) und erkannte Werkzeuge mit Position
+      const live = (ereignis) =>
+        setScans((alt) => {
+          const bisher = alt[id]?.live ?? { schritte: [], werkzeuge: null }
+          const neu =
+            ereignis.typ === 'schritt'
+              ? {
+                  ...bisher,
+                  schritte: bisher.schritte.some((s) => s.id === ereignis.schritt.id)
+                    ? bisher.schritte.map((s) => (s.id === ereignis.schritt.id ? ereignis.schritt : s))
+                    : [...bisher.schritte, ereignis.schritt],
+                }
+              : ereignis.typ === 'werkzeuge'
+                ? { ...bisher, werkzeuge: ereignis.werkzeuge }
+                : bisher
+          return { ...alt, [id]: { ...alt[id], live: neu } }
+        })
+
       anfragen.current[id] = api
-        .match(upload, { demo, kategorie, verwendung, vorherigeMatchId })
+        .match(upload, { demo, kategorie, verwendung, vorherigeMatchId, onEreignis: live })
         .then((ergebnis) => {
           aktualisiere(id, { status: 'fertig', ergebnis })
           return ergebnis

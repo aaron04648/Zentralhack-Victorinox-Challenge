@@ -38,3 +38,30 @@ body {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+/* Röntgenblick: Marker erscheinen nacheinander, sichere pulsieren leicht */
+@keyframes roentgen-ein {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+.roentgen-marker {
+  animation: roentgen-ein 0.35s ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes roentgen-puls {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.05; }
+}
+.roentgen-puls {
+  animation: roentgen-puls 1.8s ease-in-out infinite;
+}
+
+/* Live-Kamera: Blitz beim Auslösen */
+@keyframes kamera-blitz {
+  from { opacity: 0.9; }
+  to { opacity: 0; }
+}
+.kamera-blitz {
+  animation: kamera-blitz 0.45s ease-out both;
+}

@@ -18,20 +18,24 @@ function Symbol({ zustand }) {
   return <Circle className="size-5 text-zinc-300" />
 }
 
+const LIVE_ZUSTAND = { laeuft: 'laeuft', ok: 'fertig', warnung: 'warnung' }
+
 /**
- * @param aktiv  Index des gerade laufenden Schritts (davor = fertig)
+ * @param aktiv  Index des gerade laufenden Schritts (davor = fertig); ohne `live`
  * @param schritte  optional Backend-Schritte mit status/detail
+ * @param live  true = Zustand direkt aus schritt.status (Live-Ablauf vom Backend)
  */
-export default function AgentSchritte({ aktiv, schritte }) {
+export default function AgentSchritte({ aktiv, schritte, live = false }) {
   const liste = schritte?.length ? schritte : STANDARD_SCHRITTE
   return (
     <ol className="space-y-1">
       {liste.map((schritt, i) => {
         let zustand = i < aktiv ? 'fertig' : i === aktiv ? 'laeuft' : 'offen'
         if (zustand === 'fertig' && schritt.status === 'warnung') zustand = 'warnung'
+        if (live) zustand = LIVE_ZUSTAND[schritt.status] ?? 'fertig'
         return (
           <motion.li
-            key={schritt.id}
+            key={`${schritt.id}-${i}`}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: zustand === 'offen' ? 0.45 : 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
@@ -41,7 +45,9 @@ export default function AgentSchritte({ aktiv, schritte }) {
             <div className="min-w-0">
               <div className="text-sm font-medium">{schritt.label}</div>
               {zustand !== 'offen' && schritt.detail && (
-                <div className="text-xs text-zinc-500">{schritt.detail}</div>
+                <motion.div key={schritt.detail} initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} className="text-xs text-zinc-500">
+                  {schritt.detail}
+                </motion.div>
               )}
             </div>
           </motion.li>

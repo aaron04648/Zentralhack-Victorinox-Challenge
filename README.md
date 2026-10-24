@@ -190,6 +190,14 @@ Full request/response contract: [docs/api.md](docs/api.md).
    In the app the user can correct the recognised tools (any brand; double-click an unsure,
    dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
    re-ranks without a new Clef call. The category dropdown was removed; the use-case text replaces it.
+   **Live features:** the app opens a live camera in the browser (`getUserMedia`, needs https or localhost;
+   otherwise the phone's photo app opens) with an auto-shutter that fires once the picture is still and sharp
+   (measured in the browser, no AI call). `/api/match/stream` streams every analysis step, including the
+   tournament rounds of the visual search. "Röntgenblick": Clef locates each recognised tool on the photo via
+   a labelled 4×4 grid (`clef.lokalisieren`, ~1 s, runs while the visual search continues); the markers
+   appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, while the use case is typed in),
+   during the analysis and on the result card, linked to the tool chips. The analysis reuses the preview
+   result (cached by image hash), so Clef is not asked twice.
 3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
    tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
    in the scales don't count against a product). A visible article number or model name wins.

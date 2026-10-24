@@ -9,6 +9,8 @@ Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorin
 | `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
+| `POST /api/roentgen` | vorhanden: Röntgenblick direkt nach der Aufnahme (Marke + Werkzeuge mit Position) |
+| `POST /api/match/stream` | vorhanden: wie `/api/match`, aber als Live-Ablauf (NDJSON, ein Ereignis pro Zeile) |
 | `POST /api/match/{match_id}/werkzeuge` | vorhanden: Werkzeuge korrigieren und ohne neues Foto erneut suchen |
 | `GET /api/werkzeuge` | vorhanden: alle Werkzeuggruppen (Vorschläge beim Hinzufügen) |
 | `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
@@ -85,7 +87,8 @@ Antwort:
     "kategorie": "Taschenmesser",
     "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
     "werkzeuge": [                      // erkannte Werkzeuggruppen, sicherste zuerst
-      { "gruppe": "zange", "label": "Zange", "wahrscheinlichkeit": 0.93 }   // null = aus erstem Foto übernommen
+      { "gruppe": "zange", "label": "Zange", "wahrscheinlichkeit": 0.93,
+        "position": { "x": 0.61, "y": 0.14, "sicherheit": 0.72 } }   // Röntgenblick: 0..1 relativ zum Foto, null = nicht verortet
     ],
     "produkt": null,                    // Product, falls es ein Victorinox-Katalogprodukt ist
     "merkmale": [Merkmal, …]
@@ -151,3 +154,36 @@ nach einem Backend-Neustart 404 → neu scannen). Danach wird immer nach Ausstat
 
 Komplette Liste; was fehlt, gilt als entfernt. Antwort: wie `POST /api/match` (gleiche `match_id`).
 Gruppen-Keys: `GET /api/werkzeuge` → `[{ "gruppe", "label", "beschreibung" }]`.
+
+
+## `POST /api/match/stream`
+
+Gleiche Form-Felder wie `POST /api/match`. Antwort `application/x-ndjson`, eine JSON-Zeile pro Ereignis:
+
+```jsonc
+{ "typ": "schritt", "schritt": { "id": "bildsuche", "label": "Katalogbilder vergleichen", "status": "laeuft",
+                                 "detail": "Durchgang 1, Runde 1: 151 Katalogbilder → 18 weiter" } }
+{ "typ": "werkzeuge", "werkzeuge": [ /* wie erkannt.werkzeuge, mit position */ ] }   // nach ~4 s, Bildsuche läuft weiter
+{ "typ": "ergebnis", "ergebnis": { /* genau die Antwort von POST /api/match */ } }    // letzte Zeile
+{ "typ": "fehler", "status": 503, "detail": "…" }                                    // statt ergebnis
+```
+
+Ein Schritt mit derselben `id` kann mehrfach kommen (`laeuft` mit neuem `detail`, dann `ok`/`warnung`).
+Der Röntgenblick (`position`) kommt von Clef: Über das Foto wird ein beschriftetes 4×4-Raster gelegt und pro
+Werkzeug gefragt, in welcher Zelle es liegt (`clef.lokalisieren`).
+
+## `POST /api/roentgen`
+
+Röntgenblick sofort nach der Aufnahme, noch bevor „Analysieren“ gedrückt wird (Form-Feld `bild`, ca. 3 s).
+Nur Erkennung + Verortung, keine Katalogsuche. 503, wenn Clef nicht aktiv ist (Frontend zeigt dann einfach keine Marker).
+
+```jsonc
+{ "marke": "SWIZA", "konfidenz": 0.5,
+  "werkzeuge": [ { "gruppe": "korkenzieher", "label": "Korkenzieher", "wahrscheinlichkeit": 0.94,
+                   "position": { "x": 0.61, "y": 0.63, "sicherheit": 0.7 } } ] }
+```
+
+Das Ergebnis wird unter dem SHA-1 der Bildbytes gemerkt (max. 50 Fotos, nur im Speicher). Kommt danach
+`/api/match` bzw. `/api/match/stream` mit **denselben Bytes**, werden Erkennung und Orte übernommen
+(Schritt-Detail „aus der Vorschau übernommen“); läuft der Röntgenblick noch, wird auf ihn gewartet statt Clef
+doppelt zu fragen. Das Frontend schickt darum beide Male denselben verkleinerten Upload-Blob.

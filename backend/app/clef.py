@@ -300,29 +300,107 @@ def _runde(bild_data_url, rows):
     return {row["artikelnummer"]: float(p.get(i, 0)) for i, row in ids.items()}
 
 
-def _turnier(bild_data_url, rows):
+def _turnier(bild_data_url, rows, melde=lambda runde, vorher, nachher: None):
     pro_anfrage = RASTER * RASTER * RASTER_PRO_ANFRAGE
+    runde = 1
     with ThreadPoolExecutor(8) as pool:
         while len(rows) > pro_anfrage:
             gruppen = [rows[i:i + pro_anfrage] for i in range(0, len(rows), pro_anfrage)]
             nach_nummer = {r["artikelnummer"]: r for r in rows}
+            vorher = len(rows)
             rows = [nach_nummer[n] for e in pool.map(lambda g: _runde(bild_data_url, g), gruppen)
                     for n in sorted(e, key=e.get, reverse=True)[:WEITER_PRO_RUNDE]]
-    return _runde(bild_data_url, rows)
+            melde(runde, vorher, len(rows))
+            runde += 1
+    ergebnis = _runde(bild_data_url, rows)
+    melde(runde, len(rows), 0)
+    return ergebnis
 
 
-def visuell_suchen(bild_data_url, rows):
+def visuell_suchen(bild_data_url, rows, fortschritt=None):
     """Kundenfoto gegen alle Katalogbilder -> [(artikelnummer, Wahrscheinlichkeit)], beste zuerst.
+
+    fortschritt: optional fortschritt(text), wird nach jeder Turnierrunde aufgerufen (Live-Ablauf).
 
     Auf zurückgehaltenen Katalogansichten und den Kundenfotos deutlich besser als das
     Werkzeug-Matching (siehe README, training/evaluieren.py --bildwahl).
     """
     rows = [r for r in rows if r.get("bild_url")]
     gemischt = sorted(rows, key=lambda r: hashlib.md5(r["artikelnummer"].encode()).hexdigest())
+    def melder(durchgang):
+        def melde(runde, vorher, nachher):
+            if fortschritt:
+                fortschritt(f"Durchgang {durchgang}, Runde {runde}: {vorher} Katalogbilder → "
+                            + (f"{nachher} weiter" if nachher else "Finale entschieden"))
+        return melde
+
     with ThreadPoolExecutor(2) as pool:
-        ergebnisse = list(pool.map(lambda reihenfolge: _turnier(bild_data_url, reihenfolge), [rows, gemischt]))
+        ergebnisse = list(pool.map(lambda args: _turnier(bild_data_url, args[0], melder(args[1])),
+                                   [(rows, 1), (gemischt, 2)]))
     summe = {}
     for e in ergebnisse:
         for n, p in e.items():
             summe[n] = summe.get(n, 0.0) + p / len(ergebnisse)
     return sorted(summe.items(), key=lambda kv: -kv[1])
+
+
+# --- Röntgenblick: Wo auf dem Foto ist welches Werkzeug? ------------------------------------
+# Clef liefert keine Koordinaten. Darum wird ein beschriftetes Raster über das Foto gelegt und
+# pro Werkzeug gefragt, in welcher Zelle es liegt. Die Position ist der mit Clefs
+# Wahrscheinlichkeiten gewichtete Mittelpunkt der Zellen.
+ORT_RASTER = 4              # 4x4 Zellen, Spalten A-D, Zeilen 1-4
+ORT_MAX_WERKZEUGE = 12
+
+
+def _ort_raster(bild_data_url):
+    from PIL import Image, ImageDraw, ImageFont
+
+    img = Image.open(io.BytesIO(base64.b64decode(bild_data_url.split(",", 1)[1]))).convert("RGB")
+    zeichnen = ImageDraw.Draw(img, "RGBA")
+    b, h = img.size
+    schrift = ImageFont.load_default(size=max(min(b, h) // 18, 12))
+    for i in range(1, ORT_RASTER):
+        zeichnen.line([(b * i / ORT_RASTER, 0), (b * i / ORT_RASTER, h)], fill=(0, 90, 255, 170), width=2)
+        zeichnen.line([(0, h * i / ORT_RASTER), (b, h * i / ORT_RASTER)], fill=(0, 90, 255, 170), width=2)
+    for s in range(ORT_RASTER):
+        for z in range(ORT_RASTER):
+            zeichnen.text((b * s / ORT_RASTER + 4, h * z / ORT_RASTER + 2), f"{'ABCD'[s]}{z + 1}",
+                          fill=(0, 90, 255, 230), font=schrift)
+    puffer = io.BytesIO()
+    img.save(puffer, "JPEG", quality=85)
+    return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+
+
+def lokalisieren(bild_data_url, gruppen):
+    """-> {gruppe: {"x": 0..1, "y": 0..1, "sicherheit": 0..1}} für die übergebenen Werkzeuge."""
+    gruppen = [g for g in gruppen if g in WERKZEUG_EN][:ORT_MAX_WERKZEUGE]
+    if not gruppen:
+        return {}
+    zellen = {f"{'ABCD'[s]}{z + 1}": ((s + 0.5) / ORT_RASTER, (z + 0.5) / ORT_RASTER)
+              for s in range(ORT_RASTER) for z in range(ORT_RASTER)}
+    state = [{"type": "text", "text": "Photo of a pocket knife with a labelled blue grid "
+                                      "(columns A-D left to right, rows 1-4 top to bottom):"},
+             {"type": "image_url", "image_url": {"url": _ort_raster(bild_data_url)}}]
+    fragen = {g: {"type": "choice",
+                  "instructions": f"In which grid cell is the tip or most visible part of {WERKZEUG_EN[g]}?",
+                  "criteria": {zelle: f"grid cell {zelle}" for zelle in zellen}} for g in gruppen}
+    pakete = [dict(list(fragen.items())[i:i + FRAGEN_PRO_ANFRAGE]) for i in range(0, len(fragen), FRAGEN_PRO_ANFRAGE)]
+    with ThreadPoolExecutor(len(pakete)) as pool:
+        antworten = {}
+        for teil in pool.map(lambda q: entscheide(state, q), pakete):
+            antworten.update(teil)
+    orte = {}
+    for g in gruppen:
+        p = (antworten.get(g) or {}).get("probabilities") or {}
+        if not any(p.get(z) for z in zellen):
+            continue
+        # Nur um die wahrscheinlichste Zelle mitteln: bei unsicheren Antworten zöge der Mittelwert
+        # über alle Zellen den Punkt sonst in die Bildmitte
+        beste = max(zellen, key=lambda z: p.get(z, 0))
+        nachbarn = [z for z in zellen if abs(zellen[z][0] - zellen[beste][0]) <= 1.01 / ORT_RASTER
+                    and abs(zellen[z][1] - zellen[beste][1]) <= 1.01 / ORT_RASTER]
+        summe = sum(p.get(z, 0) for z in nachbarn)
+        orte[g] = {"x": round(sum(zellen[z][0] * p.get(z, 0) for z in nachbarn) / summe, 3),
+                   "y": round(sum(zellen[z][1] * p.get(z, 0) for z in nachbarn) / summe, 3),
+                   "sicherheit": round(p[beste], 2)}
+    return orte
