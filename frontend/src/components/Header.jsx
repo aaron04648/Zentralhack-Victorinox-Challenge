@@ -22,12 +22,10 @@ export default function Header() {
             <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Victorinox · SAK</div>
           </div>
         </Link>
-        {pathname !== '/' && (
-          <Link to="/" className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800">
-            <ScanLine className="size-4" />
-            Neuer Scan
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {pathname !== '/praesentation' && <Link to="/praesentation" className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50">Story ansehen</Link>}
+          {pathname !== '/' && <Link to="/" className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800"><ScanLine className="size-4" />Neuer Scan</Link>}
+        </div>
       </div>
     </header>
   )

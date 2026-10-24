@@ -238,7 +238,7 @@ PDF pages 13 and 22 by column, not by photo; `training/evaluieren.py` corrects t
 
 Mobile-first React app in `frontend/` (Vite, JSX, Tailwind CSS v4, lucide-react, framer-motion, react-router).
 
-Flow: **Scan** (camera / upload / demo examples) → **Preview** (check the photo, optional category)
+Flow: **Story** (`/praesentation`, motion presentation of the case and prototype) → **Scan** (camera / upload / demo examples) → **Preview** (check the photo, optional category)
 → **Analyse** (agent steps live) → **Result** (recognised product with Victorinox/competitor badge and
 confidence, top recommendation with rationale, technical comparison with sources, top-3 candidates,
 clarification prompt when unsure, feedback bar) → **Product detail**.
