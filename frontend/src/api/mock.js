@@ -30,13 +30,14 @@ function empfehlung(artikelnummer, score, begruendung, gruende) {
   return { produkt, score, begruendung, gruende, merkmale: merkmale(produkt) }
 }
 
+// Wie /api/match: Stufe 1 Bildsuche, Stufe 2 Werkzeugerkennung nur, wenn die Bildsuche nicht eindeutig ist
 function schritte(details) {
   const labels = {
-    vision: 'Bild analysiert',
-    marke: 'Marke & Modell erkannt',
-    ocr: 'Gravur / Artikelnummer gelesen',
-    suche: 'Katalog durchsucht (Top-k)',
-    empfehlung: 'Empfehlung bewertet',
+    bildsuche: 'Bildsuche im Katalog',
+    vision: details.vision?.uebersprungen ? 'Werkzeugerkennung' : 'Werkzeuge erkannt',
+    marke: 'Marke bestimmt',
+    suche: details.suche?.label ?? 'Kandidaten verglichen',
+    empfehlung: 'Empfehlung erstellt',
   }
   return Object.entries(labels).map(([id, label]) => ({
     id,
@@ -56,6 +57,7 @@ const SZENARIEN = {
       modell: 'D03 AM (Black)',
       artikelnummer: 'KNI.0036.1010',
       kategorie: 'Taschenmesser',
+      stufe: 'werkzeuge',
       konfidenz: 0.91,
       merkmale: [
         // Werkzeugnamen im Vokabular des Victorinox-Katalogs, damit sie vergleichbar sind
@@ -76,10 +78,10 @@ const SZENARIEN = {
     ],
     rueckfrage: null,
     schritte: schritte({
-      vision: { detail: 'Taschenmesser erkannt, aufgeklappt, 7 Werkzeuge sichtbar' },
-      marke: { detail: 'SWIZA-Logo auf der Klinge, Modell D03' },
-      ocr: { detail: '„SWIZA“ auf der Klinge gelesen' },
-      suche: { detail: '153 Victorinox-Taschenmesser verglichen, Top 3 ausgewählt' },
+      bildsuche: { status: 'warnung', detail: 'Marke SWIZA: kein Victorinox-Katalogbild kann dasselbe Modell zeigen' },
+      vision: { detail: 'Taschenmesser aufgeklappt, 7 Werkzeuge erkannt' },
+      marke: { detail: 'SWIZA (Logo auf der Klinge)' },
+      suche: { label: 'Ausstattung verglichen', detail: '7 Werkzeuge mit 159 Victorinox-Taschenmessern verglichen' },
       empfehlung: { detail: 'Gewichtet nach Werkzeugen, Farbe, Verfügbarkeit' },
     }),
   }),
@@ -93,9 +95,12 @@ const SZENARIEN = {
       modell: 'Huntsman Year of the Horse 2026',
       artikelnummer: '1.3714.E15',
       kategorie: 'Taschenmesser',
+      stufe: 'bildsuche',
       konfidenz: 0.94,
       produkt: PRODUKTE['1.3714.E15'],
-      merkmale: merkmale(PRODUKTE['1.3714.E15']),
+      // Stufe 1: keine Werkzeugerkennung, wie im echten Backend
+      werkzeuge: [],
+      merkmale: [],
     },
     empfehlungen: [
       empfehlung('1.3714.E16', 0.96,
@@ -110,11 +115,11 @@ const SZENARIEN = {
     ],
     rueckfrage: null,
     schritte: schritte({
-      vision: { detail: 'Taschenmesser erkannt, aufgeklappt, rote Schale mit Pferdemotiv' },
-      marke: { detail: 'Victorinox-Kreuz erkannt' },
-      ocr: { detail: 'Motiv „Year of the Horse“ erkannt' },
-      suche: { detail: 'Treffer: 1.3714.E15, Status „nicht verfügbar“' },
-      empfehlung: { detail: 'Nachfolger: Jahresedition 2027 mit gleichem Werkzeugset' },
+      bildsuche: { detail: 'Foto mit 157 Katalogbildern verglichen: Huntsman Year of the Horse 2026 mit 78 %' },
+      vision: { uebersprungen: true, detail: 'übersprungen: die Bildsuche hat das Modell eindeutig gefunden' },
+      marke: { detail: 'Victorinox (Kreuz im Wappen)' },
+      suche: { label: 'Nachfolger gesucht', detail: '1.3714.E15 ist nicht lieferbar; Nachfolger laut Cross-Reference: Year of the Goat 2027' },
+      empfehlung: { detail: 'Nachfolger mit gleichem Werkzeugset zuerst' },
     }),
   }),
 
@@ -127,6 +132,7 @@ const SZENARIEN = {
       modell: null,
       artikelnummer: null,
       kategorie: 'Taschenmesser',
+      stufe: 'werkzeuge',
       konfidenz: 0.48,
       merkmale: [{ key: 'farben', label: 'Farben', wert: ['rot'], quelle: BILD }],
     },
@@ -140,9 +146,9 @@ const SZENARIEN = {
       hinweis: 'Spartan, Climber und Tinker sehen geschlossen fast gleich aus. Erst die Werkzeuge unterscheiden sie: Der Climber hat eine Schere, der Tinker einen Phillips-Schraubendreher statt Korkenzieher.',
     },
     schritte: schritte({
+      bildsuche: { status: 'warnung', detail: 'Platz 1 nur 24 % (nötig: 30 %), weiter mit der Werkzeugerkennung' },
       vision: { status: 'warnung', detail: 'Foto unscharf, Werkzeuge nicht sichtbar' },
-      marke: { detail: 'Victorinox-Kreuz erkannt, Modell unklar' },
-      ocr: { status: 'warnung', detail: 'Keine Artikelnummer lesbar' },
+      marke: { detail: 'Victorinox (Kreuz erkannt), Modell unklar' },
       suche: { detail: '3 Kandidaten mit fast gleichem Score' },
       empfehlung: { status: 'warnung', detail: 'Abstand zu klein, Rückfrage nötig' },
     }),
@@ -157,9 +163,12 @@ const SZENARIEN = {
       modell: 'Climber',
       artikelnummer: '1.3703',
       kategorie: 'Taschenmesser',
+      stufe: 'bildsuche',
       konfidenz: 0.93,
       produkt: PRODUKTE['1.3703'],
-      merkmale: merkmale(PRODUKTE['1.3703']),
+      // Stufe 1: keine Werkzeugerkennung, wie im echten Backend
+      werkzeuge: [],
+      merkmale: [],
     },
     empfehlungen: [
       empfehlung('1.3703', 0.93, 'Mit dem zweiten Foto sind Schere und Korkenzieher sichtbar. Das passt nur zum Climber. Er ist aktuell erhältlich.', ['Schere sichtbar → kein Spartan', 'Korkenzieher sichtbar → kein Tinker', 'An Lager']),
@@ -168,9 +177,9 @@ const SZENARIEN = {
     ],
     rueckfrage: null,
     schritte: schritte({
-      vision: { detail: 'Zweites Foto kombiniert, Schere und Korkenzieher sichtbar' },
-      marke: { detail: 'Victorinox Climber' },
-      ocr: { detail: 'Keine Artikelnummer nötig' },
+      bildsuche: { detail: 'Zwei Fotos kombiniert: Climber mit 81 %, klar vor Huntsman' },
+      vision: { uebersprungen: true, detail: 'übersprungen: die Bildsuche hat das Modell eindeutig gefunden' },
+      marke: { detail: 'Victorinox' },
       suche: { detail: 'Climber klar vor Huntsman' },
       empfehlung: { detail: 'Produkt aktuell erhältlich' },
     }),

@@ -249,41 +249,58 @@ Full request/response contract: [docs/api.md](docs/api.md).
 
 ## Vision: Clef (default), OpenAI, Jev & Training
 
-`POST /api/match` pipeline (`backend/app/`):
+`POST /api/match` pipeline (`backend/app/main.py`), **two stages**: the cheap image search first, the
+tool recognition only if the image search is not conclusive.
+
+**Stage 1 – visual catalogue search** (Clef, `clef.visuell_suchen` + `clef.marke_erkennen`, in parallel):
+the photo is compared with the catalogue images of all pocket knives (website `bild_url`, or the photo
+cut from the PDF catalogue for knives that are only in the catalogue, `bild_datei`). Clef accepts at
+most 4 images per request, so the catalogue images are tiled into labelled 3×3 sheets (27 products +
+the photo per request) and compared tournament-style (best 3 per request advance); two tournaments
+with different orders are averaged. Tiles are cached in `backend/data/katalog_kacheln/` (prepared at
+startup). Next to it, a single small Clef request asks only for the brand and "is this a knife?".
+
+Stage 1 is **conclusive** (`bildsuche_eindeutig`) if the top match has ≥ 0.3, is ≥ 2.5 × the runner-up,
+and the brand is not confidently a competitor (≥ 0.5; a competitor knife cannot be the same model as
+a Victorinox catalogue photo). Then the result is that product (`pfad: "aktuell"`, `erkannt.stufe:
+"bildsuche"`), **no tool recognition runs**. If the product is out of stock and `cross_references.json`
+has a successor, the successor comes first (`pfad: "nachfolger"`). Use case and category only reorder
+the alternatives, never the identified model.
+
+**Stage 2 – tool recognition** (only if stage 1 is not conclusive or Clef is not configured;
+`erkannt.stufe: "werkzeuge"`):
 
 1. **Vision** (`vision.py` picks the provider, `VISION_ANBIETER`):
-   - **Clef** (`clef.py`, default as soon as `OPENROUTER_API_KEY` is set): Cloudflare's multimodal
-     decision model via OpenRouter (see Simon's `docs/classification_recommendation.md`). Per photo
-     one yes/no question per tool group, a brand choice and "is this a knife?", all as probabilities.
-     Per-group thresholds are learned from the training images (`training/clef_kalibrieren.py`).
+   - **Clef** (`clef.py`, default as soon as `OPENROUTER_API_KEY` is set): one yes/no question per tool
+     group, a brand choice and "is this a knife?", all as probabilities. Per-group thresholds are learned
+     from the training images (`training/clef_kalibrieren.py`).
    - **OpenAI / Azure OpenAI** (alternative): an image-capable chat model returns the same structure
      as JSON, with 4 reference images as few-shot examples or a fine-tuned model (`VISION_FT_DEPLOYMENT`).
 
-   Tools are restricted to ~30 coarse groups (`werkzeuge.py`, e.g. all flat screwdriver sizes →
-   `schraubendreher_flach`).
-2. **Visual catalogue search** (Clef only, runs in parallel with step 1, `clef.visuell_suchen`):
-   Clef accepts at most 4 images per request, so the catalogue images are tiled into labelled 3×3
-   sheets (27 products + the photo per request) and compared tournament-style (best 3 per request
-   advance). Two tournaments with different orders are averaged, which is clearly more stable.
-   This decides order and score of the recommendations (~10–15 s per photo, tiles are cached in
-   `backend/data/katalog_kacheln/`, prepared at startup). "aktuell" if Victorinox, top ≥ 0.3 and
-   ≥ 2.5 × the runner-up.
-   For **competitor brands** the visual search is only a tie-breaker (no catalogue photo can show the
-   same model). Instead: recognised tools, weighted by Clef's probability, against the catalogue; plier
-   multitools (Leatherman, Gerber) also get the Swiss Tools as candidates; the use-case text
-   (`verwendung`, embedding in `embedings.py`) first filters to products that fit above average.
+   Tools are restricted to ~30 coarse groups (`werkzeuge.py`, German and English names, e.g. all flat
+   screwdriver sizes → `schraubendreher_flach`).
+2. **Tool matching** (`matching.py`): recognised tools, weighted by Clef's probability, against the
+   catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden in the scales don't count against
+   a product). The stage-1 image search still counts: 30 % for Victorinox (relative to its spread, so a
+   flat, uninformative search adds nothing), only a 5 % tie-breaker for competitor brands. A product
+   counts as identified only if the tools alone match (≥ 0.95). Plier multitools (Leatherman, Gerber)
+   also get the Swiss Tools as candidates; the use-case text (`verwendung`, embedding in
+   `embedings.py`) first filters to products that fit above average.
    Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Spartan (with "picnic and wine"
    → Picknicker), Gerber folder → Sentinel, Roxon → Cyber Tool M.
-   In the app the user can correct the recognised tools (any brand; double-click an unsure,
-   dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
-   re-ranks without a new Clef call. The category dropdown was removed; the use-case text replaces it.
-3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
-   tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
-   in the scales don't count against a product). A visible article number or model name wins.
-4. **Clarification**: ask for another photo if the top two are within 0.05, or, with OpenAI + Jev
+3. **Clarification**: ask for another photo if the top two are within 0.05, or, with OpenAI + Jev
    (`jev.py`, TypeSafe, text only), when Jev says the candidates are not distinguishable.
 
-Without a vision key the endpoint answers 503 and the frontend falls back to its mock.
+In the app the user can correct the recognised tools after either stage (double-click an unsure,
+dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
+re-ranks by tools without a new Clef call. The agent steps (`schritte`) show which stage decided.
+
+Data the pipeline uses (`app/katalog.py`): the website catalogue merged with the Victorinox catalogue
+2026 (159 pocket knives: 6 only in the catalogue, tool groups from both tool lists, missing number of
+functions/length filled in) and `cross_references.json` for successors.
+
+Without any key (neither Clef nor a vision provider) the endpoint answers 503 and the frontend falls
+back to its mock. With only `OPENROUTER_API_KEY`, both stages run on Clef.
 Keys go into `.env` (template: `.env.example`), loaded by docker compose.
 
 Training data and evaluation (`backend/training/`, run inside the backend container):

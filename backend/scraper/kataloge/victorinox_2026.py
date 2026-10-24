@@ -14,18 +14,27 @@ relative Position erkannt wird (die Ränder von geraden und ungeraden Seiten unt
 Prüfung beim Import: Bei jedem Messer muss die Zahl der nummerierten Zeilen der Angabe
 "N Functions" entsprechen.
 
+Produktfotos: Für Messer, die nicht auf der Webseite stehen (also kein bild_url in
+data/victorinox_produkte.json haben), wird das Foto aus dem Katalog ausgeschnitten (grösstes Bild
+im Produktblock) und unter data/kataloge/bilder/victorinox/ gespeichert ("bild_datei"), damit die
+Clef-Bildsuche auch diese Messer findet.
+
 Aufruf:  python -m scraper.kataloge.victorinox_2026
 Ausgabe: data/kataloge/victorinox_2026.json
 """
 
+import json
 import re
 import sys
 
 import pymupdf
 
-from scraper.kataloge.pdf import KATALOGE_PDF, schreibe, spans, zahl
+from scraper.kataloge.pdf import KATALOGE_JSON, KATALOGE_PDF, schreibe, spans, zahl
 
 PDF = KATALOGE_PDF / "Victorinox_Catalogue_2026.pdf"
+WEBSEITE_JSON = KATALOGE_JSON.parent / "victorinox_produkte.json"
+BILDER = KATALOGE_JSON / "bilder" / "victorinox"
+BILD_PX = 320                 # wie die Kacheln der Clef-Bildsuche
 ROT, GRAU, WEISS = 0xB00930, 0x646363, 0xFFFFFF
 ARTNR = re.compile(r"^[0-9A-Z]\.\d{4}(\.[0-9A-Z]+)*(\.\d+)?$")
 NUMMER = re.compile(r"^(\d{2})\.$")
@@ -46,6 +55,43 @@ def werkzeuge_aus(zeilen):
         else:
             liste.append(t)
     return [re.sub(r"\s+with$", "", w) for w in liste]
+
+
+def foto(page, y0, y1):
+    """Grösstes Bild rechts im Produktblock (die Werkzeugliste steht links)."""
+    infos = [i for i in page.get_image_info() if i["bbox"][1] < y1 and i["bbox"][3] > y0 and i["bbox"][0] > 200]
+    return max(infos, key=lambda i: (i["bbox"][2] - i["bbox"][0]) * (i["bbox"][3] - i["bbox"][1]), default=None)
+
+
+def auf_webseite():
+    """Artikel- und Variantennummern der Webseiten-Produkte."""
+    if not WEBSEITE_JSON.exists():
+        return set()
+    produkte = json.loads(WEBSEITE_JSON.read_text(encoding="utf-8"))["produkte"]
+    return {n for p in produkte if p.get("bild_url") for n in [p["artikelnummer"], *p["varianten"]]}
+
+
+def fotos_speichern(produkte, doc, bereiche):
+    """Katalogfotos für Messer ohne Webseitenbild ausschneiden; setzt "bild_datei"."""
+    from PIL import Image
+
+    web = auf_webseite()
+    BILDER.mkdir(parents=True, exist_ok=True)
+    for p in produkte:
+        nummern = [p["artikelnummer"], *(v["artikelnummer"] for v in p["varianten"])]
+        if not p["anzahl_funktionen"] or any(n in web for n in nummern):
+            continue
+        seite, y0, y1 = bereiche[p["artikelnummer"]]
+        bild = foto(doc[seite - 1], y0, y1)
+        if not bild:
+            print(f"  WARNUNG S.{seite} {p['artikelnummer']}: kein Produktfoto gefunden", file=sys.stderr)
+            continue
+        pix = doc[seite - 1].get_pixmap(dpi=200, clip=pymupdf.Rect(bild["bbox"]))
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img.thumbnail((BILD_PX, BILD_PX))
+        pfad = BILDER / f"{p['artikelnummer']}.jpg"
+        img.save(pfad, "JPEG", quality=85)
+        p["bild_datei"] = str(pfad.relative_to(KATALOGE_JSON.parent))
 
 
 def produkt(kopf, block, kategorie, unterkategorie, seite):
@@ -111,8 +157,9 @@ def produkt(kopf, block, kategorie, unterkategorie, seite):
 
 
 def parse(pdf=PDF):
-    produkte, kategorie, unterkategorie = [], None, None
-    for seite, page in enumerate(pymupdf.open(pdf), start=1):
+    produkte, kategorie, unterkategorie, bereiche = [], None, None, {}
+    doc = pymupdf.open(pdf)
+    for seite, page in enumerate(doc, start=1):
         alle = spans(page)
         for s in alle:
             # Seitenkopf "EVERYDAY  Essentials" (gerade Seiten) bzw. Reiter am Rand (ungerade Seiten)
@@ -130,6 +177,8 @@ def parse(pdf=PDF):
             y1 = min(folgende) - 2 if folgende else 800
             block = [s for s in alle if kopf["y"] - 2 <= s["y"] < y1 and spalte(s["x"]) == spalte(kopf["x"])]
             produkte.append(produkt(kopf, block, kategorie, unterkategorie, seite))
+            bereiche[kopf["t"]] = (seite, kopf["y"] - 2, y1)
+    fotos_speichern(produkte, doc, bereiche)
     return produkte
 
 
@@ -139,7 +188,8 @@ def main():
                     quelle=f"catalogues/{PDF.name}", titel="Victorinox Swiss Army Knife & Tools 2026",
                     marke="Victorinox", sprache="en")
     messer = sum(1 for p in produkte if p["anzahl_funktionen"])
-    print(f"{len(produkte)} Artikel ({messer} mit Funktionsangabe) -> {pfad}", file=sys.stderr)
+    fotos = [p["artikelnummer"] for p in produkte if p.get("bild_datei")]
+    print(f"{len(produkte)} Artikel ({messer} mit Funktionsangabe), {len(fotos)} Katalogfotos {fotos} -> {pfad}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,8 @@ export default function ErkennungsKarte({ vorschau, erkannt, sucheLaeuft, fehler
         <KonfidenzRing wert={erkannt.konfidenz} groesse={60} label="Sicherheit" />
       </div>
       {(werkzeuge.length > 0 || onWerkzeugeAendern) && (
-        <WerkzeugListe werkzeuge={werkzeuge} sucheLaeuft={sucheLaeuft} fehler={fehler} onAendern={onWerkzeugeAendern} />
+        <WerkzeugListe werkzeuge={werkzeuge} sucheLaeuft={sucheLaeuft} fehler={fehler} onAendern={onWerkzeugeAendern}
+          perBildsuche={erkannt.stufe === 'bildsuche'} />
       )}
     </Karte>
   )
@@ -58,7 +59,7 @@ export default function ErkennungsKarte({ vorschau, erkannt, sucheLaeuft, fehler
  * Doppelklick auf ein unsicheres Werkzeug bestätigt es, × entfernt ein Werkzeug, "+" fügt eines hinzu.
  * Jede Änderung startet im Backend eine neue Suche (ohne neues Foto).
  */
-function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern }) {
+function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern, perBildsuche }) {
   const [hinzufuegen, setHinzufuegen] = useState(false)
   const sicher = werkzeuge.filter(istSicher)
   const unsicher = werkzeuge.filter((w) => !istSicher(w))
@@ -133,6 +134,7 @@ function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern }) {
         />
       )}
       <p className="mt-2 text-[11px] text-zinc-400">
+        {perBildsuche && werkzeuge.length === 0 && 'Nicht nötig: Das Modell wurde per Bildsuche im Katalog erkannt. '}
         {unsicher.length > 0 && 'Gestrichelt = Modell ist unsicher, ob das Werkzeug vorhanden ist. Doppelklick bestätigt es. '}
         Fehlt etwas, das dein Messer hat oder das du willst? Mit „+ Werkzeug“ ergänzen.
       </p>

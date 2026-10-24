@@ -1,21 +1,32 @@
-"""Produktdaten: zwei Dateien, getrennt nach Herkunft.
+"""Produktdaten, getrennt nach Herkunft.
 
-data/victorinox_produkte.json  Victorinox-Sortiment, vom Scraper erzeugt (nie von Hand bearbeiten)
-data/cross_references.json     von Hand gepflegt: Konkurrenzprodukte + Zuordnungen zwischen Produkten
+data/victorinox_produkte.json       Victorinox-Sortiment der Webseite, vom Scraper erzeugt (nie von Hand bearbeiten)
+data/kataloge/victorinox_2026.json  Victorinox-Katalog 2026 aus dem PDF, erzeugt (scraper/kataloge)
+data/cross_references.json          von Hand gepflegt: Konkurrenzprodukte + Zuordnungen zwischen Produkten
+
+Webseite und Katalog werden beim Laden zusammengeführt (load_products):
+- Webseiten-Produkte mit Katalogeintrag (gleiche Artikel- oder Variantennummer): Werkzeuggruppen aus
+  beiden Werkzeuglisten vereint (die Webseite kürzt Kombi-Werkzeuge, z. B. "Kapselheber" statt
+  "Bottle opener | Screwdriver 5 mm | Wire stripper"), fehlende Funktionsanzahl/Länge aus dem Katalog.
+- Katalog-Artikel ohne Webseiten-Produkt kommen als eigene Produkte dazu (Werkzeuge englisch,
+  Foto aus dem Katalog als `bild_datei`), z. B. Classic SD 0.6223, Mini Champ Alox, Trailfinder.
+`quellen` sagt pro Produkt, woher es kommt ("webseite", "katalog_2026").
 
 Beide verwenden dasselbe Produktformat (`Produkt`). IDs sind global eindeutig:
 `<marke>:<artikelnummer>`, z. B. `victorinox:1.3603`, `swiza:KNI.0036.1010`.
-Werkzeuge stehen überall als deutsche Katalognamen ("Klinge, gross", "Korkenzieher").
+Werkzeuge stehen als Namen der jeweiligen Quelle ("Klinge, gross" auf der Webseite, "Blade, large"
+im Katalog); app/werkzeuge.py versteht beide Sprachen.
 Abgeleitetes wird nicht gespeichert, sondern beim Laden berechnet: `werkzeug_gruppen`
 (über app/werkzeuge.py, für Matching und Bilderkennung). tools/tool_vocab.py bildet die
 Namen zusätzlich auf englische IDs für die Klassifikation ab.
 
-Die Ladefunktionen liefern Dictionaries mit den Feldern von `Produkt` plus
-`werkzeug_gruppen`, damit matching.py, clef.py und training/ mit `row["…"]` arbeiten können.
+Die Ladefunktionen liefern Dictionaries mit den Feldern von `Produkt` plus `werkzeug_gruppen`
+und `quellen`, damit matching.py, clef.py und training/ mit `row["…"]` arbeiten können.
 
 Prüfen: `uv run python tools/check_catalog.py`
 """
 
+import json
 from datetime import date
 from enum import Enum
 from functools import lru_cache
@@ -28,6 +39,7 @@ from app.werkzeuge import gruppen
 DATA = Path(__file__).resolve().parent.parent / "data"
 VICTORINOX_JSON = DATA / "victorinox_produkte.json"
 CROSS_REFERENCES_JSON = DATA / "cross_references.json"
+KATALOG_2026_JSON = DATA / "kataloge" / "victorinox_2026.json"
 
 ID_MUSTER = r"^[a-z0-9-]+:\S+$"
 
@@ -69,6 +81,7 @@ class Produkt(Streng):
     einhandklinge: bool | None = None
     url: str | None = None
     bild_url: str | None = None
+    bild_datei: str | None = None       # lokales Bild relativ zu data/ (Katalogfoto, wenn kein bild_url)
     galerie_bilder: list[str] = []
     quelle: Quelle | None = None        # Pflicht für alles, was nicht vom Scraper kommt
 
@@ -144,15 +157,65 @@ def cross_reference_datei() -> CrossReferenceDatei:
     return CrossReferenceDatei.model_validate_json(CROSS_REFERENCES_JSON.read_text(encoding="utf-8"))
 
 
-def als_row(p: Produkt) -> dict:
+def als_row(p: Produkt, quellen=("webseite",)) -> dict:
     """Produkt als Dictionary plus abgeleitete Werkzeuggruppen (siehe Moduldoku)."""
-    return {**p.model_dump(mode="json", exclude={"quelle"}), "werkzeug_gruppen": sorted(gruppen(p.werkzeuge))}
+    return {**p.model_dump(mode="json", exclude={"quelle"}), "werkzeug_gruppen": sorted(gruppen(p.werkzeuge)),
+            "quellen": list(quellen)}
+
+
+@lru_cache
+def katalog_2026() -> tuple[dict, ...]:
+    """Victorinox-Katalog 2026 (erzeugt von scraper/kataloge/victorinox_2026.py); leer, falls nicht vorhanden."""
+    if not KATALOG_2026_JSON.exists():
+        return ()
+    return tuple(json.loads(KATALOG_2026_JSON.read_text(encoding="utf-8"))["produkte"])
+
+
+def katalog_name(name):
+    """Katalognamen sind in Grossbuchstaben: "MINI CHAMP ALOX" -> "Mini Champ Alox", "CLASSIC SD" bleibt "SD"."""
+    return " ".join(w if len(w) <= 2 or any(c.isdigit() for c in w) else w.capitalize() for w in name.split())
+
+
+def aus_katalog(k: dict) -> Produkt:
+    unter = k.get("unterkategorie")
+    return Produkt(
+        id=k["id"], marke="Victorinox", artikelnummer=k["artikelnummer"], name=katalog_name(k["name"]),
+        kategorien=[k["kategorie"]] if k.get("kategorie") else [],
+        unterkategorien=[f"{k['kategorie']}: {unter}"] if unter else [], shop_kategorie=unter,
+        varianten=[v["artikelnummer"] for v in k["varianten"]], werkzeuge=k["werkzeuge"],
+        anzahl_funktionen=k.get("anzahl_funktionen"), laenge_mm=k.get("laenge_mm"), bild_datei=k.get("bild_datei"),
+        quelle=Quelle(typ="katalog_pdf", verifiziert=True, notiz=f"Victorinox Catalogue 2026, S. {k['seite']}"),
+    )
 
 
 @lru_cache
 def load_products() -> tuple[dict, ...]:
-    """Das komplette Victorinox-Sortiment (inkl. Zubehör)."""
-    return tuple(als_row(p) for p in victorinox_datei().produkte)
+    """Das komplette Victorinox-Sortiment (inkl. Zubehör): Webseite, ergänzt um den Katalog 2026."""
+    katalog = katalog_2026()
+    nach_nummer = {}
+    for k in katalog:  # exakte Artikelnummer vor Variantennummern
+        for n in [k["artikelnummer"], *(v["artikelnummer"] for v in k["varianten"])]:
+            nach_nummer.setdefault(n, k)
+    for k in katalog:
+        nach_nummer[k["artikelnummer"]] = k
+
+    rows = []
+    for p in victorinox_datei().produkte:
+        k = next((nach_nummer[n] for n in [p.artikelnummer, *p.varianten] if n in nach_nummer), None)
+        if not k:
+            rows.append(als_row(p))
+            continue
+        row = als_row(p, ("webseite", "katalog_2026"))
+        row["werkzeug_gruppen"] = sorted(set(row["werkzeug_gruppen"]) | gruppen(k["werkzeuge"]))
+        for feld in ("anzahl_funktionen", "laenge_mm"):
+            if row[feld] is None:
+                row[feld] = k.get(feld)
+        rows.append(row)
+    web_nummern = {n for p in victorinox_datei().produkte for n in [p.artikelnummer, *p.varianten]}
+    for k in katalog:
+        if not any(n in web_nummern for n in [k["artikelnummer"], *(v["artikelnummer"] for v in k["varianten"])]):
+            rows.append(als_row(aus_katalog(k), ("katalog_2026",)))
+    return tuple(rows)
 
 
 # Scope des Prototyps: nur Taschenmesser (siehe README). Das Sortiment enthält auch

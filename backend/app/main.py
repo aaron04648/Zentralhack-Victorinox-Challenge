@@ -7,10 +7,11 @@ from functools import lru_cache
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app import clef, embedings, jev, matching, vision
 from app.embedings import CATEGORIES, cosine_similarity, generate_category_embeddings, setup_embedding_model
-from app.katalog import load_cross_references, load_konkurrenz, load_pocket_knives, load_products
+from app.katalog import DATA, load_cross_references, load_konkurrenz, load_pocket_knives, load_products
 from app.werkzeuge import GRUPPEN
 
 app = FastAPI(title="Victorinox Challenge API")
@@ -21,6 +22,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Katalogfotos aus dem PDF (Messer ohne Webseitenbild), damit das Frontend sie anzeigen kann
+KATALOGBILDER = DATA / "kataloge" / "bilder"
+if KATALOGBILDER.exists():
+    app.mount("/api/katalogbilder", StaticFiles(directory=KATALOGBILDER), name="katalogbilder")
 
 Value = str | int | float | bool
 
@@ -150,8 +156,15 @@ def to_product(row):
         "feststellbar": row["feststellbar"],
         "einhandklinge": row["einhandklinge"],
         "url": row["url"],
-        "bild_url": row["bild_url"],
+        "bild_url": row["bild_url"] or katalogbild_url(row),
+        "quellen": row.get("quellen", []),
     }
+
+
+def katalogbild_url(row):
+    """Katalogfoto (bild_datei "kataloge/bilder/victorinox/0.6223.jpg") als URL der Route /api/katalogbilder."""
+    datei = row.get("bild_datei")
+    return f"/api/katalogbilder/{datei.removeprefix('kataloge/bilder/')}" if datei else None
 
 
 @app.get("/api/health")
@@ -216,9 +229,11 @@ MAX_BILD_BYTES = 8 * 1024 * 1024
 VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografierte Produkt ab dieser Wahrscheinlichkeit
 KATEGORIE_MALUS = 0.5          # Score-Faktor für Kandidaten ausserhalb der gewählten Kategorie
 VISUELL_ABSTAND = 2.5
+MARKE_FREMD_SICHER = 0.5       # Stufe 1 reicht nicht, wenn eine fremde Marke mindestens so sicher erkannt ist
 ZANGE_SICHER = 0.5             # fremdes Multitool mit Zange -> Swiss Tools kommen als Ersatz in Frage
 MIN_NACH_ZWECK = 10            # so viele Produkte bleiben mindestens nach dem Zweck-Filter
 GEWICHT_BILD_TIEBREAK = 0.05   # fremde Marke: Bildähnlichkeit entscheidet nur bei gleicher Ausstattung
+GEWICHT_BILD_STUFE2 = 0.3      # Victorinox in Stufe 2: unklare Bildsuche zählt mit, die Ausstattung entscheidet
 VERWENDUNG_GEWICHT = 0.5       # Stärke des Verwendungszwecks: Faktor exp(0.5 * z) auf Clefs Wahrscheinlichkeit          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
 _matches = {}                  # match_id -> Erkennungskontext (zweites Foto, Werkzeug-Korrektur ohne neue Clef-Anfrage)
 
@@ -229,7 +244,7 @@ async def kacheln_laden():
     loop = asyncio.get_running_loop()
     messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
     if clef.aktiv():
-        loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
+        loop.run_in_executor(None, clef.kacheln_vorbereiten, bildsuche_kandidaten())
     # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
     loop.run_in_executor(None, embedings.verwendung_passung, "Alltag", messer)
 
@@ -251,36 +266,100 @@ def produkt_merkmale(row):
     return merkmale
 
 
+def bildsuche_kandidaten():
+    """Taschenmesser mit Werkzeugliste und Bild (Webseite oder Katalogfoto) – das Suchfeld der Stufe 1."""
+    return [r for r in load_pocket_knives() if matching.produkt_gruppen(r) and clef.hat_bild(r)]
+
+
+def bildsuche_eindeutig(visuell, marke):
+    """Stufe 1 reicht, wenn Platz 1 der Bildsuche sicher ist, klar vor Platz 2 liegt und die Marke nicht
+    sicher eine fremde ist (ein fremdes Messer kann nicht dasselbe Modell wie ein Victorinox-Katalogbild sein).
+    -> (eindeutig, Begründung für die Agenten-Schritte)"""
+    if not visuell:
+        return False, "keine Ergebnisse"
+    rang = sorted(visuell.values(), reverse=True) + [0.0]
+    erster, zweiter = rang[0], rang[1]
+    if marke and marke.get("marke") and "victorinox" not in marke["marke"].casefold() and marke["konfidenz"] >= MARKE_FREMD_SICHER:
+        return False, f"Marke {marke['marke']}: kein Victorinox-Katalogbild kann dasselbe Modell zeigen"
+    if erster < VISUELL_SICHER:
+        return False, f"Platz 1 nur {erster:.0%} (nötig: {VISUELL_SICHER:.0%})"
+    if erster < VISUELL_ABSTAND * zweiter:
+        return False, f"Platz 1 ({erster:.0%}) nicht klar vor Platz 2 ({zweiter:.0%})"
+    return True, f"Platz 1 mit {erster:.0%}, {erster / max(zweiter, 1e-6):.1f}× wahrscheinlicher als Platz 2"
+
+
 @app.post("/api/match")
 async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
                 kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
-    """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
+    """Zweistufige Erkennung:
+
+    1. Bildsuche: Foto gegen die Katalogbilder (Clef), dazu nur Marke/Taschenmesser abfragen.
+       Ist das Ergebnis eindeutig (bildsuche_eindeutig), ist die Erkennung fertig.
+    2. Werkzeugerkennung (Vision-Modell) nur, wenn Stufe 1 nicht reicht oder nicht verfügbar ist;
+       danach Matching über die Ausstattung, Jev, Verwendungszweck (_auswerten).
+    """
     inhalt = await bild.read()
     if not inhalt or len(inhalt) > MAX_BILD_BYTES:
         raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
 
     schritte = []
-    messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
     bild_url = vision.bild_als_url(inhalt, bild.content_type or "image/jpeg")
-    # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
-    mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
-    try:
-        if mit_bildsuche:
+    vorher = _matches.get(vorherige_match_id)
+    basis = {"verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False}
+
+    # --- Stufe 1: Bildsuche im Katalog ---------------------------------------------------------
+    visuell, marke = {}, None
+    if clef.aktiv():
+        try:
             bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
-        aufgaben = [asyncio.to_thread(vision.erkenne, bild_url)]
-        if mit_bildsuche:
-            aufgaben.append(asyncio.to_thread(clef.visuell_suchen, bild_url, messer))
-        ergebnisse = await asyncio.gather(*aufgaben, return_exceptions=True)
-    except Exception as fehler:  # Bild nicht lesbar
-        raise HTTPException(status_code=400, detail=f"Bild nicht lesbar: {fehler}")
-    erkannt = ergebnisse[0]
-    if isinstance(erkannt, vision.VisionNichtKonfiguriert):
-        raise HTTPException(status_code=503, detail=str(erkannt))
-    if isinstance(erkannt, Exception):  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
-        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {erkannt}")
+        except Exception as fehler:  # Bild nicht lesbar
+            raise HTTPException(status_code=400, detail=f"Bild nicht lesbar: {fehler}")
+        kandidaten = bildsuche_kandidaten()
+        suche, marke = await asyncio.gather(asyncio.to_thread(clef.visuell_suchen, bild_url, kandidaten),
+                                            asyncio.to_thread(clef.marke_erkennen, bild_url), return_exceptions=True)
+        if isinstance(suche, Exception):
+            schritte.append({"id": "bildsuche", "label": "Bildsuche im Katalog", "status": "warnung",
+                             "detail": f"Bildsuche fehlgeschlagen ({suche}), weiter mit der Werkzeugerkennung"})
+        else:
+            visuell = dict(suche)
+        marke = None if isinstance(marke, Exception) else marke
+        if vorher and vorher["visuell"] and visuell:  # zwei Fotos: Mittelwert der Bildsuche
+            visuell = {n: (visuell.get(n, 0) + vorher["visuell"].get(n, 0)) / 2 for n in visuell.keys() | vorher["visuell"].keys()}
+        visuell = visuell or (vorher or {}).get("visuell") or {}
+        eindeutig, grund = bildsuche_eindeutig(visuell, marke)
+        if visuell:
+            schritte.append({"id": "bildsuche", "label": "Bildsuche im Katalog", "status": "ok" if eindeutig else "warnung",
+                             "detail": f"Foto mit {len(kandidaten)} Katalogbildern verglichen: {grund}"})
+        if eindeutig:
+            beste = max(visuell, key=visuell.get)
+            produkt = next(r for r in kandidaten if r["artikelnummer"] == beste)
+            erkannt = {
+                "ist_taschenmesser": marke["ist_taschenmesser"] if marke else True,
+                # Kein Logo erkannt, aber das Foto gleicht einem Victorinox-Katalogbild -> Victorinox
+                "marke": (marke or {}).get("marke") or "Victorinox",
+                "marke_wahrscheinlichkeiten": (marke or {}).get("marke_wahrscheinlichkeiten", {}),
+                "modell": produkt["name"], "artikelnummer_sichtbar": None, "geoeffnet": None,
+                "werkzeuge": [], "konfidenz": round(visuell[beste], 3),
+            }
+            schritte.append({"id": "vision", "label": "Werkzeugerkennung", "status": "ok",
+                             "detail": "übersprungen: die Bildsuche hat das Modell eindeutig gefunden"})
+            kontext = {**basis, "stufe": "bildsuche", "erkannt": erkannt, "visuell": visuell, "schritte": schritte,
+                       "gewichte": dict((vorher or {}).get("gewichte") or {}), "erkannte_nummer": beste}
+            return await _speichern_und_auswerten(kontext)
+    else:
+        schritte.append({"id": "bildsuche", "label": "Bildsuche im Katalog", "status": "warnung",
+                         "detail": "übersprungen: Clef nicht konfiguriert (OPENROUTER_API_KEY)"})
+
+    # --- Stufe 2: Werkzeugerkennung ------------------------------------------------------------
+    try:
+        erkannt = await asyncio.to_thread(vision.erkenne, bild_url)
+    except vision.VisionNichtKonfiguriert as fehler:
+        raise HTTPException(status_code=503, detail=str(fehler))
+    except Exception as fehler:  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
+        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {fehler}")
     info = erkannt.pop("modell_info")
     erkannt.pop("_bild", None)
-    schritte.append({"id": "vision", "label": "Bild analysiert", "status": "ok",
+    schritte.append({"id": "vision", "label": "Werkzeuge erkannt", "status": "ok",
                      "detail": f"{len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']}, {info['art']})"})
 
     werkzeuge = erkannt["werkzeuge"]
@@ -296,23 +375,16 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
                          "detail": f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt"})
     # Gruppe -> Wahrscheinlichkeit (1.0 = sicher, z. B. ohne Angabe oder vom Nutzer bestätigt)
     gewichte = {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
-    visuell = {}
-    if mit_bildsuche:
-        if isinstance(ergebnisse[1], Exception):
-            schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "warnung",
-                             "detail": f"Bildsuche fehlgeschlagen, nur Werkzeug-Matching ({ergebnisse[1]})"})
-        else:
-            visuell = dict(ergebnisse[1])
-    vorher = _matches.get(vorherige_match_id)
     if vorher:
         for g, p in vorher["gewichte"].items():
             gewichte[g] = max(gewichte.get(g, 0.0), p)
-        if vorher["visuell"] and visuell:  # zwei Fotos: Mittelwert der Bildsuche
-            visuell = {n: (visuell.get(n, 0) + vorher["visuell"].get(n, 0)) / 2 for n in visuell.keys() | vorher["visuell"].keys()}
-        visuell = visuell or vorher["visuell"]
 
-    kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte,
-               "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False}
+    kontext = {**basis, "stufe": "werkzeuge", "erkannt": erkannt, "gewichte": gewichte, "visuell": visuell,
+               "schritte": schritte}
+    return await _speichern_und_auswerten(kontext)
+
+
+async def _speichern_und_auswerten(kontext):
     match_id = f"m_{uuid.uuid4().hex[:10]}"
     _matches[match_id] = kontext
     return await _auswerten(match_id, kontext)
@@ -380,9 +452,11 @@ async def _auswerten(match_id, kontext):
     fremd = bool(marke) and not ist_victorinox
     schritte.append({"id": "marke", "label": "Marke bestimmt", "status": "ok" if marke else "warnung",
                      "detail": marke or "Marke nicht erkennbar"})
-    # Nach der Ausstattung suchen: bei fremden Marken (kein Katalogbild kann dasselbe Modell zeigen)
-    # und sobald der Nutzer die Werkzeuge korrigiert hat
-    nach_ausstattung = (fremd or kontext["nutzer_werkzeuge"]) and bool(erkannte_gruppen)
+    # Nach der Ausstattung suchen: bei fremden Marken (kein Katalogbild kann dasselbe Modell zeigen),
+    # in Stufe 2 (die Bildsuche war nicht eindeutig) und sobald der Nutzer die Werkzeuge korrigiert hat
+    stufe2 = kontext.get("stufe") == "werkzeuge"
+    nach_ausstattung = (fremd or stufe2 or kontext["nutzer_werkzeuge"]) and bool(erkannte_gruppen)
+    gewicht_bild = GEWICHT_BILD_TIEBREAK if fremd else GEWICHT_BILD_STUFE2
 
     # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
     auswahl = messer
@@ -418,15 +492,25 @@ async def _auswerten(match_id, kontext):
         # 2. Ausstattung entscheidet, gewichtet mit Clefs Sicherheit je Werkzeug; Bild nur als Tiebreak
         kandidaten = matching.rangliste(erkannte_gruppen, auswahl, erkannt, top=len(auswahl), gewichte=gewichte)
         hoechste = max(visuell.values(), default=0.0) or 1.0
+        niedrigste = min(visuell.values(), default=0.0)
+
+        def bildanteil(nummer):
+            p = visuell.get(nummer, 0.0)
+            if fremd:  # wie bisher: kleiner Tiebreak relativ zum besten Bild
+                return p / hoechste
+            # Victorinox: relativ zur Spanne, eine flache (nichtssagende) Bildsuche trägt nichts bei
+            return (p - niedrigste) / (hoechste - niedrigste) if hoechste > niedrigste else 0.0
+
         for k in kandidaten:
-            nummer = k["row"]["artikelnummer"]
+            k["score_werkzeuge"] = k["score"]
             k["score"] = round(min(k["score"] * kategorie_faktor(k["row"])
-                                   + GEWICHT_BILD_TIEBREAK * visuell.get(nummer, 0.0) / hoechste, 1.0), 4)
+                                   + gewicht_bild * bildanteil(k["row"]["artikelnummer"]), 1.0), 4)
             zweck_grund(k)
         kandidaten = sorted(kandidaten, key=lambda k: -k["score"])[:3]
         schritte.append({"id": "suche", "label": "Ausstattung verglichen", "status": "ok" if kandidaten else "warnung",
                          "detail": f"{len(erkannte_gruppen)} Werkzeuge mit {len(auswahl)} Victorinox-Produkten verglichen"})
-        eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
+        # Als erkannt gilt nur, was über die Ausstattung allein passt (nicht über den Bildzuschlag)
+        eigenes = next((k for k in kandidaten if k["score_werkzeuge"] >= 0.95 and ist_victorinox), None)
     elif visuell:
         # Victorinox (oder Marke unklar): Reihenfolge und Score aus der Bildsuche, die Werkzeuge
         # liefern die Begründung
@@ -451,6 +535,17 @@ async def _auswerten(match_id, kontext):
         zweiter = kandidaten[1]["score"] if len(kandidaten) > 1 else 0.0
         eigenes = next((k for k in kandidaten[:1] if ist_victorinox and k["score"] >= VISUELL_SICHER
                         and k["score"] >= VISUELL_ABSTAND * zweiter), None)
+        if kontext.get("erkannte_nummer"):
+            # Stufe 1 hat das Modell eindeutig erkannt: Kategorie/Verwendungszweck ordnen nur die Alternativen
+            nummer = kontext["erkannte_nummer"]
+            eigenes = next((k for k in kandidaten if k["row"]["artikelnummer"] == nummer), None) or {
+                **(matching.bewerte(erkannte_gruppen, nach_nummer[nummer], erkannt) or {
+                    "row": nach_nummer[nummer], "gruppen": matching.produkt_gruppen(nach_nummer[nummer]),
+                    "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}),
+                "score": round(visuell[nummer], 4)}
+            if not eigenes["gruende"] or not eigenes["gruende"][0].startswith("Bildähnlichkeit"):
+                eigenes["gruende"].insert(0, f"Bildähnlichkeit {visuell[nummer]:.0%}")
+            kandidaten = [eigenes] + [k for k in kandidaten if k is not eigenes][:2]
     else:
         kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=len(rows), gewichte=gewichte)
         for k in kandidaten:
@@ -463,6 +558,16 @@ async def _auswerten(match_id, kontext):
         eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
     if eigenes:
         pfad = "aktuell"
+        # Erkanntes Produkt nicht lieferbar: Nachfolger aus cross_references.json zuerst empfehlen
+        if eigenes["row"].get("lagerstatus") == "outOfStock":
+            nachfolger = nachfolger_kandidaten(eigenes["row"], erkannte_gruppen, erkannt)
+            if nachfolger:
+                pfad = "nachfolger"
+                kandidaten = (nachfolger + [k for k in kandidaten if k["row"]["artikelnummer"]
+                                            not in {n["row"]["artikelnummer"] for n in nachfolger}])[:3]
+                schritte.append({"id": "nachfolger", "label": "Nachfolger gesucht", "status": "ok",
+                                 "detail": f"{eigenes['row']['name']} ist nicht lieferbar; Nachfolger laut Cross-Reference: "
+                                           + ", ".join(n["row"]["name"] for n in nachfolger)})
     else:
         # Victorinox erkannt, aber nicht im aktuellen Katalog -> vermutlich ausgelaufen
         pfad = "nachfolger" if ist_victorinox else "ersatz"
@@ -494,6 +599,8 @@ async def _auswerten(match_id, kontext):
             "artikelnummer": erkannt["artikelnummer_sichtbar"],
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
+            # "bildsuche": Modell per Bildsuche eindeutig (keine Werkzeugerkennung), "werkzeuge": Stufe 2
+            "stufe": kontext.get("stufe", "werkzeuge"),
             "produkt": to_product(eigenes["row"]) if eigenes else None,
             # Erkannte Werkzeuge mit Sicherheit, sicherste zuerst (1.0 = sicher/vom Nutzer bestätigt)
             "werkzeuge": sorted(({"gruppe": g, "label": GRUPPEN[g][0], "wahrscheinlichkeit": round(p, 2)}
@@ -516,6 +623,23 @@ async def _auswerten(match_id, kontext):
         "rueckfrage": rueckfrage,
         "schritte": schritte,
     }
+
+
+def nachfolger_kandidaten(row, erkannte_gruppen, erkannt):
+    """Nachfolger eines nicht lieferbaren Produkts aus cross_references.json, als Kandidaten für die Antwort."""
+    knives = {r["id"]: r for r in load_pocket_knives()}
+    out = []
+    for ref in cross_references_fuer(row["id"], knives):
+        if ref.beziehung.value != "nachfolger":
+            continue
+        ziel = knives[ref.zu]
+        k = matching.bewerte(erkannte_gruppen, ziel, erkannt) or {
+            "row": ziel, "gruppen": matching.produkt_gruppen(ziel),
+            "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}
+        k["score"] = 1.0
+        k["gruende"].insert(0, f"Nachfolger von {row['name']} ({ref.status.value})")
+        out.append(k)
+    return out
 
 
 @app.get("/api/alternativen/{produkt_id}")

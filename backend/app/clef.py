@@ -1,7 +1,10 @@
 """Bilderkennung mit Cloudflare Clef (Entscheidungsmodell, multimodal) über OpenRouter.
 
 Clef schreibt keinen Text, sondern beantwortet typisierte Fragen mit Wahrscheinlichkeiten.
-Pro Foto wird gefragt:
+Zwei Verwendungen (Reihenfolge siehe /api/match in main.py):
+- visuell_suchen + marke_erkennen: Stufe 1, Foto gegen die Katalogbilder (wenige Anfragen)
+- erkenne: Stufe 2, Werkzeugerkennung, nur wenn die Bildsuche nicht eindeutig ist
+Pro Foto wird in erkenne gefragt:
 - je Werkzeuggruppe ein "noul" (ja/nein): Ist dieses Werkzeug zu sehen?
 - "choice" Marke, mit sichtbaren Merkmalen je Option (wie in docs/classification_recommendation.md)
 - "noul" ist es überhaupt ein Taschenmesser/Multitool?
@@ -166,26 +169,58 @@ def _noul(text):
             "criteria": {"true": "yes, clearly visible", "false": "no, not visible"}}
 
 
+def _state(bild_data_url):
+    return [{"type": "text", "text": "Product photo of a pocket knife or multitool:"},
+            {"type": "image_url", "image_url": {"url": bild_data_url}}]
+
+
+def _marken_fragen():
+    return {"messer": _noul("Is this a pocket knife or multitool?"),
+            "marke": {"type": "choice", "instructions": "Which brand is this pocket knife?",
+                      "criteria": {k: v[1] for k, v in MARKEN.items()}}}
+
+
+def _marke_auswerten(antworten):
+    marke = antworten.get("marke") or {}
+    return {k: float(v) for k, v in (marke.get("probabilities") or {}).items()}, float(marke.get("confidence") or 0), \
+        float((antworten.get("messer") or {}).get("noul") or 0)
+
+
+def _marke_ergebnis(marken, messer):
+    beste = max(marken, key=marken.get) if marken else "andere"
+    werte = sorted(marken.values(), reverse=True) + [0, 0]
+    return {
+        "ist_taschenmesser": messer >= 0.5,
+        "marke": MARKEN.get(beste, (None,))[0],
+        "marke_wahrscheinlichkeiten": {k: round(v, 3) for k, v in marken.items()},
+        # Konfidenz = Abstand der Top-2-Marken (Simon: Margin trägt mehr als die Rohwahrscheinlichkeit)
+        "konfidenz": round(min(max(werte[0] - werte[1], 0.0) + 0.5 * werte[0], 1.0), 3),
+    }
+
+
+def marke_erkennen(bild_data_url):
+    """Nur Marke und "ist es ein Taschenmesser" (eine Anfrage) – für Stufe 1 neben der Bildsuche."""
+    marken, _, messer = _marke_auswerten(entscheide(_state(bild_data_url), _marken_fragen()))
+    return _marke_ergebnis(marken, messer)
+
+
 def wahrscheinlichkeiten(bild_data_url):
     """Alle Rohwahrscheinlichkeiten für ein Bild: {"werkzeuge": {gruppe: p}, "marke": {..}, "messer": p}."""
-    state = [{"type": "text", "text": "Product photo of a pocket knife or multitool:"},
-             {"type": "image_url", "image_url": {"url": bild_data_url}}]
+    state = _state(bild_data_url)
     pakete = [list(WERKZEUG_EN)[i:i + FRAGEN_PRO_ANFRAGE] for i in range(0, len(WERKZEUG_EN), FRAGEN_PRO_ANFRAGE)]
     fragen = [{g: _noul(f"Does this knife have {WERKZEUG_EN[g]} visible in the photo?") for g in paket}
               for paket in pakete]
-    fragen[0]["messer"] = _noul("Is this a pocket knife or multitool?")
-    fragen[0]["marke"] = {"type": "choice", "instructions": "Which brand is this pocket knife?",
-                          "criteria": {k: v[1] for k, v in MARKEN.items()}}
+    fragen[0].update(_marken_fragen())
     with ThreadPoolExecutor(len(fragen)) as pool:
         antworten = {}
         for teil in pool.map(lambda q: entscheide(state, q), fragen):
             antworten.update(teil)
-    marke = antworten.get("marke") or {}
+    marken, marke_konfidenz, messer = _marke_auswerten(antworten)
     return {
         "werkzeuge": {g: float((antworten.get(g) or {}).get("noul") or 0) for g in WERKZEUG_EN},
-        "marke": {k: float(v) for k, v in (marke.get("probabilities") or {}).items()},
-        "marke_konfidenz": float(marke.get("confidence") or 0),
-        "messer": float((antworten.get("messer") or {}).get("noul") or 0),
+        "marke": marken,
+        "marke_konfidenz": marke_konfidenz,
+        "messer": messer,
     }
 
 
@@ -197,19 +232,12 @@ def auswerten(roh):
          "wahrscheinlichkeit": round(p, 3)}
         for g, p in sorted(roh["werkzeuge"].items(), key=lambda kv: -kv[1]) if p >= grenzen[g]
     ]
-    marken = roh["marke"]
-    beste = max(marken, key=marken.get) if marken else "andere"
-    werte = sorted(marken.values(), reverse=True) + [0, 0]
     return {
-        "ist_taschenmesser": roh["messer"] >= 0.5,
-        "marke": MARKEN.get(beste, (None,))[0],
-        "marke_wahrscheinlichkeiten": {k: round(v, 3) for k, v in marken.items()},
+        **_marke_ergebnis(roh["marke"], roh["messer"]),
         "modell": None,
         "artikelnummer_sichtbar": None,
         "geoeffnet": bool(werkzeuge),
         "werkzeuge": werkzeuge,
-        # Konfidenz = Abstand der Top-2-Marken (Simon: Margin trägt mehr als die Rohwahrscheinlichkeit)
-        "konfidenz": round(min(max(werte[0] - werte[1], 0.0) + 0.5 * werte[0], 1.0), 3),
     }
 
 
@@ -230,15 +258,23 @@ def erkenne(bild_url):
 # verglichen: Die besten 3 je Anfrage kommen weiter, bis eine Runde alle Finalisten fasst.
 # Zwei Turniere mit unterschiedlicher Reihenfolge, deren Finalwahrscheinlichkeiten addiert
 # werden, sind deutlich stabiler als eines (Clef bevorzugt sonst je nach Position).
-KACHELN = Path(__file__).resolve().parent.parent / "data" / "katalog_kacheln"
+DATA = Path(__file__).resolve().parent.parent / "data"
+KACHELN = DATA / "katalog_kacheln"
 KACHEL_PX = 320
 RASTER = 3                  # 3x3 Kacheln pro Rasterbild (1024 px, Clef-Maximum)
 RASTER_PRO_ANFRAGE = 3      # + Kundenfoto = 4 Bilder
 WEITER_PRO_RUNDE = 3
 
 
+def hat_bild(row):
+    """Webseitenbild (bild_url) oder Katalogfoto aus dem PDF (bild_datei, für Messer nur im Katalog)."""
+    return bool(row.get("bild_url") or row.get("bild_datei"))
+
+
 def _kachel(row):
     """Katalogbild verkleinert, auf Platte gecacht (einmalig ca. 180 Downloads)."""
+    if not row.get("bild_url") and row.get("bild_datei"):
+        return DATA / row["bild_datei"]  # Katalogfoto liegt schon in Kachelgrösse vor
     pfad = KACHELN / f"{row['artikelnummer']}.jpg"
     if not pfad.exists():
         from PIL import Image
@@ -255,7 +291,7 @@ def _kachel(row):
 
 def kacheln_vorbereiten(rows):
     with ThreadPoolExecutor(8) as pool:
-        list(pool.map(_kachel, [r for r in rows if r.get("bild_url")]))
+        list(pool.map(_kachel, [r for r in rows if hat_bild(r)]))
 
 
 def _raster(rows, buchstabe):
@@ -317,7 +353,7 @@ def visuell_suchen(bild_data_url, rows):
     Auf zurückgehaltenen Katalogansichten und den Kundenfotos deutlich besser als das
     Werkzeug-Matching (siehe README, training/evaluieren.py --bildwahl).
     """
-    rows = [r for r in rows if r.get("bild_url")]
+    rows = [r for r in rows if hat_bild(r)]
     gemischt = sorted(rows, key=lambda r: hashlib.md5(r["artikelnummer"].encode()).hexdigest())
     with ThreadPoolExecutor(2) as pool:
         ergebnisse = list(pool.map(lambda reihenfolge: _turnier(bild_data_url, reihenfolge), [rows, gemischt]))

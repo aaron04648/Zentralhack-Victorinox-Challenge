@@ -46,8 +46,9 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
   "material": "ABS/Cellidor",          // Schalenmaterial, null bei "Undefiniert"
   "feststellbar": false,               // feststellbare Klinge, null = unbekannt
   "einhandklinge": false,
-  "url": "https://www.victorinox.com/...",
-  "bild_url": "https://imageengine.victorinox.com/transform/..."
+  "url": "https://www.victorinox.com/...",                   // null bei Messern nur aus dem Katalog
+  "bild_url": "https://imageengine.victorinox.com/transform/...",   // Katalogfoto: "/api/katalogbilder/victorinox/0.6223.jpg"
+  "quellen": ["webseite", "katalog_2026"]                    // woher das Produkt stammt
 }
 ```
 
@@ -76,6 +77,10 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | `verwendung` | string | optional: Freitext „Wofür brauchst du das Messer?“ (max. 300 Zeichen). Per Embedding mit den Produkten abgeglichen: gewichtet Clefs Bildsuche, filtert bei fremden Marken die Kandidaten. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
+Ablauf: zweistufig (Details im README, Abschnitt Vision). Zuerst die Bildsuche gegen die Katalogbilder;
+ist sie eindeutig, ist die Antwort fertig (`erkannt.stufe = "bildsuche"`, keine erkannten Werkzeuge).
+Sonst Werkzeugerkennung und Matching über die Ausstattung (`erkannt.stufe = "werkzeuge"`).
+
 Antwort:
 
 ```json
@@ -88,7 +93,8 @@ Antwort:
     "modell": "D03 AM (Black)",         // null, wenn unklar
     "artikelnummer": "KNI.0036.1010",   // null, wenn nicht erkannt
     "kategorie": "Taschenmesser",
-    "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung
+    "konfidenz": 0.91,                  // 0..1, Sicherheit der Erkennung (Stufe 1: Wahrscheinlichkeit der Bildsuche)
+    "stufe": "werkzeuge",               // "bildsuche" (Modell per Bild eindeutig) | "werkzeuge" (Stufe 2)
     "werkzeuge": [                      // erkannte Werkzeuggruppen, sicherste zuerst
       { "gruppe": "zange", "label": "Zange", "wahrscheinlichkeit": 0.93 }   // null = aus erstem Foto übernommen
     ],

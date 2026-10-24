@@ -3,12 +3,13 @@ import { CircleCheck, Circle, LoaderCircle, TriangleAlert } from 'lucide-react'
 
 // Die Agenten-Pipeline aus dem README, sichtbar gemacht. Das Backend liefert
 // dieselben ids in `schritte`; bis dahin zeigen wir die Standard-Labels.
+// Reihenfolge wie in /api/match: zuerst die Bildsuche, Werkzeuge nur, wenn sie nicht eindeutig ist.
 export const STANDARD_SCHRITTE = [
-  { id: 'vision', label: 'Bild analysiert' },
-  { id: 'marke', label: 'Marke & Modell erkannt' },
-  { id: 'ocr', label: 'Gravur / Artikelnummer gelesen' },
-  { id: 'suche', label: 'Katalog durchsucht (Top-k)' },
-  { id: 'empfehlung', label: 'Empfehlung bewertet' },
+  { id: 'bildsuche', label: 'Bildsuche im Katalog' },
+  { id: 'marke', label: 'Marke bestimmt' },
+  { id: 'vision', label: 'Werkzeuge erkannt (falls nötig)' },
+  { id: 'suche', label: 'Kandidaten verglichen' },
+  { id: 'empfehlung', label: 'Empfehlung erstellt' },
 ]
 
 function Symbol({ zustand }) {
