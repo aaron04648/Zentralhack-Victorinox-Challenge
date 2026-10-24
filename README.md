@@ -155,20 +155,32 @@ POST /api/feedback                                 correct / not correct + bette
 
 Full request/response contract: [docs/api.md](docs/api.md).
 
-## Vision, Jev & Training
+## Vision: Clef (default), OpenAI, Jev & Training
 
 `POST /api/match` pipeline (`backend/app/`):
 
-1. **Vision** (`vision.py`): Azure OpenAI or OpenAI, any image-capable model. Returns brand, model and
-   visible tools, restricted to ~30 coarse tool groups (`werkzeuge.py`, e.g. all flat screwdriver sizes
-   → `schraubendreher_flach`). Uses 4 reference images as few-shot examples, or a fine-tuned model if
-   `VISION_FT_DEPLOYMENT` is set.
-2. **Jev** (`jev.py`, optional, TypeSafe AI, text only): re-maps each described tool to a group with a
-   calibrated confidence and decides whether to ask for another photo. Without `TYPESAFE_API_KEY` a
-   rule takes over (score gap between top 1 and 2 < 0.05).
-3. **Matching** (`matching.py`): tool-group overlap against the catalogue (recall 0.65, precision 0.30,
-   in stock +0.05; tools hidden in the scales don't count against a product). A visible article number
-   or a recognised Victorinox model name wins.
+1. **Vision** (`vision.py` picks the provider, `VISION_ANBIETER`):
+   - **Clef** (`clef.py`, default as soon as `OPENROUTER_API_KEY` is set): Cloudflare's multimodal
+     decision model via OpenRouter (see Simon's `docs/classification_recommendation.md`). Per photo
+     one yes/no question per tool group, a brand choice and "is this a knife?", all as probabilities.
+     Per-group thresholds are learned from the training images (`training/clef_kalibrieren.py`).
+   - **OpenAI / Azure OpenAI** (alternative): an image-capable chat model returns the same structure
+     as JSON, with 4 reference images as few-shot examples or a fine-tuned model (`VISION_FT_DEPLOYMENT`).
+
+   Tools are restricted to ~30 coarse groups (`werkzeuge.py`, e.g. all flat screwdriver sizes →
+   `schraubendreher_flach`).
+2. **Visual catalogue search** (Clef only, runs in parallel with step 1, `clef.visuell_suchen`):
+   Clef accepts at most 4 images per request, so the catalogue images are tiled into labelled 3×3
+   sheets (27 products + the photo per request) and compared tournament-style (best 3 per request
+   advance). Two tournaments with different orders are averaged, which is clearly more stable.
+   This decides order and score of the recommendations (~10–15 s per photo, tiles are cached in
+   `backend/data/katalog_kacheln/`, prepared at startup). "aktuell" if Victorinox, top ≥ 0.3 and
+   ≥ 2.5 × the runner-up.
+3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking only without Clef):
+   tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
+   in the scales don't count against a product). A visible article number or model name wins.
+4. **Clarification**: ask for another photo if the top two are within 0.05, or, with OpenAI + Jev
+   (`jev.py`, TypeSafe, text only), when Jev says the candidates are not distinguishable.
 
 Without a vision key the endpoint answers 503 and the frontend falls back to its mock.
 Keys go into `.env` (template: `.env.example`), loaded by docker compose.
@@ -179,15 +191,34 @@ Training data and evaluation (`backend/training/`, run inside the backend contai
 docker compose exec backend python -m scraper.victorinox        # catalogue + tools, sizes, images
 docker compose exec backend python -m training.konkurrenz       # SWIZA knives + tools (training only)
 docker compose exec backend python -m training.datensatz        # train/test split + reference images
-docker compose exec backend python -m training.evaluieren --modus oracle   # matching upper bound, free
-docker compose exec backend python -m training.evaluieren [--jev]          # real vision test (costs API calls)
-docker compose exec backend python -m training.finetune vorbereiten|starten|status <job>
+docker compose exec backend python -m training.clef_kalibrieren # Clef on all images, learn thresholds
+docker compose exec backend python -m training.evaluieren --set katalog --bildwahl   # 32 held-out knives
+docker compose exec backend python -m training.evaluieren --set fotos --bildwahl     # 12 client photos
+docker compose exec backend python -m training.evaluieren --modus oracle             # matching upper bound
+docker compose exec backend python -m training.finetune vorbereiten|starten|status <job>   # OpenAI only
 ```
 
-The test set is held out by tool set (all knives with the same tools are on one side), so the model is
-tested on Victorinox knives whose tool combination it never saw. Current numbers without a vision key:
-with perfect detection the right knife is top-1 in 88 % and top-3 in 100 % of 32 test knives; with
-scale parts and one more tool missed, top-3 is still 94 %.
+Clef answers are cached in `backend/data/training/clef_cache.jsonl`, so re-running the evaluation is
+free. The catalogue test set is held out by tool set (all knives with the same tools are on one side),
+so the model is tested on Victorinox knives whose tool combination it never saw; the photo set is the
+client's 12 labelled photos from the input PDF (`data/sak_ground_truth/`, mounted into the container).
+Matching upper bound (perfect tool detection): top-1 88 %, top-3 100 % of 32 test knives; with scale
+parts and one more tool missed, top-3 is still 94 %.
+
+Measured with Clef (`clef-flash`), honest numbers:
+
+| test | tool matching | visual search |
+| --- | --- | --- |
+| 5 Victorinox client photos, right product in top 3 | 1/5 | **3/5** (misses: Swiss Tool variants that look alike) |
+| 21 held-out knives, other catalogue view (not S1), top 3 | 10 % | **33 %** (top 5: 52 %) |
+| brand, 12 client photos | 10/12 correct | |
+| tool detection, catalogue test set | P 0.62 / R 0.78 / F1 0.69 | |
+
+Tool detection is fine on the open catalogue shot but drops sharply on other views, and fusing it into
+the visual ranking made results worse, so tools only explain the recommendation. Competitor photos
+get plausible Victorinox replacements (Leatherman → Swiss Tool BS, Gerber multitool → Swiss Tool
+Spirit X, Gerber/Benchmade folders → Evoke BSH Alox). Note: `labels.json` assigns the sticky notes of
+PDF pages 13 and 22 by column, not by photo; `training/evaluieren.py` corrects this (`FOTO_KORREKTUR`).
 
 ## Frontend
 

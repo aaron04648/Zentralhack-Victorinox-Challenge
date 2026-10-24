@@ -1,0 +1,1494 @@
+{
+  "set": "katalog",
+  "modus": "vision_clef",
+  "bilder": 32,
+  "marke_richtig": 1.0,
+  "werkzeuge": {
+    "precision": 0.62,
+    "recall": 0.782,
+    "f1": 0.692,
+    "exakt_richtige_sets": 0.0
+  },
+  "matching": {
+    "top1": 0.062,
+    "top3": 0.094,
+    "top3_gleich": 0.094,
+    "top1_bild": 0.125,
+    "top3_bild": 0.156,
+    "top3_gleich_bild": 0.219
+  },
+  "pro_gruppe": {
+    "klinge_gross": {
+      "precision": 0.857,
+      "recall": 1.0,
+      "f1": 0.923,
+      "support": 24
+    },
+    "klinge_klein": {
+      "precision": 0.346,
+      "recall": 0.818,
+      "f1": 0.486,
+      "support": 11
+    },
+    "klinge_wellenschliff": {
+      "precision": 0.125,
+      "recall": 1.0,
+      "f1": 0.222,
+      "support": 1
+    },
+    "klinge_spezial": {
+      "precision": 0.167,
+      "recall": 0.333,
+      "f1": 0.222,
+      "support": 3
+    },
+    "schere": {
+      "precision": 1.0,
+      "recall": 0.857,
+      "f1": 0.923,
+      "support": 14
+    },
+    "holzsaege": {
+      "precision": 0.786,
+      "recall": 1.0,
+      "f1": 0.88,
+      "support": 11
+    },
+    "metallsaege": {
+      "precision": 0.364,
+      "recall": 0.8,
+      "f1": 0.5,
+      "support": 5
+    },
+    "metallfeile": {
+      "precision": 0.429,
+      "recall": 0.6,
+      "f1": 0.5,
+      "support": 5
+    },
+    "nagelfeile": {
+      "precision": 0.625,
+      "recall": 0.5,
+      "f1": 0.556,
+      "support": 10
+    },
+    "korkenzieher": {
+      "precision": 0.909,
+      "recall": 1.0,
+      "f1": 0.952,
+      "support": 10
+    },
+    "dosenoeffner": {
+      "precision": 0.778,
+      "recall": 1.0,
+      "f1": 0.875,
+      "support": 21
+    },
+    "kapselheber": {
+      "precision": 0.929,
+      "recall": 1.0,
+      "f1": 0.963,
+      "support": 26
+    },
+    "schraubendreher_flach": {
+      "precision": 0.95,
+      "recall": 0.655,
+      "f1": 0.776,
+      "support": 29
+    },
+    "schraubendreher_kreuz": {
+      "precision": 0.875,
+      "recall": 0.7,
+      "f1": 0.778,
+      "support": 10
+    },
+    "mini_schraubendreher": {
+      "precision": 0.222,
+      "recall": 1.0,
+      "f1": 0.364,
+      "support": 2
+    },
+    "ahle": {
+      "precision": 0.571,
+      "recall": 1.0,
+      "f1": 0.727,
+      "support": 16
+    },
+    "zange": {
+      "precision": 0.667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "support": 4
+    },
+    "pinzette": {
+      "precision": 0.6,
+      "recall": 0.5,
+      "f1": 0.545,
+      "support": 18
+    },
+    "zahnstocher": {
+      "precision": 1.0,
+      "recall": 0.294,
+      "f1": 0.455,
+      "support": 17
+    },
+    "kugelschreiber": {
+      "precision": 1.0,
+      "recall": 0.4,
+      "f1": 0.571,
+      "support": 5
+    },
+    "stecknadel": {
+      "precision": 1.0,
+      "recall": 0.333,
+      "f1": 0.5,
+      "support": 3
+    },
+    "lupe": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1
+    },
+    "led": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1
+    },
+    "massstab": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 5
+    },
+    "mehrzweckhaken": {
+      "precision": 0.222,
+      "recall": 1.0,
+      "f1": 0.364,
+      "support": 4
+    },
+    "fischentschupper": {
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.182,
+      "support": 1
+    },
+    "holzmeissel": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    "kistenoeffner": {
+      "precision": 0.176,
+      "recall": 0.6,
+      "f1": 0.273,
+      "support": 5
+    },
+    "bits": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    "nagelpflege": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3
+    },
+    "trageclip": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1
+    },
+    "drahtwerkzeug": {
+      "precision": 0.8,
+      "recall": 0.96,
+      "f1": 0.873,
+      "support": 25
+    }
+  },
+  "details": [
+    {
+      "id": "vx-0.2601.26",
+      "name": "Cadet Alox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallfeile",
+        "nagelfeile",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "nagelpflege"
+      ],
+      "falsch": [
+        "ahle",
+        "kistenoeffner",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallfeile"
+      ],
+      "top3": [
+        "Mountaineer (1.3743, 0.8552)",
+        "Ranger (1.3763, 0.8284)",
+        "Handyman (1.3773, 0.8174)"
+      ],
+      "top3_bild": [
+        "Mountaineer (1.3743, 0.8986)",
+        "Ranger (1.3763, 0.7238)",
+        "Climber Wood Winter Magic Limited Edition 2025 (1.3701.63E1, 0.6891)"
+      ]
+    },
+    {
+      "id": "vx-1.3405",
+      "name": "Compact",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "bits",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "stecknadel",
+        "zahnstocher"
+      ],
+      "fehlend": [
+        "kugelschreiber",
+        "nagelfeile"
+      ],
+      "falsch": [
+        "ahle",
+        "bits",
+        "kistenoeffner",
+        "klinge_klein",
+        "schraubendreher_kreuz"
+      ],
+      "top3": [
+        "Cyber Tool M (1.7725.T, 0.9048)",
+        "Huntsman Lite (1.7915.T, 0.8882)",
+        "Cyber Tool L (1.7775.T, 0.8281)"
+      ],
+      "top3_bild": [
+        "Swiss Champ XXL (1.6795.XXL, 0.8677)",
+        "Explorer (1.6703, 0.8559)",
+        "Cyber Tool M (1.7725.T, 0.7447)"
+      ]
+    },
+    {
+      "id": "vx-0.8170.20",
+      "name": "Companion Slim Alox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "kistenoeffner"
+      ],
+      "falsch": [
+        "ahle",
+        "dosenoeffner",
+        "pinzette"
+      ],
+      "top3": [
+        "Climber (1.3703, 0.8909)",
+        "Outrider (0.8513, 0.8909)",
+        "Super Tinker (1.4703, 0.8909)"
+      ],
+      "top3_bild": [
+        "Fieldmaster (1.4713, 0.9125)",
+        "Climber (1.3703, 0.9099)",
+        "Outrider (0.8513, 0.8979)"
+      ]
+    },
+    {
+      "id": "vx-0.6366",
+      "name": "Midnite Manager",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "schere"
+      ],
+      "fehlend": [
+        "kugelschreiber",
+        "led",
+        "nagelfeile",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz"
+      ],
+      "falsch": [
+        "ahle",
+        "dosenoeffner",
+        "klinge_gross"
+      ],
+      "top3": [
+        "Climber (1.3703, 0.91)",
+        "Super Tinker (1.4703, 0.91)",
+        "Huntsman Wood (1.3711.63, 0.8909)"
+      ],
+      "top3_bild": [
+        "Deluxe Tinker (1.4723, 0.9236)",
+        "Climber (1.3703, 0.8885)",
+        "Fieldmaster (1.4713, 0.8862)"
+      ]
+    },
+    {
+      "id": "vx-0.2503",
+      "name": "Recruit",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "pinzette",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "zahnstocher"
+      ],
+      "falsch": [
+        "ahle"
+      ],
+      "top3": [
+        "Spartan (1.3603, 0.9667)",
+        "Spartan Onyx Black (1.3603.31P, 0.9667)",
+        "Tinker (1.4603, 0.9667)"
+      ],
+      "top3_bild": [
+        "Tinker (1.4603, 0.9767)",
+        "Hiker (1.4613, 0.8948)",
+        "Spartan (1.3603, 0.8768)"
+      ]
+    },
+    {
+      "id": "vx-0.1897.J22",
+      "name": "Replica 1897 Limited Edition",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [],
+      "falsch": [
+        "drahtwerkzeug",
+        "fischentschupper",
+        "klinge_spezial",
+        "mehrzweckhaken"
+      ],
+      "top3": [
+        "Climber (1.3703, 0.81)",
+        "Huntsman Wood (1.3711.63, 0.7882)",
+        "Angler (1.3653.72, 0.7882)"
+      ],
+      "top3_bild": [
+        "Huntsman Wood (1.3711.63, 0.8517)",
+        "Climber (1.3703, 0.7949)",
+        "Angler (1.3653.72, 0.7326)"
+      ]
+    },
+    {
+      "id": "vx-0.7250.38",
+      "name": "Smart Card Wallet",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kugelschreiber",
+        "mehrzweckhaken",
+        "pinzette",
+        "schraubendreher_flach",
+        "trageclip"
+      ],
+      "fehlend": [
+        "klinge_klein",
+        "nagelfeile",
+        "schere",
+        "stecknadel",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "ahle",
+        "drahtwerkzeug",
+        "kapselheber",
+        "mehrzweckhaken",
+        "trageclip"
+      ],
+      "top3": [
+        "Companion (1.3909.E223, 0.7803)",
+        "Companion (1.3909, 0.7803)",
+        "Cyber Tool M (1.7725.T, 0.7588)"
+      ],
+      "top3_bild": [
+        "Companion (1.3909.E223, 0.8462)",
+        "Companion (1.3909, 0.7347)",
+        "Cyber Tool M (1.7725.T, 0.6948)"
+      ]
+    },
+    {
+      "id": "vx-1.4703",
+      "name": "Super Tinker",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzmeissel",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "mehrzweckhaken",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz"
+      ],
+      "fehlend": [
+        "zahnstocher"
+      ],
+      "falsch": [
+        "fischentschupper",
+        "holzmeissel",
+        "kistenoeffner",
+        "klinge_spezial",
+        "mini_schraubendreher"
+      ],
+      "top3": [
+        "Fisherman (1.4733.72, 0.8144)",
+        "Swiss Champ XXL (1.6795.XXL, 0.8097)",
+        "Swiss Champ (1.6794.T7, 0.8014)"
+      ],
+      "top3_bild": [
+        "Super Tinker (1.4703, 0.8578)",
+        "Swiss Champ (1.6794.T7, 0.7877)",
+        "Fisherman (1.4733.72, 0.7797)"
+      ]
+    },
+    {
+      "id": "vx-0.7240.T",
+      "name": "Swiss Card Nailcare",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "kugelschreiber",
+        "lupe",
+        "massstab",
+        "mini_schraubendreher",
+        "pinzette",
+        "trageclip",
+        "zahnstocher"
+      ],
+      "fehlend": [
+        "nagelfeile",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "stecknadel"
+      ],
+      "falsch": [
+        "ahle",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "mini_schraubendreher",
+        "trageclip"
+      ],
+      "top3": [
+        "Swiss Champ (1.6795, 0.6898)",
+        "Swiss Champ (1.6794.T7, 0.6227)",
+        "Companion (1.3909.E223, 0.6136)"
+      ],
+      "top3_bild": [
+        "Swiss Champ (1.6795, 0.7829)",
+        "Swiss Champ (1.6794.T7, 0.5599)",
+        "Companion (1.3909, 0.5195)"
+      ]
+    },
+    {
+      "id": "vx-0.8216.20",
+      "name": "Synergy Alox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "metallfeile",
+        "nagelfeile",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "kistenoeffner",
+        "nagelpflege",
+        "trageclip"
+      ],
+      "falsch": [
+        "ahle",
+        "dosenoeffner",
+        "klinge_klein",
+        "metallfeile"
+      ],
+      "top3": [
+        "Mountaineer (1.3743, 0.8929)",
+        "Ranger (1.3763, 0.8688)",
+        "Handyman (1.3773, 0.8588)"
+      ],
+      "top3_bild": [
+        "Mountaineer (1.3743, 0.925)",
+        "Ranger (1.3763, 0.8465)",
+        "Handyman (1.3773, 0.7093)"
+      ]
+    },
+    {
+      "id": "vx-1.4603",
+      "name": "Tinker",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mini_schraubendreher",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz"
+      ],
+      "fehlend": [
+        "pinzette",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "kistenoeffner",
+        "mini_schraubendreher"
+      ],
+      "top3": [
+        "Tinker (1.4603, 0.87)",
+        "Hiker (1.4613, 0.8367)",
+        "Huntsman Lite (1.7915.T, 0.8279)"
+      ],
+      "top3_bild": [
+        "Tinker (1.4603, 0.909)",
+        "Hiker (1.4613, 0.8443)",
+        "Super Tinker (1.4703, 0.7222)"
+      ]
+    },
+    {
+      "id": "vx-0.3303",
+      "name": "Waiter",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "dosenoeffner",
+        "kapselheber",
+        "klinge_gross",
+        "korkenzieher",
+        "mehrzweckhaken"
+      ],
+      "fehlend": [
+        "drahtwerkzeug",
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "mehrzweckhaken"
+      ],
+      "top3": [
+        "Climber „Place to Be” (1.3703.E95, 0.8875)",
+        "Climber (1.3703, 0.85)",
+        "Compact (1.3405, 0.85)"
+      ],
+      "top3_bild": [
+        "Climber „Place to Be” (1.3703.E95, 0.9105)",
+        "Compact (1.3405, 0.895)",
+        "Climber (1.3703, 0.8752)"
+      ]
+    },
+    {
+      "id": "vx-0.6123",
+      "name": "Escort",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "klinge_gross",
+        "metallfeile",
+        "nagelfeile"
+      ],
+      "fehlend": [
+        "klinge_klein",
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "klinge_gross",
+        "metallfeile"
+      ],
+      "top3": [
+        "Mountaineer (1.3743, 0.7643)",
+        "Ranger (1.3763, 0.7563)",
+        "Handyman (1.3773, 0.7529)"
+      ],
+      "top3_bild": [
+        "Mountaineer (1.3743, 0.835)",
+        "Ranger (1.3763, 0.7789)",
+        "Handyman (1.3773, 0.7295)"
+      ]
+    },
+    {
+      "id": "vx-0.6163",
+      "name": "Rally",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "metallfeile",
+        "metallsaege",
+        "nagelfeile"
+      ],
+      "fehlend": [
+        "pinzette",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "dosenoeffner",
+        "klinge_gross",
+        "metallfeile",
+        "metallsaege"
+      ],
+      "top3": [
+        "Mountaineer (1.3743, 0.8714)",
+        "Ranger (1.3763, 0.85)",
+        "Handyman (1.3773, 0.8412)"
+      ],
+      "top3_bild": [
+        "Mountaineer (1.3743, 0.91)",
+        "Ranger (1.3763, 0.7794)",
+        "Handyman (1.3773, 0.6905)"
+      ]
+    },
+    {
+      "id": "vx-0.8271.26",
+      "name": "Farmer X Alox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzmeissel",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "zange"
+      ],
+      "fehlend": [],
+      "falsch": [
+        "fischentschupper",
+        "holzmeissel",
+        "kistenoeffner",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "zange"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.8705)",
+        "Swiss Champ (1.6795, 0.8705)",
+        "Cyber Tool L (1.7775.T, 0.8485)"
+      ],
+      "top3_bild": [
+        "Swiss Champ (1.6794.T7, 0.8959)",
+        "Swiss Champ Wood (1.6791.63, 0.8797)",
+        "Swiss Tool Spirit X Plus (3.0235.L, 0.7711)"
+      ]
+    },
+    {
+      "id": "vx-1.4733.72",
+      "name": "Fisherman",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "massstab",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz"
+      ],
+      "fehlend": [
+        "zahnstocher"
+      ],
+      "falsch": [
+        "holzsaege",
+        "metallsaege",
+        "mini_schraubendreher"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.9087)",
+        "Swiss Champ (1.6795, 0.9087)",
+        "Fisherman (1.4733.72, 0.8781)"
+      ],
+      "top3_bild": [
+        "Fisherman (1.4733.72, 0.9147)",
+        "Swiss Champ (1.6795, 0.7568)",
+        "Swiss Champ Wood (1.6791.63, 0.7254)"
+      ]
+    },
+    {
+      "id": "vx-0.8361.MC",
+      "name": "Forester M Grip",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher",
+        "metallsaege"
+      ],
+      "fehlend": [
+        "schraubendreher_flach"
+      ],
+      "falsch": [
+        "kistenoeffner",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "metallsaege"
+      ],
+      "top3": [
+        "Camper (1.3613, 0.7894)",
+        "Swiss Tool BS (3.0323.3CN, 0.7618)",
+        "Swiss Tool Spirit MX (3.0224.MN, 0.7506)"
+      ],
+      "top3_bild": [
+        "Camper (1.3613, 0.8526)",
+        "Ranger (1.3763, 0.768)",
+        "Swiss Tool Spirit MX (3.0224.MN, 0.6591)"
+      ]
+    },
+    {
+      "id": "vx-0.7052.T",
+      "name": "Golf Tool",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "zahnstocher",
+        "zange"
+      ],
+      "fehlend": [
+        "nagelfeile"
+      ],
+      "falsch": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "klinge_klein",
+        "schraubendreher_flach",
+        "zange"
+      ],
+      "top3": [
+        "Deluxe Tinker (1.4723, 0.9538)",
+        "Cyber Tool M (1.7725.T, 0.92)",
+        "Climber (1.3703, 0.8909)"
+      ],
+      "top3_bild": [
+        "Climber (1.3703, 0.9236)",
+        "Deluxe Tinker (1.4723, 0.831)",
+        "Handyman (1.3773, 0.7626)"
+      ]
+    },
+    {
+      "id": "vx-0.8341.MC9",
+      "name": "Hunter XT Grip",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "drahtwerkzeug",
+        "holzsaege",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "metallsaege"
+      ],
+      "fehlend": [
+        "klinge_spezial"
+      ],
+      "falsch": [
+        "ahle",
+        "drahtwerkzeug",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "mehrzweckhaken",
+        "metallsaege"
+      ],
+      "top3": [
+        "Ranger (1.3763, 0.7778)",
+        "Handyman (1.3773, 0.769)",
+        "Cyber Tool L (1.7775.T, 0.7541)"
+      ],
+      "top3_bild": [
+        "Handyman (1.3773, 0.8383)",
+        "Ranger (1.3763, 0.8304)",
+        "Huntsman (1.3713, 0.817)"
+      ]
+    },
+    {
+      "id": "vx-0.2373.T2",
+      "name": "My First Victorinox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "klinge_wellenschliff",
+        "mehrzweckhaken",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "fehlend": [
+        "pinzette"
+      ],
+      "falsch": [
+        "ahle",
+        "fischentschupper",
+        "kistenoeffner",
+        "klinge_klein",
+        "klinge_spezial",
+        "klinge_wellenschliff",
+        "mehrzweckhaken"
+      ],
+      "top3": [
+        "Swiss Champ XXL (1.6795.XXL, 0.7708)",
+        "Fieldmaster (1.4713, 0.7643)",
+        "Huntsman (1.3713, 0.7643)"
+      ],
+      "top3_bild": [
+        "Swiss Champ XXL (1.6795.XXL, 0.8396)",
+        "Huntsman (1.3713, 0.822)",
+        "Fieldmaster (1.4713, 0.6762)"
+      ]
+    },
+    {
+      "id": "vx-0.2373.E1",
+      "name": "My First Victorinox Sets für Kinder, Tier-Edition",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "klinge_wellenschliff",
+        "mehrzweckhaken",
+        "metallsaege"
+      ],
+      "fehlend": [
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "ahle",
+        "fischentschupper",
+        "kistenoeffner",
+        "klinge_klein",
+        "klinge_spezial",
+        "klinge_wellenschliff",
+        "mehrzweckhaken",
+        "metallsaege"
+      ],
+      "top3": [
+        "Swiss Champ XXL (1.6795.XXL, 0.6929)",
+        "Swiss Champ Wood (1.6791.63, 0.6864)",
+        "Swiss Champ (1.6794.T7, 0.6864)"
+      ],
+      "top3_bild": [
+        "Swiss Champ Wood (1.6791.63, 0.7805)",
+        "Swiss Champ (1.6794.T7, 0.7443)",
+        "Swiss Champ XXL (1.6795.XXL, 0.708)"
+      ]
+    },
+    {
+      "id": "vx-3.0903.3F",
+      "name": "Venture Pro",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "drahtwerkzeug",
+        "trageclip"
+      ],
+      "fehlend": [
+        "kugelschreiber",
+        "pinzette"
+      ],
+      "falsch": [
+        "drahtwerkzeug",
+        "trageclip"
+      ],
+      "top3": [
+        "Synergy Alox (0.8216.20, 0.775)",
+        "Synergy X Alox (0.8226.20, 0.7667)",
+        "Swiss Tool MX Clip (3.0327.MKB1, 0.7375)"
+      ],
+      "top3_bild": [
+        "Synergy X Alox (0.8226.20, 0.8367)",
+        "Swiss Tool Spirit MX Clip (3.0224.MKB1, 0.7679)",
+        "Synergy Alox (0.8216.20, 0.7585)"
+      ]
+    },
+    {
+      "id": "vx-1.3613",
+      "name": "Camper",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzsaege",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher",
+        "metallsaege"
+      ],
+      "fehlend": [
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "klinge_wellenschliff",
+        "metallsaege"
+      ],
+      "top3": [
+        "Camper (1.3613, 0.8367)",
+        "Ranger (1.3763, 0.8038)",
+        "Handyman (1.3773, 0.7938)"
+      ],
+      "top3_bild": [
+        "Ranger (1.3763, 0.8627)",
+        "Camper (1.3613, 0.8115)",
+        "Huntsman (1.3713, 0.8074)"
+      ]
+    },
+    {
+      "id": "vx-0.8361.63",
+      "name": "Forester Wood",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher"
+      ],
+      "fehlend": [
+        "schraubendreher_flach"
+      ],
+      "falsch": [
+        "kistenoeffner",
+        "klinge_klein",
+        "klinge_wellenschliff"
+      ],
+      "top3": [
+        "Camper (1.3613, 0.8367)",
+        "Huntsman Wood (1.3711.63, 0.7882)",
+        "Huntsman (1.3713, 0.7882)"
+      ],
+      "top3_bild": [
+        "Huntsman Wood (1.3711.63, 0.8517)",
+        "Forester M Grip (0.8361.MC, 0.6871)",
+        "Camper (1.3613, 0.6839)"
+      ]
+    },
+    {
+      "id": "vx-0.9561.63",
+      "name": "Ranger 55 Wood",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzsaege",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher"
+      ],
+      "fehlend": [
+        "schraubendreher_flach"
+      ],
+      "falsch": [
+        "klinge_klein",
+        "klinge_wellenschliff"
+      ],
+      "top3": [
+        "Camper (1.3613, 0.8944)",
+        "Huntsman Wood (1.3711.63, 0.846)",
+        "Huntsman (1.3713, 0.846)"
+      ],
+      "top3_bild": [
+        "Huntsman Wood (1.3711.63, 0.8922)",
+        "Camper (1.3613, 0.7295)",
+        "Forester M Grip (0.8361.MC, 0.7199)"
+      ]
+    },
+    {
+      "id": "vx-0.8503.2MW",
+      "name": "Skipper Pro",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzmeissel",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "klinge_wellenschliff",
+        "mehrzweckhaken",
+        "nagelfeile",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "pinzette",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "holzmeissel",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "mehrzweckhaken",
+        "nagelfeile"
+      ],
+      "top3": [
+        "Swiss Champ XXL (1.6795.XXL, 0.7571)",
+        "Ranger (1.3763, 0.7375)",
+        "Handyman (1.3773, 0.7265)"
+      ],
+      "top3_bild": [
+        "Swiss Champ XXL (1.6795.XXL, 0.83)",
+        "Ranger (1.3763, 0.8116)",
+        "Handyman (1.3773, 0.6295)"
+      ]
+    },
+    {
+      "id": "vx-0.8120.26",
+      "name": "Electrician Alox",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "pinzette",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "klinge_spezial"
+      ],
+      "falsch": [
+        "dosenoeffner",
+        "kistenoeffner",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "pinzette"
+      ],
+      "top3": [
+        "Climber (1.3703, 0.8805)",
+        "Super Tinker (1.4703, 0.8805)",
+        "Deluxe Tinker (1.4723, 0.86)"
+      ],
+      "top3_bild": [
+        "Climber (1.3703, 0.9163)",
+        "Huntsman (1.3713, 0.7845)",
+        "Fieldmaster (1.4713, 0.7707)"
+      ]
+    },
+    {
+      "id": "vx-1.3743",
+      "name": "Mountaineer",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzmeissel",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "metallfeile",
+        "metallsaege",
+        "nagelfeile",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach"
+      ],
+      "fehlend": [
+        "nagelpflege",
+        "zahnstocher"
+      ],
+      "falsch": [
+        "holzmeissel",
+        "holzsaege",
+        "kistenoeffner"
+      ],
+      "top3": [
+        "Ranger (1.3763, 0.9441)",
+        "Handyman (1.3773, 0.9284)",
+        "Cyber Tool L (1.7775.T, 0.9018)"
+      ],
+      "top3_bild": [
+        "Ranger (1.3763, 0.9609)",
+        "Handyman (1.3773, 0.905)",
+        "Swiss Champ (1.6795, 0.8078)"
+      ]
+    },
+    {
+      "id": "vx-0.8564.XL",
+      "name": "Work Champ XL",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzmeissel",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zahnstocher",
+        "zange"
+      ],
+      "fehlend": [
+        "metallfeile"
+      ],
+      "falsch": [
+        "fischentschupper",
+        "holzmeissel",
+        "kistenoeffner",
+        "klinge_klein",
+        "mehrzweckhaken"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.8756)",
+        "Swiss Champ (1.6795, 0.8756)",
+        "Swiss Champ XXL (1.6795.XXL, 0.8419)"
+      ],
+      "top3_bild": [
+        "Work Champ XL (0.8564.XL, 0.8793)",
+        "Swiss Champ XXL (1.6795.XXL, 0.8064)",
+        "Swiss Champ (1.6795, 0.7893)"
+      ]
+    },
+    {
+      "id": "vx-3.0327.MN",
+      "name": "Swiss Tool MX",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "massstab",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zange"
+      ],
+      "fehlend": [
+        "holzmeissel",
+        "metallfeile"
+      ],
+      "falsch": [
+        "fischentschupper",
+        "klinge_klein",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "mini_schraubendreher",
+        "pinzette"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.9006)",
+        "Swiss Champ (1.6795, 0.9006)",
+        "Swiss Champ Wood (1.6791.63, 0.8634)"
+      ],
+      "top3_bild": [
+        "Swiss Champ (1.6794.T7, 0.9304)",
+        "Swiss Champ Wood (1.6791.63, 0.8168)",
+        "Swiss Tool Spirit X Plus (3.0235.L, 0.766)"
+      ]
+    },
+    {
+      "id": "vx-3.0326.M3N",
+      "name": "Swiss Tool MXBS",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "massstab",
+        "mehrzweckhaken",
+        "metallfeile",
+        "metallsaege",
+        "mini_schraubendreher",
+        "nagelfeile",
+        "nagelpflege",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zange"
+      ],
+      "fehlend": [
+        "holzmeissel"
+      ],
+      "falsch": [
+        "fischentschupper",
+        "holzsaege",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "mini_schraubendreher",
+        "nagelfeile",
+        "nagelpflege",
+        "pinzette"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.9299)",
+        "Swiss Champ (1.6795, 0.9299)",
+        "Swiss Champ Wood (1.6791.63, 0.8972)"
+      ],
+      "top3_bild": [
+        "Swiss Champ (1.6794.T7, 0.9509)",
+        "Swiss Champ Wood (1.6791.63, 0.835)",
+        "Swiss Champ (1.6795, 0.7593)"
+      ]
+    },
+    {
+      "id": "vx-3.0327.N",
+      "name": "Swiss Tool X",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "massstab",
+        "mehrzweckhaken",
+        "metallfeile",
+        "nagelfeile",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zange"
+      ],
+      "fehlend": [
+        "holzmeissel",
+        "metallsaege"
+      ],
+      "falsch": [
+        "fischentschupper",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "nagelfeile",
+        "pinzette"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.8856)",
+        "Swiss Champ (1.6795, 0.8856)",
+        "Swiss Champ Wood (1.6791.63, 0.846)"
+      ],
+      "top3_bild": [
+        "Swiss Champ (1.6794.T7, 0.9199)",
+        "Swiss Champ Wood (1.6791.63, 0.8284)",
+        "Swiss Champ (1.6795, 0.761)"
+      ]
+    }
+  ]
+}

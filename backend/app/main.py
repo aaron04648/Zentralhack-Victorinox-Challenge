@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import os
 import uuid
@@ -8,7 +9,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app import jev, matching, vision
+from app import clef, jev, matching, vision
 from app.werkzeuge import GRUPPEN
 
 PRODUCTS_CSV = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
@@ -186,7 +187,17 @@ QUELLE_KATALOG = "Victorinox Produktdaten"
 RUECKFRAGE_SCHWELLE = 0.5      # Jev: Wahrscheinlichkeit "nicht unterscheidbar"
 RUECKFRAGE_ABSTAND = 0.05      # Fallback ohne Jev: Score-Abstand Platz 1 zu 2
 MAX_BILD_BYTES = 8 * 1024 * 1024
-_matches = {}                  # match_id -> erkannte Gruppen (für das zweite Foto nach Rückfrage)
+VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografierte Produkt ab dieser Wahrscheinlichkeit
+VISUELL_ABSTAND = 2.5          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
+_matches = {}                  # match_id -> {"gruppen", "visuell"} (für das zweite Foto nach Rückfrage)
+
+
+@app.on_event("startup")
+async def kacheln_laden():
+    """Katalogbilder für die Clef-Bildsuche im Hintergrund vorbereiten (einmalig, danach auf Platte)."""
+    if clef.aktiv():
+        asyncio.get_running_loop().run_in_executor(
+            None, clef.kacheln_vorbereiten, [r for r in load_products() if matching.produkt_gruppen(r)])
 
 
 def produkt_merkmale(row):
@@ -214,16 +225,29 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
 
     schritte = []
+    rows = load_products()
+    messer = [r for r in rows if matching.produkt_gruppen(r)]
+    bild_url = vision.bild_als_url(inhalt, bild.content_type or "image/jpeg")
+    # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
+    mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
     try:
-        erkannt = vision.erkenne(vision.bild_als_url(inhalt, bild.content_type or "image/jpeg"))
-    except vision.VisionNichtKonfiguriert as fehler:
-        raise HTTPException(status_code=503, detail=str(fehler))
-    except Exception as fehler:  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
-        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {fehler}")
+        if mit_bildsuche:
+            bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
+        aufgaben = [asyncio.to_thread(vision.erkenne, bild_url)]
+        if mit_bildsuche:
+            aufgaben.append(asyncio.to_thread(clef.visuell_suchen, bild_url, messer))
+        ergebnisse = await asyncio.gather(*aufgaben, return_exceptions=True)
+    except Exception as fehler:  # Bild nicht lesbar
+        raise HTTPException(status_code=400, detail=f"Bild nicht lesbar: {fehler}")
+    erkannt = ergebnisse[0]
+    if isinstance(erkannt, vision.VisionNichtKonfiguriert):
+        raise HTTPException(status_code=503, detail=str(erkannt))
+    if isinstance(erkannt, Exception):  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
+        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {erkannt}")
     info = erkannt.pop("modell_info")
-    art = "fine-getunt" if info["finetuned"] else f"{info['beispiele']} Referenzbilder"
+    erkannt.pop("_bild", None)
     schritte.append({"id": "vision", "label": "Bild analysiert", "status": "ok",
-                     "detail": f"{len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']}, {art})"})
+                     "detail": f"{len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']}, {info['art']})"})
 
     werkzeuge = erkannt["werkzeuge"]
     try:
@@ -237,21 +261,48 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "ok",
                          "detail": f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt"})
     erkannte_gruppen = {w["gruppe"] for w in werkzeuge}
-    if vorherige_match_id in _matches:
-        erkannte_gruppen |= _matches[vorherige_match_id]
+    visuell = {}
+    if mit_bildsuche:
+        if isinstance(ergebnisse[1], Exception):
+            schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "warnung",
+                             "detail": f"Bildsuche fehlgeschlagen, nur Werkzeug-Matching ({ergebnisse[1]})"})
+        else:
+            visuell = dict(ergebnisse[1])
+    vorher = _matches.get(vorherige_match_id)
+    if vorher:
+        erkannte_gruppen |= vorher["gruppen"]
+        if vorher["visuell"] and visuell:  # zwei Fotos: Mittelwert der Bildsuche
+            visuell = {n: (visuell.get(n, 0) + vorher["visuell"].get(n, 0)) / 2 for n in visuell.keys() | vorher["visuell"].keys()}
+        visuell = visuell or vorher["visuell"]
 
     marke = erkannt["marke"]
     ist_victorinox = bool(marke and "victorinox" in marke.casefold())
     schritte.append({"id": "marke", "label": "Marke bestimmt", "status": "ok" if marke else "warnung",
                      "detail": marke or "Marke nicht erkennbar"})
 
-    rows = load_products()
-    kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=3)
-    schritte.append({"id": "suche", "label": "Katalog durchsucht",
-                     "status": "ok" if kandidaten else "warnung",
-                     "detail": f"{sum(1 for r in rows if matching.produkt_gruppen(r))} Messer verglichen"})
-
-    eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
+    if visuell:
+        # Reihenfolge und Score aus der Bildsuche (auf Testfotos klar besser als die Werkzeuge),
+        # die Werkzeuge liefern die Begründung
+        nach_nummer = {r["artikelnummer"]: r for r in messer}
+        kandidaten = []
+        for nummer, p in sorted(visuell.items(), key=lambda kv: -kv[1])[:3]:
+            k = matching.bewerte(erkannte_gruppen, nach_nummer[nummer], erkannt) or {
+                "row": nach_nummer[nummer], "gruppen": matching.produkt_gruppen(nach_nummer[nummer]),
+                "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}
+            k["score"] = round(p, 4)
+            k["gruende"].insert(0, f"Bildähnlichkeit {p:.0%}")
+            kandidaten.append(k)
+        schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "ok",
+                         "detail": f"Clef hat das Foto mit {len(messer)} Katalogbildern verglichen"})
+        zweiter = kandidaten[1]["score"] if len(kandidaten) > 1 else 0.0
+        eigenes = next((k for k in kandidaten[:1] if ist_victorinox and k["score"] >= VISUELL_SICHER
+                        and k["score"] >= VISUELL_ABSTAND * zweiter), None)
+    else:
+        kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=3)
+        schritte.append({"id": "suche", "label": "Katalog durchsucht",
+                         "status": "ok" if kandidaten else "warnung",
+                         "detail": f"{len(messer)} Messer über die Werkzeuge verglichen"})
+        eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
     if eigenes:
         pfad = "aktuell"
     else:
@@ -265,7 +316,7 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         unklar = None
     if unklar is None and len(kandidaten) > 1:
         unklar = 1.0 if kandidaten[0]["score"] - kandidaten[1]["score"] < RUECKFRAGE_ABSTAND else 0.0
-    if not erkannte_gruppen:
+    if not erkannte_gruppen and not visuell:
         rueckfrage = {"frage": "Auf dem Foto sind keine Werkzeuge zu erkennen.",
                       "hinweis": "Bitte das Messer aufgeklappt fotografieren."}
     elif unklar is not None and unklar >= RUECKFRAGE_SCHWELLE:
@@ -276,7 +327,7 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
                      "detail": f"Top-Score {kandidaten[0]['score']:.2f}" if kandidaten else "Keine passenden Messer"})
 
     match_id = f"m_{uuid.uuid4().hex[:10]}"
-    _matches[match_id] = erkannte_gruppen
+    _matches[match_id] = {"gruppen": erkannte_gruppen, "visuell": visuell}
 
     return {
         "match_id": match_id,

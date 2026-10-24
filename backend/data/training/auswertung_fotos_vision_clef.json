@@ -1,0 +1,362 @@
+{
+  "set": "fotos",
+  "modus": "vision_clef",
+  "bilder": 12,
+  "marke_richtig": 0.833,
+  "werkzeuge": null,
+  "matching": {
+    "top1": 0.0,
+    "top3": 0.2,
+    "top3_gleich": 0.2,
+    "top1_bild": 0.2,
+    "top3_bild": 0.6,
+    "top3_gleich_bild": 0.6
+  },
+  "pro_gruppe": {},
+  "details": [
+    {
+      "id": "foto-p1_Im1_obj3",
+      "name": "Roxon",
+      "marke_wahr": "Roxon",
+      "marke_erkannt": "Roxon",
+      "erkannt": [
+        "ahle",
+        "bits",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzmeissel",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "mehrzweckhaken",
+        "mini_schraubendreher",
+        "pinzette",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "stecknadel",
+        "trageclip",
+        "zahnstocher",
+        "zange"
+      ],
+      "top3": [
+        "Cyber Tool M (1.7725.T, 0.7908)",
+        "Cyber Tool L (1.7775.T, 0.7762)",
+        "Swiss Tool Spirit X Plus (3.0235.L, 0.7637)"
+      ],
+      "top3_bild": [
+        "Spartan Onyx Black (1.3603.31P, 0.106)",
+        "Golf Tool (0.7052.T, 0.068)",
+        "Ranger 55 Grip Onyx Black (0.9563.C31P, 0.049)"
+      ]
+    },
+    {
+      "id": "foto-p1_Im2_obj5",
+      "name": "The Helton",
+      "marke_wahr": "The Helton",
+      "marke_erkannt": "The Helton",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzmeissel",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallfeile",
+        "schere",
+        "schraubendreher_flach"
+      ],
+      "top3": [
+        "Swiss Tool Spirit MXBS (3.0226.M3N, 0.8815)",
+        "Swiss Tool Spirit X (3.0224.N, 0.8658)",
+        "Swiss Tool Spirit XBS (3.0224.3CN, 0.8658)"
+      ],
+      "top3_bild": [
+        "Spartan Onyx Black (1.3603.31P, 0.095)",
+        "Ranger 55 Grip Onyx Black (0.9563.C31P, 0.075)",
+        "Pioneer X Alox (0.8231.26, 0.06)"
+      ]
+    },
+    {
+      "id": "foto-p1_Im3_obj7",
+      "name": "Swiza",
+      "marke_wahr": "SWIZA",
+      "marke_erkannt": "SWIZA",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_wellenschliff",
+        "korkenzieher",
+        "mehrzweckhaken",
+        "pinzette"
+      ],
+      "top3": [
+        "Climber (1.3703, 0.8273)",
+        "Huntsman (1.3713, 0.8068)",
+        "Huntsman Year of the Goat 2027 (1.3714.E16, 0.8068)"
+      ],
+      "top3_bild": [
+        "Spartan Onyx Black (1.3603.31P, 0.18)",
+        "Picknicker (0.8353.3, 0.141)",
+        "Cheese Master (0.8313.W, 0.069)"
+      ]
+    },
+    {
+      "id": "foto-p1_Im4_obj9",
+      "name": "SAK / Essentials / Spartan (SKU 1.3603)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "schraubendreher_flach"
+      ],
+      "top3": [
+        "Spartan Wood (1.3601.63, 0.9278)",
+        "Spartan (1.3603, 0.9278)",
+        "Spartan Onyx Black (1.3603.31P, 0.9278)"
+      ],
+      "top3_bild": [
+        "Sportsman (0.3803, 0.205)",
+        "Recruit (0.2503, 0.185)",
+        "Spartan (1.3603, 0.144)"
+      ]
+    },
+    {
+      "id": "foto-p1_Im5_obj11",
+      "name": "SAK / Essentials / Synergy X Alox (SKU: 0.8226.22)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "schere",
+        "schraubendreher_flach"
+      ],
+      "top3": [
+        "Climber Wood Winter Magic Limited Edition 2025 (1.3701.63E1, 0.9227)",
+        "Climber (1.3703, 0.905)",
+        "Super Tinker (1.4703, 0.905)"
+      ],
+      "top3_bild": [
+        "Pioneer X Alox Limited Edition 2026 (0.8231.L26, 0.225)",
+        "Synergy X Alox (0.8226.20, 0.1)",
+        "Classic SD Zodiac Signs (0.6223.2LEO, 0.049)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im1_obj16",
+      "name": "Leatherman",
+      "marke_wahr": "Leatherman",
+      "marke_erkannt": "Leatherman",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzmeissel",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "kugelschreiber",
+        "mehrzweckhaken",
+        "metallsaege",
+        "mini_schraubendreher",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "schraubendreher_kreuz",
+        "zange"
+      ],
+      "top3": [
+        "Swiss Champ (1.6795, 0.86)",
+        "Swiss Champ (1.6794.T7, 0.8242)",
+        "Swiss Champ XXL (1.6795.XXL, 0.8242)"
+      ],
+      "top3_bild": [
+        "Swiss Tool BS (3.0323.3CN, 0.101)",
+        "Swiss Tool Spirit MXBS (3.0226.M3N, 0.077)",
+        "Climber (1.3703, 0.064)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im2_obj18",
+      "name": "Victorinox 3.0224.3CN",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "metallfeile",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach"
+      ],
+      "top3": [
+        "Fieldmaster (1.4713, 0.8417)",
+        "Huntsman (1.3713, 0.8417)",
+        "Huntsman Year of the Goat 2027 (1.3714.E16, 0.8417)"
+      ],
+      "top3_bild": [
+        "Swiss Tool Spirit MX Clip (3.0224.MKB1, 0.156)",
+        "Ranger 55 Grip Onyx Black (0.9563.C31P, 0.094)",
+        "Swiss Tool MXBS (3.0326.M3N, 0.085)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im3_obj19",
+      "name": "Gerber",
+      "marke_wahr": "Gerber",
+      "marke_erkannt": "Gerber",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "mehrzweckhaken",
+        "metallfeile",
+        "metallsaege",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "zange"
+      ],
+      "top3": [
+        "Handyman (1.3773, 0.8702)",
+        "Swiss Tool Spirit MXBS (3.0226.M3N, 0.8643)",
+        "Cyber Tool L (1.7775.T, 0.8486)"
+      ],
+      "top3_bild": [
+        "Swiss Tool Spirit X (3.0224.N, 0.065)",
+        "Swiss Tool MX (3.0327.MN, 0.06)",
+        "Swiss Tool Spirit MX (3.0224.MN, 0.058)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im4_obj21",
+      "name": "Victorinox 3.0323.L",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "fischentschupper",
+        "holzmeissel",
+        "holzsaege",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "klinge_klein",
+        "klinge_spezial",
+        "massstab",
+        "mehrzweckhaken",
+        "metallfeile",
+        "pinzette",
+        "schere",
+        "schraubendreher_flach",
+        "zange"
+      ],
+      "top3": [
+        "Swiss Champ (1.6794.T7, 0.8365)",
+        "Swiss Champ (1.6795, 0.8365)",
+        "Swiss Champ Wood (1.6791.63, 0.7962)"
+      ],
+      "top3_bild": [
+        "Swiss Tool MX Clip (3.0327.MKB1, 0.255)",
+        "Swiss Tool Spirit MX Clip (3.0224.MKB1, 0.126)",
+        "Swiss Tool Spirit MX (3.0224.MN, 0.053)"
+      ]
+    },
+    {
+      "id": "foto-p22_Im1_obj24",
+      "name": "Gerber",
+      "marke_wahr": "Gerber",
+      "marke_erkannt": null,
+      "erkannt": [
+        "klinge_gross"
+      ],
+      "top3": [
+        "Hunter Pro (0.9411.M9, 1.0)",
+        "Swiss Army 1 Alox (0.8000.26, 1.0)",
+        "Venture (3.0902.3, 1.0)"
+      ],
+      "top3_bild": [
+        "Evoke BSH Alox (0.9425.DS222, 0.148)",
+        "Sentinel Clip (0.8416.M3, 0.102)",
+        "Evoke Wood Damast Limited Edition 2026 (0.9410.J26, 0.083)"
+      ]
+    },
+    {
+      "id": "foto-p22_Im2_obj26",
+      "name": "Victorinox 0.9411.D20",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "klinge_gross",
+        "klinge_spezial"
+      ],
+      "top3": [
+        "Swiss Army 2 Alox (0.8060.26, 1.0)",
+        "Hunter XT Grip (0.8341.MC9, 0.85)",
+        "Electrician Alox (0.8120.26, 0.8)"
+      ],
+      "top3_bild": [
+        "Evoke Alox (0.9411.D20, 0.334)",
+        "Evoke Alox Limited Edition 2026 (0.9415.L26, 0.11)",
+        "Onefold Alox (0.8006.20, 0.076)"
+      ]
+    },
+    {
+      "id": "foto-p22_Im3_obj27",
+      "name": "Benchmade",
+      "marke_wahr": "Benchmade",
+      "marke_erkannt": "The Helton",
+      "erkannt": [
+        "drahtwerkzeug",
+        "klinge_gross"
+      ],
+      "top3": [
+        "Bantam Alox (0.2300.26, 0.82)",
+        "Bantam (0.2303, 0.82)",
+        "Electrician Alox (0.8120.26, 0.8)"
+      ],
+      "top3_bild": [
+        "Evoke BSH Alox (0.9425.DS222, 0.151)",
+        "Sentinel Clip (0.8416.M3, 0.101)",
+        "Venture (3.0902.3, 0.086)"
+      ]
+    }
+  ]
+}

@@ -5,6 +5,7 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
+      - ./data/sak_ground_truth:/app/data/sak_ground_truth:ro   # Kundenfotos aus dem Input-PDF (Test)
     env_file:
       - path: .env        # API-Keys für Azure/OpenAI und Jev, siehe .env.example
         required: false

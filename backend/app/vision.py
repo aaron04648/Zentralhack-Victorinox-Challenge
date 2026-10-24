@@ -1,6 +1,7 @@
 """Bilderkennung: Werkzeuge, Marke und Modell eines Taschenmessers aus einem Foto.
 
-Anbieter ist konfigurierbar (OpenAI-kompatible API):
+Anbieter (VISION_ANBIETER): "clef" (Standard, sobald OPENROUTER_API_KEY gesetzt ist, siehe
+app/clef.py) oder "openai". Der OpenAI-Weg nutzt eine OpenAI-kompatible API:
 - Azure OpenAI: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT
 - OpenAI:       OPENAI_API_KEY, OPENAI_MODEL
 
@@ -17,6 +18,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+from app import clef
 from app.werkzeuge import GRUPPEN
 
 REFERENZEN = Path(__file__).resolve().parent.parent / "data" / "training" / "referenzen.json"
@@ -143,8 +145,27 @@ def bereinigen(roh):
     }
 
 
+def anbieter():
+    gewaehlt = os.getenv("VISION_ANBIETER", "").strip().lower()
+    if gewaehlt in ("clef", "openai"):
+        return gewaehlt
+    return "clef" if clef.aktiv() else "openai"
+
+
 def erkenne(bild_url):
-    """bild_url: http(s)-URL oder data:-URL. Gibt das bereinigte Erkennungsergebnis zurück."""
+    """bild_url: http(s)-URL oder data:-URL. Gibt das bereinigte Erkennungsergebnis zurück.
+
+    "modell_info" beschreibt das verwendete Modell (für die Agenten-Schritte im Frontend).
+    """
+    if anbieter() == "clef":
+        try:
+            return clef.erkenne(bild_url)
+        except clef.ClefNichtKonfiguriert as fehler:
+            raise VisionNichtKonfiguriert(str(fehler)) from None
+    return _erkenne_openai(bild_url)
+
+
+def _erkenne_openai(bild_url):
     modell, finetuned = modell_name()
     beispiele = () if finetuned else referenzen()
     res = client().chat.completions.create(
@@ -155,5 +176,6 @@ def erkenne(bild_url):
     )
     roh = json.loads(res.choices[0].message.content or "{}")
     ergebnis = bereinigen(roh)
-    ergebnis["modell_info"] = {"modell": modell, "finetuned": finetuned, "beispiele": len(beispiele)}
+    ergebnis["modell_info"] = {"modell": modell,
+                               "art": "fine-getunt" if finetuned else f"{len(beispiele)} Referenzbilder"}
     return ergebnis

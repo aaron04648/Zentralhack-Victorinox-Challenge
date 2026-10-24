@@ -1,0 +1,128 @@
+{
+  "set": "fotos",
+  "modus": "oracle",
+  "bilder": 5,
+  "marke_richtig": 1.0,
+  "werkzeuge": null,
+  "matching": {
+    "top1": 1.0,
+    "top3": 1.0,
+    "top3_gleich": 1.0
+  },
+  "pro_gruppe": {},
+  "details": [
+    {
+      "id": "foto-p1_Im4_obj9",
+      "name": "SAK / Essentials / Spartan (SKU 1.3603)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "top3": [
+        "Spartan (1.3603, 1.0)",
+        "Spartan Onyx Black (1.3603.31P, 1.0)",
+        "Camper (1.3613, 0.9727)"
+      ]
+    },
+    {
+      "id": "foto-p1_Im5_obj11",
+      "name": "SAK / Essentials / Synergy X Alox (SKU: 0.8226.22)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "nagelfeile",
+        "nagelpflege",
+        "schere",
+        "schraubendreher_flach",
+        "trageclip"
+      ],
+      "top3": [
+        "Synergy X Alox (0.8226.20, 1.0)",
+        "Synergy Alox (0.8216.20, 0.9278)",
+        "Synergy Winter Magic Limited Edition 2026 (0.8211.22E1, 0.8556)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im2_obj18",
+      "name": "SAK / Essentials / Spartan (SKU 1.3603)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "top3": [
+        "Spartan (1.3603, 1.0)",
+        "Spartan Onyx Black (1.3603.31P, 1.0)",
+        "Camper (1.3613, 0.9727)"
+      ]
+    },
+    {
+      "id": "foto-p13_Im4_obj21",
+      "name": "SAK / Essentials / Synergy X Alox (SKU: 0.8226.22)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "drahtwerkzeug",
+        "kapselheber",
+        "kistenoeffner",
+        "klinge_gross",
+        "nagelfeile",
+        "nagelpflege",
+        "schere",
+        "schraubendreher_flach",
+        "trageclip"
+      ],
+      "top3": [
+        "Synergy X Alox (0.8226.20, 1.0)",
+        "Synergy Alox (0.8216.20, 0.9278)",
+        "Synergy Winter Magic Limited Edition 2026 (0.8211.22E1, 0.8556)"
+      ]
+    },
+    {
+      "id": "foto-p22_Im2_obj26",
+      "name": "SAK / Essentials / Spartan (SKU 1.3603)",
+      "marke_wahr": "Victorinox",
+      "marke_erkannt": "Victorinox",
+      "erkannt": [
+        "ahle",
+        "dosenoeffner",
+        "drahtwerkzeug",
+        "kapselheber",
+        "klinge_gross",
+        "klinge_klein",
+        "korkenzieher",
+        "pinzette",
+        "schraubendreher_flach",
+        "zahnstocher"
+      ],
+      "top3": [
+        "Spartan (1.3603, 1.0)",
+        "Spartan Onyx Black (1.3603.31P, 1.0)",
+        "Camper (1.3613, 0.9727)"
+      ]
+    }
+  ]
+}
