@@ -1,0 +1,474 @@
+{
+  "konfig": "405873ee0a",
+  "gesamt": [
+    {
+      "regel": "streng",
+      "grenze": null,
+      "tp": 230,
+      "fp": 141,
+      "fn": 64,
+      "precision": 0.62,
+      "recall": 0.782,
+      "f1": 0.692
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.05,
+      "tp": 226,
+      "fp": 138,
+      "fn": 68,
+      "precision": 0.621,
+      "recall": 0.769,
+      "f1": 0.687
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.1,
+      "tp": 220,
+      "fp": 132,
+      "fn": 74,
+      "precision": 0.625,
+      "recall": 0.748,
+      "f1": 0.681
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.15,
+      "tp": 207,
+      "fp": 119,
+      "fn": 87,
+      "precision": 0.635,
+      "recall": 0.704,
+      "f1": 0.668
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.2,
+      "tp": 201,
+      "fp": 115,
+      "fn": 93,
+      "precision": 0.636,
+      "recall": 0.684,
+      "f1": 0.659
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.3,
+      "tp": 193,
+      "fp": 100,
+      "fn": 101,
+      "precision": 0.659,
+      "recall": 0.656,
+      "f1": 0.658
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.4,
+      "tp": 177,
+      "fp": 82,
+      "fn": 117,
+      "precision": 0.683,
+      "recall": 0.602,
+      "f1": 0.64
+    },
+    {
+      "regel": "streng",
+      "grenze": 0.5,
+      "tp": 170,
+      "fp": 73,
+      "fn": 124,
+      "precision": 0.7,
+      "recall": 0.578,
+      "f1": 0.633
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.05,
+      "tp": 229,
+      "fp": 140,
+      "fn": 65,
+      "precision": 0.621,
+      "recall": 0.779,
+      "f1": 0.691
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.1,
+      "tp": 216,
+      "fp": 129,
+      "fn": 78,
+      "precision": 0.626,
+      "recall": 0.735,
+      "f1": 0.676
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.15,
+      "tp": 206,
+      "fp": 122,
+      "fn": 88,
+      "precision": 0.628,
+      "recall": 0.701,
+      "f1": 0.662
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.2,
+      "tp": 199,
+      "fp": 115,
+      "fn": 95,
+      "precision": 0.634,
+      "recall": 0.677,
+      "f1": 0.655
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.3,
+      "tp": 183,
+      "fp": 97,
+      "fn": 111,
+      "precision": 0.654,
+      "recall": 0.622,
+      "f1": 0.638
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.4,
+      "tp": 172,
+      "fp": 81,
+      "fn": 122,
+      "precision": 0.68,
+      "recall": 0.585,
+      "f1": 0.629
+    },
+    {
+      "regel": "kombiniert",
+      "grenze": 0.5,
+      "tp": 155,
+      "fp": 66,
+      "fn": 139,
+      "precision": 0.701,
+      "recall": 0.527,
+      "f1": 0.602
+    },
+    {
+      "regel": "je Gruppe",
+      "grenze": "gelernt",
+      "tp": 227,
+      "fp": 118,
+      "fn": 67,
+      "precision": 0.658,
+      "recall": 0.772,
+      "f1": 0.71
+    }
+  ],
+  "grenze_je_gruppe": {
+    "ahle": 0.05,
+    "bits": 0.4,
+    "fischentschupper": 0.5,
+    "holzmeissel": 0.15,
+    "holzsaege": 0.15,
+    "klinge_spezial": 0.5,
+    "mehrzweckhaken": 0.5,
+    "metallsaege": 0.5
+  },
+  "regel": "streng",
+  "pro_gruppe": {
+    "ahle": {
+      "support": 16,
+      "fp_vorher": 12,
+      "fp_nachher": 9,
+      "precision_vorher": 0.57,
+      "precision_nachher": 0.64,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "bits": {
+      "support": 0,
+      "fp_vorher": 1,
+      "fp_nachher": 1,
+      "precision_vorher": 0.0,
+      "precision_nachher": 0.0,
+      "recall_vorher": 0.0,
+      "recall_nachher": 0.0
+    },
+    "dosenoeffner": {
+      "support": 21,
+      "fp_vorher": 6,
+      "fp_nachher": 6,
+      "precision_vorher": 0.78,
+      "precision_nachher": 0.78,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "drahtwerkzeug": {
+      "support": 25,
+      "fp_vorher": 6,
+      "fp_nachher": 6,
+      "precision_vorher": 0.8,
+      "precision_nachher": 0.8,
+      "recall_vorher": 0.96,
+      "recall_nachher": 0.96
+    },
+    "fischentschupper": {
+      "support": 1,
+      "fp_vorher": 9,
+      "fp_nachher": 5,
+      "precision_vorher": 0.1,
+      "precision_nachher": 0.17,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "holzmeissel": {
+      "support": 3,
+      "fp_vorher": 5,
+      "fp_nachher": 5,
+      "precision_vorher": 0.0,
+      "precision_nachher": 0.0,
+      "recall_vorher": 0.0,
+      "recall_nachher": 0.0
+    },
+    "holzsaege": {
+      "support": 11,
+      "fp_vorher": 3,
+      "fp_nachher": 2,
+      "precision_vorher": 0.79,
+      "precision_nachher": 0.83,
+      "recall_vorher": 1.0,
+      "recall_nachher": 0.91
+    },
+    "kapselheber": {
+      "support": 26,
+      "fp_vorher": 2,
+      "fp_nachher": 2,
+      "precision_vorher": 0.93,
+      "precision_nachher": 0.93,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "kistenoeffner": {
+      "support": 5,
+      "fp_vorher": 14,
+      "fp_nachher": 14,
+      "precision_vorher": 0.18,
+      "precision_nachher": 0.18,
+      "recall_vorher": 0.6,
+      "recall_nachher": 0.6
+    },
+    "klinge_gross": {
+      "support": 24,
+      "fp_vorher": 4,
+      "fp_nachher": 4,
+      "precision_vorher": 0.86,
+      "precision_nachher": 0.86,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "klinge_klein": {
+      "support": 11,
+      "fp_vorher": 17,
+      "fp_nachher": 17,
+      "precision_vorher": 0.35,
+      "precision_nachher": 0.35,
+      "recall_vorher": 0.82,
+      "recall_nachher": 0.82
+    },
+    "klinge_spezial": {
+      "support": 3,
+      "fp_vorher": 5,
+      "fp_nachher": 0,
+      "precision_vorher": 0.17,
+      "precision_nachher": 1.0,
+      "recall_vorher": 0.33,
+      "recall_nachher": 0.33
+    },
+    "klinge_wellenschliff": {
+      "support": 1,
+      "fp_vorher": 7,
+      "fp_nachher": 7,
+      "precision_vorher": 0.12,
+      "precision_nachher": 0.12,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "korkenzieher": {
+      "support": 10,
+      "fp_vorher": 1,
+      "fp_nachher": 1,
+      "precision_vorher": 0.91,
+      "precision_nachher": 0.91,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "kugelschreiber": {
+      "support": 5,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 0.4,
+      "recall_nachher": 0.4
+    },
+    "led": {
+      "support": 1,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 0.0,
+      "precision_nachher": 0.0,
+      "recall_vorher": 0.0,
+      "recall_nachher": 0.0
+    },
+    "lupe": {
+      "support": 1,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "massstab": {
+      "support": 5,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "mehrzweckhaken": {
+      "support": 4,
+      "fp_vorher": 14,
+      "fp_nachher": 5,
+      "precision_vorher": 0.22,
+      "precision_nachher": 0.29,
+      "recall_vorher": 1.0,
+      "recall_nachher": 0.5
+    },
+    "metallfeile": {
+      "support": 5,
+      "fp_vorher": 4,
+      "fp_nachher": 4,
+      "precision_vorher": 0.43,
+      "precision_nachher": 0.43,
+      "recall_vorher": 0.6,
+      "recall_nachher": 0.6
+    },
+    "metallsaege": {
+      "support": 5,
+      "fp_vorher": 7,
+      "fp_nachher": 6,
+      "precision_vorher": 0.36,
+      "precision_nachher": 0.4,
+      "recall_vorher": 0.8,
+      "recall_nachher": 0.8
+    },
+    "mini_schraubendreher": {
+      "support": 2,
+      "fp_vorher": 7,
+      "fp_nachher": 7,
+      "precision_vorher": 0.22,
+      "precision_nachher": 0.22,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    },
+    "nagelfeile": {
+      "support": 10,
+      "fp_vorher": 3,
+      "fp_nachher": 3,
+      "precision_vorher": 0.62,
+      "precision_nachher": 0.62,
+      "recall_vorher": 0.5,
+      "recall_nachher": 0.5
+    },
+    "nagelpflege": {
+      "support": 3,
+      "fp_vorher": 1,
+      "fp_nachher": 1,
+      "precision_vorher": 0.0,
+      "precision_nachher": 0.0,
+      "recall_vorher": 0.0,
+      "recall_nachher": 0.0
+    },
+    "pinzette": {
+      "support": 18,
+      "fp_vorher": 6,
+      "fp_nachher": 6,
+      "precision_vorher": 0.6,
+      "precision_nachher": 0.6,
+      "recall_vorher": 0.5,
+      "recall_nachher": 0.5
+    },
+    "schere": {
+      "support": 14,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 0.86,
+      "recall_nachher": 0.86
+    },
+    "schraubendreher_flach": {
+      "support": 29,
+      "fp_vorher": 1,
+      "fp_nachher": 1,
+      "precision_vorher": 0.95,
+      "precision_nachher": 0.95,
+      "recall_vorher": 0.66,
+      "recall_nachher": 0.66
+    },
+    "schraubendreher_kreuz": {
+      "support": 10,
+      "fp_vorher": 1,
+      "fp_nachher": 1,
+      "precision_vorher": 0.88,
+      "precision_nachher": 0.88,
+      "recall_vorher": 0.7,
+      "recall_nachher": 0.7
+    },
+    "stecknadel": {
+      "support": 3,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 0.33,
+      "recall_nachher": 0.33
+    },
+    "trageclip": {
+      "support": 1,
+      "fp_vorher": 3,
+      "fp_nachher": 3,
+      "precision_vorher": 0.0,
+      "precision_nachher": 0.0,
+      "recall_vorher": 0.0,
+      "recall_nachher": 0.0
+    },
+    "zahnstocher": {
+      "support": 17,
+      "fp_vorher": 0,
+      "fp_nachher": 0,
+      "precision_vorher": 1.0,
+      "precision_nachher": 1.0,
+      "recall_vorher": 0.29,
+      "recall_nachher": 0.29
+    },
+    "zange": {
+      "support": 4,
+      "fp_vorher": 2,
+      "fp_nachher": 2,
+      "precision_vorher": 0.67,
+      "precision_nachher": 0.67,
+      "recall_vorher": 1.0,
+      "recall_nachher": 1.0
+    }
+  },
+  "zeiten": {
+    "bilder": 32,
+    "roentgen_median_s": 1.94,
+    "pruefung_median_s": 5.46,
+    "pruefung_p90_s": 8.64,
+    "gepruefte_werkzeuge": 313,
+    "erkannte_werkzeuge": 371
+  }
+}

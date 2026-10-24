@@ -269,6 +269,7 @@ ZANGE_SICHER = 0.5             # fremdes Multitool mit Zange -> Swiss Tools komm
 GEWICHT_BILD_TIEBREAK = 0.05   # fremde Marke: Bildähnlichkeit entscheidet nur bei gleicher Ausstattung
 _matches = {}                  # match_id -> Erkennungskontext (zweites Foto, Werkzeug-Korrektur ohne neue Clef-Anfrage)
 _vorab = OrderedDict()         # sha1(Foto) -> Task mit Erkennung + Orten aus dem Röntgenblick der Vorschau
+_zoom = OrderedDict()          # sha1(Foto) -> Task mit Messer-Zoom (Rahmen + Ausschnitt)
 MAX_VORAB = 50
 
 
@@ -318,6 +319,9 @@ async def match_stream(bild: UploadFile = File(...), vorherige_match_id: str | N
 
     {"typ": "schritt", "schritt": {...}}     Schritt startet ("laeuft") oder ist fertig ("ok"/"warnung")
     {"typ": "werkzeuge", "werkzeuge": [...]} erkannte Werkzeuge mit Position auf dem Foto (Röntgenblick)
+    {"typ": "pruefung", "werkzeuge": [...]}  zweiter Blick: erst Ausschnitte ("bild", urteil "laeuft"),
+                                             dann je Gruppe "wahrscheinlichkeit" + "urteil"
+                                             (bestaetigt | unsicher | verworfen)
     {"typ": "ergebnis", "ergebnis": {...}}   wie die Antwort von /api/match, danach Ende
     {"typ": "fehler", "status": 503, "detail": "..."}
     """
@@ -516,8 +520,36 @@ def _gewichte(werkzeuge):
     return {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
 
 
+def _zoom_starten(inhalt, content_type):
+    """Messer-Zoom für dieses Foto (einmal pro Foto, geteilt zwischen Vorschau und Analyse).
+
+    -> {"original": data:-URL des ganzen Fotos, "bild": 768-px-Bild für Clef (Messerausschnitt
+    oder ganzes Foto), "rahmen": (x0, y0, x1, y1) | None}
+    """
+    schluessel = hashlib.sha1(inhalt).hexdigest()
+    task = _zoom.get(schluessel)
+    if task and not (task.done() and (task.cancelled() or task.exception())):
+        return task
+
+    async def berechnen():
+        original = vision.bild_als_url(inhalt, content_type or "image/jpeg")
+        bild = await asyncio.to_thread(clef.bild_vorbereiten, original)
+        try:
+            rahmen = await asyncio.to_thread(clef.messer_rahmen, bild)
+        except Exception:
+            rahmen = None  # ohne Zoom weiter
+        if rahmen:
+            bild = await asyncio.to_thread(clef.zuschneiden, original, rahmen)
+        return {"original": original, "bild": bild, "rahmen": rahmen}
+
+    task = _zoom[schluessel] = asyncio.create_task(berechnen())
+    while len(_zoom) > MAX_VORAB:
+        _zoom.popitem(last=False)
+    return task
+
+
 def _vorab_starten(inhalt, content_type):
-    """Erkennung + Verortung für dieses Foto (einmal pro Foto; läuft eine schon, wird sie geteilt)."""
+    """Erkennung + Verortung (+ zweiter Blick als Task) für dieses Foto (einmal pro Foto; läuft eine schon, wird sie geteilt)."""
     schluessel = hashlib.sha1(inhalt).hexdigest()
     task = _vorab.get(schluessel)
     if task and not (task.done() and (task.cancelled() or task.exception())):
@@ -525,15 +557,19 @@ def _vorab_starten(inhalt, content_type):
         return task
 
     async def berechnen():
-        bild_url = vision.bild_als_url(inhalt, content_type or "image/jpeg")
-        bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
+        zoom = await asyncio.shield(_zoom_starten(inhalt, content_type))
+        bild_url, rahmen = zoom["bild"], zoom["rahmen"]
         erkannt = await asyncio.to_thread(vision.erkenne, bild_url)
         erkannt.pop("_bild", None)
         gewichte = _gewichte(erkannt["werkzeuge"])
         orte = {}
         if gewichte:
             orte = await asyncio.to_thread(clef.lokalisieren, bild_url, sorted(gewichte, key=gewichte.get, reverse=True))
-        return {"erkannt": erkannt, "orte": orte}
+            orte = clef.orte_umrechnen(orte, rahmen)
+        # Der zweite Blick läuft weiter, während die Vorschau schon den Röntgenblick zeigt
+        pruefung = asyncio.create_task(asyncio.to_thread(clef.werkzeuge_pruefen, zoom["original"], orte, rahmen))
+        pruefung.add_done_callback(lambda t: t.cancelled() or t.exception())
+        return {"erkannt": erkannt, "orte": orte, "pruefung": pruefung}
 
     task = _vorab[schluessel] = asyncio.create_task(berechnen())
     while len(_vorab) > MAX_VORAB:
@@ -582,27 +618,35 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, send
         senden(_schritt(id, label, status, detail))
 
     messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
-    bild_url = vision.bild_als_url(inhalt, content_type or "image/jpeg")
+    bild_url = original_url = vision.bild_als_url(inhalt, content_type or "image/jpeg")
+    rahmen = None
     # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
     mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
-    senden(_schritt("vision", "Bild analysieren", "laeuft", "Marke, Messer und 32 Werkzeugtypen prüfen"))
+    if mit_bildsuche:
+        senden(_schritt("zoom", "Messer suchen und heranzoomen", "laeuft", "6×6-Raster, eine Frage pro Zelle"))
     try:
         if mit_bildsuche:
-            bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
+            zoom = await asyncio.shield(_zoom_starten(inhalt, content_type))
+            bild_url, rahmen = zoom["bild"], zoom["rahmen"]
     except Exception as fehler:
         senden({"typ": "fehler", "status": 400, "detail": f"Bild nicht lesbar: {fehler}"})
         return
+    if mit_bildsuche:
+        fertig("zoom", "Messer herangezoomt" if rahmen else "Messer gesucht", "ok",
+               f"Ausschnitt {round((rahmen[2] - rahmen[0]) * 100)} × {round((rahmen[3] - rahmen[1]) * 100)} % "
+               "des Fotos, Erkennung läuft nur darauf" if rahmen else "Messer füllt das Foto, kein Zoom nötig")
+    senden(_schritt("vision", "Bild analysieren", "laeuft", "Marke, Messer und 32 Werkzeugtypen prüfen"))
     vorab = _vorab.get(hashlib.sha1(inhalt).hexdigest()) if mit_bildsuche else None
 
     async def erkennen():
-        """(Erkennung, Orte) – aus dem Röntgenblick der Vorschau, sonst neu."""
+        """(Erkennung, Orte, zweiter Blick als Task) – aus dem Röntgenblick der Vorschau, sonst neu."""
         if vorab:
             try:
-                ergebnis = copy.deepcopy(await asyncio.shield(vorab))
-                return ergebnis["erkannt"], ergebnis["orte"]
+                ergebnis = await asyncio.shield(vorab)
+                return copy.deepcopy(ergebnis["erkannt"]), copy.deepcopy(ergebnis["orte"]), ergebnis["pruefung"]
             except Exception:
                 pass  # Vorschau fehlgeschlagen: normal erkennen
-        return await asyncio.to_thread(vision.erkenne, bild_url), None
+        return await asyncio.to_thread(vision.erkenne, bild_url), None, None
 
     erkennung = asyncio.create_task(erkennen())
     bildsuche = None
@@ -619,7 +663,7 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, send
         bildsuche.add_done_callback(lambda t: t.cancelled() or t.exception())  # Abbruch nicht als Fehler loggen
 
     try:
-        erkannt, orte_vorab = await erkennung
+        erkannt, orte_vorab, pruefung_vorab = await erkennung
     except vision.VisionNichtKonfiguriert as fehler:
         senden({"typ": "fehler", "status": 503, "detail": str(fehler)})
         return
@@ -657,12 +701,6 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, send
     gewichte = _gewichte(werkzeuge)
 
     # Röntgenblick: erkannte Werkzeuge auf dem Foto verorten (läuft, während die Bildsuche weiterrechnet)
-    modellsuche = None
-    if im_markenkatalog and gewichte:
-        senden(_schritt("markenkatalog", f"Modell im {marke}-Katalog suchen", "laeuft",
-                        f"{len(konkurrenz.produkte_von_marke(marke))} {marke}-Modelle nach Werkzeugen und Bild vergleichen"))
-        modellsuche = asyncio.create_task(_markenmodell(bild_url if mit_bildsuche else None, marke, dict(gewichte)))
-
     orte = {}
     if mit_bildsuche and gewichte:
         senden(_schritt("roentgen", "Werkzeuge auf dem Foto verorten", "laeuft", "Röntgenblick"))
@@ -672,12 +710,55 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, send
             zu_verorten = [g for g in zu_verorten if g not in orte_vorab]
         try:
             if zu_verorten:
-                orte |= await asyncio.to_thread(clef.lokalisieren, bild_url, zu_verorten)
+                orte |= clef.orte_umrechnen(await asyncio.to_thread(clef.lokalisieren, bild_url, zu_verorten), rahmen)
             fertig("roentgen", "Werkzeuge auf dem Foto verortet", "ok", f"{len(orte)} Werkzeuge markiert"
                    + (" (aus der Vorschau)" if orte_vorab is not None else ""))
         except Exception as fehler:
             fertig("roentgen", "Werkzeuge auf dem Foto verortet", "warnung", f"Nicht verfügbar ({fehler})")
+
+    # Zweiter Blick: jedes verortete Werkzeug im vergrösserten Ausschnitt nachprüfen, Fehlalarme streichen
+    if mit_bildsuche and orte:
+        senden(_schritt("pruefung", "Werkzeuge im Ausschnitt prüfen", "laeuft",
+                        f"Zweiter Blick: {len(orte)} Ausschnitte vergrössert"))
+        try:
+            # Die Ausschnitte sofort zeigen, die Urteile folgen, sobald Clef geantwortet hat
+            bilder = await asyncio.to_thread(clef.ausschnitt_bilder, original_url, orte, rahmen)
+            if bilder:
+                senden({"typ": "pruefung", "werkzeuge": [
+                    {"gruppe": g, "label": GRUPPEN[g][0], "bild": b, "urteil": "laeuft"} for g, b in bilder.items()]})
+
+            async def aus_vorschau():
+                try:
+                    return dict(await asyncio.shield(pruefung_vorab)) if pruefung_vorab else {}
+                except Exception:
+                    return {}
+
+            # Werkzeuge, die erst Jev oder die Nachverortung dazugebracht hat, parallel zur Vorschau-Prüfung
+            nachpruefen = {g: o for g, o in orte.items() if orte_vorab is None or g not in orte_vorab}
+            pruefung, neu = await asyncio.gather(
+                aus_vorschau(), asyncio.to_thread(clef.werkzeuge_pruefen, original_url, nachpruefen, rahmen))
+            pruefung |= neu
+            if fehlend := {g: o for g, o in orte.items() if g not in pruefung}:  # Vorschau-Prüfung fehlgeschlagen
+                pruefung |= await asyncio.to_thread(clef.werkzeuge_pruefen, original_url, fehlend, rahmen)
+            weg = [g for g in clef.gestrichen(pruefung) if g in gewichte]
+            for g in weg:
+                gewichte.pop(g)
+            senden({"typ": "pruefung", "werkzeuge": [
+                {"gruppe": g, "label": GRUPPEN[g][0], "wahrscheinlichkeit": round(v, 2),
+                 "urteil": clef.pruef_urteil(g, v, weg)} for g, v in pruefung.items() if g in bilder]})
+            fertig("pruefung", "Werkzeuge im Ausschnitt geprüft", "ok",
+                   f"{len(pruefung)} Werkzeuge geprüft, "
+                   + (f"verworfen: {', '.join(GRUPPEN[g][0] for g in weg)}" if weg else "alle bestätigt"))
+        except Exception as fehler:
+            fertig("pruefung", "Werkzeuge im Ausschnitt geprüft", "warnung", f"Nicht verfügbar ({fehler})")
     senden({"typ": "werkzeuge", "werkzeuge": _werkzeug_liste(gewichte, orte)})
+
+    # Modell im Markenkatalog erst jetzt suchen: mit den geprüften Werkzeugen
+    modellsuche = None
+    if im_markenkatalog and gewichte:
+        senden(_schritt("markenkatalog", f"Modell im {marke}-Katalog suchen", "laeuft",
+                        f"{len(konkurrenz.produkte_von_marke(marke))} {marke}-Modelle nach Werkzeugen und Bild vergleichen"))
+        modellsuche = asyncio.create_task(_markenmodell(bild_url if mit_bildsuche else None, marke, dict(gewichte)))
 
     konkurrenz_ergebnis = {}
     if modellsuche:

@@ -181,6 +181,13 @@ Bei einer fremden Marke mit eigenen Daten (SWIZA, Leatherman, Gerber) endet der 
 Ein Schritt mit derselben `id` kann mehrfach kommen (`laeuft` mit neuem `detail`, dann `ok`/`warnung`).
 Der Röntgenblick (`position`) kommt von Clef: Über das Foto wird ein beschriftetes 4×4-Raster gelegt und pro
 Werkzeug gefragt, in welcher Zelle es liegt (`clef.lokalisieren`).
+Danach prüft der zweite Blick (Schritt `pruefung`, `clef.werkzeuge_pruefen`) jedes verortete Werkzeug in
+einem vergrösserten Ausschnitt; Fehlalarme in Gruppen mit gelernter Grenze fallen aus der Liste, bevor das
+Ereignis `werkzeuge` kommt. `/api/roentgen` zeigt noch die ungeprüfte Liste, die Prüfung läuft dort im Hintergrund
+weiter und wird von der Analyse übernommen.
+Live-Ansicht: Ereignis `{"typ": "pruefung", "werkzeuge": [...]}` kommt zweimal, zuerst mit den Ausschnitten
+(`gruppe`, `label`, `bild` als data:-URL, `urteil: "laeuft"`), dann mit `wahrscheinlichkeit` und
+`urteil` (`bestaetigt` | `unsicher` (bleibt) | `verworfen`) für dieselben Gruppen.
 
 ## `POST /api/roentgen`
 

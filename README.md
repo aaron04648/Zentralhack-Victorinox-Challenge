@@ -224,6 +224,12 @@ Full request/response contract: [docs/api.md](docs/api.md).
    appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, before "Analysieren" is pressed),
    during the analysis and on the result card, linked to the tool chips. The analysis reuses the preview
    result (cached by image hash), so Clef is not asked twice.
+   "Zweiter Blick" (`clef.werkzeuge_pruefen`): around each located tool a crop of the original photo is
+   enlarged (2×2 crops per sheet, one Clef request per 12 tools) and Clef is asked whether exactly this tool
+   is on it. Only groups where this helped on the training split may drop a tool (thresholds per group in
+   `data/training/zweiter_blick_grenzen.json`, learned by `training/zweiter_blick.py --kalibrieren`).
+   Katalog test split: false alarms 141 → 118, precision 0.62 → 0.66, recall 0.78 → 0.77, F1 0.69 → 0.71;
+   ~4.5 s more until the tool list, the final result only ~1 s later (the visual search runs in parallel).
 3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
    tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
    in the scales don't count against a product). A visible article number or model name wins.

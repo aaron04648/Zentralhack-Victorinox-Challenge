@@ -1,0 +1,14 @@
+{
+  "konfig": "405873ee0a",
+  "bilder": 218,
+  "grenzen": {
+    "ahle": 0.05,
+    "bits": 0.4,
+    "fischentschupper": 0.5,
+    "holzmeissel": 0.15,
+    "holzsaege": 0.15,
+    "klinge_spezial": 0.5,
+    "mehrzweckhaken": 0.5,
+    "metallsaege": 0.5
+  }
+}
