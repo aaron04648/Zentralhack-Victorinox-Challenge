@@ -1,0 +1,202 @@
+{
+  "dataset": "Sven-annotated PDF packshots, corrected page 13/22 mapping",
+  "model": "cloudflare/clef-flash",
+  "variant": "rich",
+  "top1": 11,
+  "top3": 12,
+  "total": 12,
+  "rows": [
+    {
+      "photo": "p1_Im1_obj3",
+      "truth": "roxon",
+      "rank": 1,
+      "prediction": "roxon",
+      "probabilities": {
+        "roxon": 0.9585,
+        "helton": 0.0085,
+        "swiza": 0.0052,
+        "victorinox": 0.0104,
+        "leatherman": 0.0059,
+        "gerber": 0.0061,
+        "benchmade": 0.0054
+      },
+      "image_sha256": "5bb70d45ac8216fabd45e59d9211482e9da2281ab5a58b30cd7a321c0be0516e"
+    },
+    {
+      "photo": "p1_Im2_obj5",
+      "truth": "helton",
+      "rank": 1,
+      "prediction": "helton",
+      "probabilities": {
+        "roxon": 0.0084,
+        "helton": 0.9505,
+        "swiza": 0.0049,
+        "victorinox": 0.0059,
+        "leatherman": 0.0105,
+        "gerber": 0.0088,
+        "benchmade": 0.011
+      },
+      "image_sha256": "afc46560f1aeaa7fea82049ea49d408a12ec859ff3b248bf0d91918912460327"
+    },
+    {
+      "photo": "p1_Im3_obj7",
+      "truth": "swiza",
+      "rank": 1,
+      "prediction": "swiza",
+      "probabilities": {
+        "roxon": 0.0097,
+        "helton": 0.0064,
+        "swiza": 0.9401,
+        "victorinox": 0.0262,
+        "leatherman": 0.0045,
+        "gerber": 0.0063,
+        "benchmade": 0.0068
+      },
+      "image_sha256": "0b694cb83030fb5a42429883106eb0cbb29b9b9e4bba054b90c7df5e366fbbfa"
+    },
+    {
+      "photo": "p1_Im4_obj9",
+      "truth": "victorinox",
+      "rank": 1,
+      "prediction": "victorinox",
+      "probabilities": {
+        "roxon": 0.0046,
+        "helton": 0.0046,
+        "swiza": 0.0148,
+        "victorinox": 0.9604,
+        "leatherman": 0.0043,
+        "gerber": 0.0056,
+        "benchmade": 0.0057
+      },
+      "image_sha256": "a411e47bda1eac98a7db3562222fee5a2db54c3e31e4b802236917edd81bade7"
+    },
+    {
+      "photo": "p1_Im5_obj11",
+      "truth": "victorinox",
+      "rank": 1,
+      "prediction": "victorinox",
+      "probabilities": {
+        "roxon": 0.0057,
+        "helton": 0.0051,
+        "swiza": 0.026,
+        "victorinox": 0.9446,
+        "leatherman": 0.0056,
+        "gerber": 0.0067,
+        "benchmade": 0.0063
+      },
+      "image_sha256": "a1ce718bb9ef43cf87fb799c116438c71a85f47f354fe186af31da2cb47cc67f"
+    },
+    {
+      "photo": "p13_Im1_obj16",
+      "truth": "leatherman",
+      "rank": 1,
+      "prediction": "leatherman",
+      "probabilities": {
+        "roxon": 0.0082,
+        "helton": 0.0099,
+        "swiza": 0.0056,
+        "victorinox": 0.0079,
+        "leatherman": 0.9479,
+        "gerber": 0.0116,
+        "benchmade": 0.0089
+      },
+      "image_sha256": "2bf9095a1c4cb95ea9297aea126a121e93001b90ab3dacd31fe5ecd1db3dcfec"
+    },
+    {
+      "photo": "p13_Im2_obj18",
+      "truth": "victorinox",
+      "rank": 1,
+      "prediction": "victorinox",
+      "probabilities": {
+        "roxon": 0.0327,
+        "helton": 0.0269,
+        "swiza": 0.0184,
+        "victorinox": 0.8365,
+        "leatherman": 0.0338,
+        "gerber": 0.0274,
+        "benchmade": 0.0243
+      },
+      "image_sha256": "d6d7e9caaa6f1bc71173a5543843b0fa35f13de05a222aada3388e48c124972d"
+    },
+    {
+      "photo": "p13_Im3_obj19",
+      "truth": "gerber",
+      "rank": 1,
+      "prediction": "gerber",
+      "probabilities": {
+        "roxon": 0.0083,
+        "helton": 0.0118,
+        "swiza": 0.0073,
+        "victorinox": 0.01,
+        "leatherman": 0.0202,
+        "gerber": 0.9332,
+        "benchmade": 0.0092
+      },
+      "image_sha256": "de043ced710db9b29d778c2edfe0626ab4459ebc0a679b2b27952e62b32ebef1"
+    },
+    {
+      "photo": "p13_Im4_obj21",
+      "truth": "victorinox",
+      "rank": 1,
+      "prediction": "victorinox",
+      "probabilities": {
+        "roxon": 0.0284,
+        "helton": 0.0184,
+        "swiza": 0.0172,
+        "victorinox": 0.8619,
+        "leatherman": 0.029,
+        "gerber": 0.024,
+        "benchmade": 0.0211
+      },
+      "image_sha256": "5b65fcdfa17cbc6f1bf98be9de81c5eb30234ca20ca3f9b6f012d98e878fb23e"
+    },
+    {
+      "photo": "p22_Im1_obj24",
+      "truth": "gerber",
+      "rank": 2,
+      "prediction": "benchmade",
+      "probabilities": {
+        "roxon": 0.0274,
+        "helton": 0.0516,
+        "swiza": 0.0269,
+        "victorinox": 0.0645,
+        "leatherman": 0.0248,
+        "gerber": 0.173,
+        "benchmade": 0.6318
+      },
+      "image_sha256": "12ad925762c79e3b4e04f9d6bcb2643bc77337f6c5688c05e460feccecf26a7b"
+    },
+    {
+      "photo": "p22_Im2_obj26",
+      "truth": "victorinox",
+      "rank": 1,
+      "prediction": "victorinox",
+      "probabilities": {
+        "roxon": 0.0064,
+        "helton": 0.006,
+        "swiza": 0.0167,
+        "victorinox": 0.9508,
+        "leatherman": 0.0046,
+        "gerber": 0.0075,
+        "benchmade": 0.008
+      },
+      "image_sha256": "5d9513e2089ce46fc0e9bff7767fb53e895a5a1f7adebcb4f9a71c083f724702"
+    },
+    {
+      "photo": "p22_Im3_obj27",
+      "truth": "benchmade",
+      "rank": 1,
+      "prediction": "benchmade",
+      "probabilities": {
+        "roxon": 0.0108,
+        "helton": 0.0168,
+        "swiza": 0.0116,
+        "victorinox": 0.0149,
+        "leatherman": 0.0094,
+        "gerber": 0.0167,
+        "benchmade": 0.9198
+      },
+      "image_sha256": "4dfc3588a23104d3429345637ab717f72657e4cd3f171560b48cf59045145fc4"
+    }
+  ]
+}

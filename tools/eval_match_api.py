@@ -2,13 +2,13 @@
 
 Two metrics, because they answer different questions:
 
-- **Marke**: is the detected brand correct? This is the classification criterion
-  from the README (the client's PDF annotates brands), and the number the
-  classification workstream measured (top-3 = 11/12 for the brand question).
+- **Marke**: is the single brand returned by the full endpoint correct? Unlike the
+  direct Clef harness, `/api/match` currently returns only one brand, not a brand top-k.
 - **SKU**: is the expected article number in the top-3 recommendations? Weaker
-  signal: the ground-truth SKU labels are partly unreliable (one photo labelled
-  "Spartan" actually shows a Swiss Champ multi-tool) and one of them
-  (0.8226.22) is not in the catalogue at all.
+  signal: the sticky-note labels on PDF pages 13 and 22 are assigned by column,
+  not by photo; `FOTO_KORREKTUR` fixes those mappings. Labelled SKU `0.8226.22` is
+  represented as a variant of canonical catalogue article `0.8226.20`; exact variant
+  selection is distinct from matching the correct product family.
 
 Usage:
     python tools/eval_match_api.py --url http://localhost:8000
@@ -30,6 +30,17 @@ DATA_DIR = REPO / "data" / "sak_ground_truth"
 
 # Konkurrenzmarken, die es im Katalog nicht gibt -> nur Marke bewertbar.
 KONKURRENZ = ("ROXON", "SWIZA", "HELTON", "LEATHERMAN", "GERBER", "BENCHMADE")
+# The sticky notes on PDF pages 13 and 22 are positioned by column, not by photo.
+# Keep these corrections aligned with training/evaluieren.py.
+FOTO_KORREKTUR = {
+    "p13_Im1_obj16": ("LEATHERMAN", None),
+    "p13_Im2_obj18": ("VICTORINOX", "3.0224.3CN"),
+    "p13_Im3_obj19": ("GERBER", None),
+    "p13_Im4_obj21": ("VICTORINOX", "3.0323.L"),
+    "p22_Im1_obj24": ("GERBER", None),
+    "p22_Im2_obj26": ("VICTORINOX", "0.9411.D20"),
+    "p22_Im3_obj27": ("BENCHMADE", None),
+}
 
 
 def load_labels() -> list[dict]:
@@ -37,8 +48,12 @@ def load_labels() -> list[dict]:
     rows = json.loads((DATA_DIR / "labels.json").read_text())
     for row in rows:
         name = f"p{row['page']}_{row['xobj']}_obj{row['obj']}"
-        match = re.search(r"SKU[:\s]*([0-9][0-9.]*[A-Za-z0-9]*)", row["label"], re.IGNORECASE)
         row["datei"] = f"{name}.png"
+        if name in FOTO_KORREKTUR:
+            row["marke"], row["erwartet"] = FOTO_KORREKTUR[name]
+            row["modell"] = None
+            continue
+        match = re.search(r"SKU[:\s]*([0-9][0-9.]*[A-Za-z0-9]*)", row["label"], re.IGNORECASE)
         row["erwartet"] = match.group(1) if match else None
         label = row["label"].upper()
         row["marke"] = next((m for m in KONKURRENZ if m in label), None)

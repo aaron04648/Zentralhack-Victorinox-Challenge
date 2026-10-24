@@ -97,6 +97,46 @@ Notes:
 
 Raw results: `../clef_noul_results.json`, `../clef_pairwise_results.json`.
 
+## Updated brand ranking run (corrected labels)
+
+The earlier direct-brand figures above used the five label keys from `labels.json`
+and did not apply the page 13/22 photo-to-sticky-note corrections used by
+`backend/training/evaluieren.py`. For a fair brand-level run, the corrected labels
+are grouped into seven brands (Roxon, The Helton, SWIZA, Victorinox, Leatherman,
+Gerber, Benchmade), and Clef is asked to rank those seven options from visible
+evidence. The best of three prompt variants reached **11/12 top-1 and 12/12 top-3**
+with `cloudflare/clef-flash`. The 27B model also reached 11/12 and 12/12, but was
+more confident on the single miss. Trimming white margins did not change the score.
+
+The sole top-1 error is `p22_Im1_obj24`: Sven's corrected label is Gerber, but Clef
+ranks Benchmade first and Gerber second. This result is prompt-tuned on the same 12
+examples, so it is a diagnostic upper result for this set, not an independent
+generalisation estimate. The production brand prompt now includes the missing
+Benchmade option and identifies Gerber by its shield mark as well as lettering; that
+exact prompt also scores **11/12 top-1 and 12/12 top-3**. The full production option
+list includes unknown/other fallbacks. Reproduce it with:
+
+```bash
+python3 tools/eval_clef_pdf.py --candidate-set production
+```
+
+Raw probabilities: `../clef_pdf_rich.json`, `../clef_pdf_compact.json`,
+`../clef_pdf_evidence.json`, `../clef_pdf_rich_27b.json`, and
+`../clef_pdf_rich_trim.json`, `../clef_pdf_production.json`.
+
+## Full local API evaluation
+
+All 12 PDF images were also sent through the local `/api/match` endpoint after the
+brand-prompt update. Brand was correct on **11/12**. For the five photos with
+Victorinox product labels, the exact labelled article appeared in recommendations
+top 3 on **2/5**; matching canonical product families and catalogue variants raises
+that to **3/5**. The `0.8226.22` Synergy X Alox photo matched canonical catalogue
+article `0.8226.20` at rank 2; the exact colour variant is not selected by the API.
+
+This is a small end-to-end set. Competitor replacement products are not labelled in
+the PDF, so their recommendation quality cannot be measured from these annotations.
+Full per-photo API responses are in `../api_match_both_sets.json`.
+
 ## Reproducing
 
 ```bash
@@ -118,7 +158,7 @@ five classes labelled here, four are in the scrape:
 | SAK / Essentials / EVOKE ALOX | `0.9411.D20` | yes |
 | SAK / Trades&Crafts / Swiss Tool | `3.0323.L` | yes |
 | SAK / Trades&Crafts / Swiss Tool Spirit XBS | `3.0224.3CN` | yes |
-| SAK / Essentials / Synergy X Alox | `0.8226.22` | no (closest: `0.8226.20`) |
+| SAK / Essentials / Synergy X Alox | `0.8226.22` | yes, as a colour variant of canonical article `0.8226.20` |
 
 The three competitor brands (Roxon, Swiza, The Helton) are **not** in the catalogue
 at all — the cross-reference tables the client mentioned are still needed.
