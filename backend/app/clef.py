@@ -77,17 +77,36 @@ WERKZEUG_EN = {
 assert set(WERKZEUG_EN) == set(GRUPPEN), "WERKZEUG_EN muss alle Gruppen abdecken"
 
 # Option -> (Markenname für die API-Antwort, sichtbare Merkmale)
+#
+# Die Kriterien beschreiben, was *im Foto* zu sehen ist (Form des Emblems, Schalenfarbe,
+# Prägung), nicht den Markennamen allein - sonst kann das Modell die Marke nicht
+# unterscheiden. Gemessen auf den 12 Referenzfotos + dem SWIZA D03 (siehe
+# tools/eval_marke.py, Variante "a"): top-1 9/13.
+#
+# Wichtig: Victorinox und SWIZA tragen beide ein Kreuz. Der Unterschied ist die Form:
+# Victorinox = Kreuz in einem Schild mit spitzen Schultern, SWIZA = Kreuz in einem
+# runden Kreis bzw. abgerundetem Quadrat.
 MARKEN = {
-    "victorinox": ("Victorinox", "Victorinox Swiss Army Knife: Swiss cross inside a shield emblem, "
-                                 "often red, black, coloured or ridged silver Alox scales"),
-    "swiza": ("SWIZA", "SWIZA: curved ergonomic handle, Swiss cross in a rounded square, SWIZA lettering, "
-                       "often black or colourful matte scales"),
-    "wenger": ("Wenger", "Wenger: Swiss cross in a rounded square, often red scales, older Swiss knife"),
-    "leatherman": ("Leatherman", "Leatherman: plier-based multitool with stainless steel handles"),
-    "gerber": ("Gerber", "Gerber: multitool or folding knife with Gerber lettering"),
-    "roxon": ("Roxon", "ROXON: black handle, slender parallel frames, ROXON lettering"),
-    "helton": ("The Helton", "The Helton: black textured handle, narrow blade"),
-    "andere": (None, "another or unknown brand, no clear logo"),
+    "victorinox": ("Victorinox", "Victorinox Swiss Army Knife: a white cross inside a shield OUTLINE "
+                                  "that has pointed shoulders and a flat bottom, brand name VICTORINOX "
+                                  "usually printed on the scale or the blade"),
+    "swiza": ("SWIZA", "SWIZA Swiss Army Knife: a white cross inside a plain CIRCLE badge, or a cross in "
+                       "a rounded square, on a smooth black or coloured handle, brand name SWIZA printed "
+                       "in block capitals on the blade or handle"),
+    "wenger": ("Wenger", "Wenger Swiss Army Knife: a white cross in a rounded square, usually on red "
+                          "scales, the name WENGER printed on the blade"),
+    "leatherman": ("Leatherman", "Leatherman multitool: plier-based folding tool with solid stainless "
+                                 "steel handles, no logo emblem"),
+    "gerber": ("Gerber", "Gerber multitool or folding knife: the name GERBER printed on the blade or handle"),
+    "roxon": ("Roxon", "ROXON Swiss Army Knife: black handle with a slender parallel metal frame, the name "
+                        "ROXON printed in white capitals on the handle or blade"),
+    "helton": ("The Helton", "The Helton Swiss Army Knife: plain black textured handle with no logo and no "
+                             "lettering, narrow plain blade"),
+    # "unclear" ist die Abstention-Option: das Modell soll ein Foto, auf dem sich keine
+    # Marke sicher feststellen laesst, hier abgeben und nicht raten.
+    "unclear": (None, "unclear: no logo and no lettering is readable, or the knife does not match any of "
+                      "the brands above"),
+    "andere": (None, "another or unknown brand, no readable logo or lettering"),
 }
 
 
@@ -174,11 +193,14 @@ def wahrscheinlichkeiten(bild_data_url):
     fragen = [{g: _noul(f"Does this knife have {WERKZEUG_EN[g]} visible in the photo?") for g in paket}
               for paket in pakete]
     fragen[0]["messer"] = _noul("Is this a pocket knife or multitool?")
-    fragen[0]["marke"] = {"type": "choice", "instructions": "Which brand is this pocket knife?",
-                          "criteria": {k: v[1] for k, v in MARKEN.items()}}
-    with ThreadPoolExecutor(len(fragen)) as pool:
+    # Die Markenfrage kommt in eine eigene Anfrage: mit den 12 Werkzeugfragen im selben
+    # Paket teilt sich die Wahrscheinlichkeitsmasse, und die Marke wird schlechter erkannt
+    # (gemessen: 9/13 top-1 allein, 8/12 gebündelt).
+    marken_frage = {"marke": {"type": "choice", "instructions": "Which brand is this pocket knife?",
+                              "criteria": {k: v[1] for k, v in MARKEN.items()}}}
+    with ThreadPoolExecutor(len(fragen) + 1) as pool:
         antworten = {}
-        for teil in pool.map(lambda q: entscheide(state, q), fragen):
+        for teil in pool.map(lambda q: entscheide(state, q), [*fragen, marken_frage]):
             antworten.update(teil)
     marke = antworten.get("marke") or {}
     return {
@@ -198,18 +220,28 @@ def auswerten(roh):
         for g, p in sorted(roh["werkzeuge"].items(), key=lambda kv: -kv[1]) if p >= grenzen[g]
     ]
     marken = roh["marke"]
+    # "unclear"/"andere" sind Abstentions-Optionen: gewinnt eine davon, ist die Marke
+    # nicht bestimmbar und wird als None gemeldet.
     beste = max(marken, key=marken.get) if marken else "andere"
+    abstention = beste in ("unclear", "andere")
     werte = sorted(marken.values(), reverse=True) + [0, 0]
+    # Konfidenz: hoechster Wert, aber nur so hoch, wie die Unterscheidung zwischen den
+    # beiden besten Marken traegt. So faellt ein Foto, das keine Marke sicher zeigt
+    # (Kandidat "unclear"), auf eine tiefe Konfidenz und loest eine Rueckfrage aus,
+    # statt eine falsche Marke zu behaupten.
+    if abstention:
+        konfidenz = 0.0
+    else:
+        konfidenz = min(werte[0], max(werte[0] - werte[1], 0.0) + 0.5 * werte[0])
     return {
         "ist_taschenmesser": roh["messer"] >= 0.5,
-        "marke": MARKEN.get(beste, (None,))[0],
+        "marke": None if abstention else MARKEN.get(beste, (None,))[0],
         "marke_wahrscheinlichkeiten": {k: round(v, 3) for k, v in marken.items()},
         "modell": None,
         "artikelnummer_sichtbar": None,
         "geoeffnet": bool(werkzeuge),
         "werkzeuge": werkzeuge,
-        # Konfidenz = Abstand der Top-2-Marken (Simon: Margin trägt mehr als die Rohwahrscheinlichkeit)
-        "konfidenz": round(min(max(werte[0] - werte[1], 0.0) + 0.5 * werte[0], 1.0), 3),
+        "konfidenz": round(konfidenz, 3),
     }
 
 

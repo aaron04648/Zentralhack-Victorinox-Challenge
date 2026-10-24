@@ -21,5 +21,7 @@ services:
       - /app/node_modules
     environment:
       - API_TARGET=http://backend:8000
+      # Erlaubt CORS-Requests von jeder Herkunft (Demo über Tailscale/Funnel).
+      - CORS_ORIGINS=*
     depends_on:
       - backend
