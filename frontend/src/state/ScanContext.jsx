@@ -41,18 +41,17 @@ export function ScanProvider({ children }) {
   }, [])
 
   const starteScan = useCallback(
-    async (datei, { demo, kategorie, verwendung, vorherigerScanId, vorbereitet } = {}) => {
+    async (datei, { demo, kategorie, vorherigerScanId, vorbereitet } = {}) => {
       const id = Date.now().toString(36)
       // vorbereitet: schon verkleinertes Foto aus der Vorschau, damit das Backend den Röntgenblick wiederverwendet
       const { upload, vorschau } = vorbereitet ?? (await bereiteFotoVor(datei))
       const vorheriger = vorherigerScanId ? scans[vorherigerScanId] : null
       const vorherigeMatchId = vorheriger?.ergebnis?.match_id
       kategorie = kategorie ?? vorheriger?.kategorie ?? ''
-      verwendung = verwendung ?? vorheriger?.verwendung ?? ''
 
       setScans((alt) => ({
         ...alt,
-        [id]: { id, zeit: Date.now(), vorschau, kategorie, verwendung, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
+        [id]: { id, zeit: Date.now(), vorschau, kategorie, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
       }))
 
       // Live-Ablauf: Schritte (gleiche id = Update) und erkannte Werkzeuge mit Position
@@ -74,7 +73,7 @@ export function ScanProvider({ children }) {
         })
 
       anfragen.current[id] = api
-        .match(upload, { demo, kategorie, verwendung, vorherigeMatchId, onEreignis: live })
+        .match(upload, { demo, kategorie, vorherigeMatchId, onEreignis: live })
         .then((ergebnis) => {
           aktualisiere(id, { status: 'fertig', ergebnis })
           return ergebnis

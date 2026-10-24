@@ -3,7 +3,6 @@ import copy
 import csv
 import hashlib
 import json
-import math
 import os
 import threading
 import time
@@ -267,9 +266,7 @@ VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografier
 KATEGORIE_MALUS = 0.5          # Score-Faktor für Kandidaten ausserhalb der gewählten Kategorie
 VISUELL_ABSTAND = 2.5
 ZANGE_SICHER = 0.5             # fremdes Multitool mit Zange -> Swiss Tools kommen als Ersatz in Frage
-MIN_NACH_ZWECK = 10            # so viele Produkte bleiben mindestens nach dem Zweck-Filter
 GEWICHT_BILD_TIEBREAK = 0.05   # fremde Marke: Bildähnlichkeit entscheidet nur bei gleicher Ausstattung
-VERWENDUNG_GEWICHT = 0.5       # Stärke des Verwendungszwecks: Faktor exp(0.5 * z) auf Clefs Wahrscheinlichkeit          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
 _matches = {}                  # match_id -> Erkennungskontext (zweites Foto, Werkzeug-Korrektur ohne neue Clef-Anfrage)
 _vorab = OrderedDict()         # sha1(Foto) -> Task mit Erkennung + Orten aus dem Röntgenblick der Vorschau
 MAX_VORAB = 50
@@ -304,10 +301,10 @@ def produkt_merkmale(row):
 
 @app.post("/api/match")
 async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
-                kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
+                kategorie: str | None = Form(None)):
     """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
     inhalt = await bild.read()
-    async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie, verwendung):
+    async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie):
         if ereignis["typ"] == "fehler":
             raise HTTPException(status_code=ereignis["status"], detail=ereignis["detail"])
         if ereignis["typ"] == "ergebnis":
@@ -316,7 +313,7 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
 
 @app.post("/api/match/stream")
 async def match_stream(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
-                       kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
+                       kategorie: str | None = Form(None)):
     """Wie /api/match, aber als Live-Ablauf: eine JSON-Zeile pro Ereignis (application/x-ndjson).
 
     {"typ": "schritt", "schritt": {...}}     Schritt startet ("laeuft") oder ist fertig ("ok"/"warnung")
@@ -327,7 +324,7 @@ async def match_stream(bild: UploadFile = File(...), vorherige_match_id: str | N
     inhalt = await bild.read()
 
     async def zeilen():
-        async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie, verwendung):
+        async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie):
             yield json.dumps(ereignis, ensure_ascii=False) + "\n"
 
     return StreamingResponse(zeilen(), media_type="application/x-ndjson",
@@ -548,7 +545,7 @@ def _schritt(id, label, status, detail=""):
     return {"typ": "schritt", "schritt": {"id": id, "label": label, "status": status, "detail": detail}}
 
 
-async def _match_ablauf(inhalt, content_type, vorherige_match_id, kategorie, verwendung):
+async def _match_ablauf(inhalt, content_type, vorherige_match_id, kategorie):
     """Die ganze Analyse als Folge von Ereignissen (siehe /api/match/stream)."""
     if not inhalt or len(inhalt) > MAX_BILD_BYTES:
         yield {"typ": "fehler", "status": 400, "detail": "Bild fehlt oder ist grösser als 8 MB"}
@@ -561,7 +558,7 @@ async def _match_ablauf(inhalt, content_type, vorherige_match_id, kategorie, ver
 
     async def arbeit():
         try:
-            await _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verwendung, senden)
+            await _analysieren(inhalt, content_type, vorherige_match_id, kategorie, senden)
         except Exception as fehler:  # unerwartet: trotzdem sauber beenden statt hängen
             senden({"typ": "fehler", "status": 500, "detail": f"Analyse fehlgeschlagen: {fehler}"})
 
@@ -577,7 +574,7 @@ async def _match_ablauf(inhalt, content_type, vorherige_match_id, kategorie, ver
             aufgabe.cancel()
 
 
-async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verwendung, senden):
+async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, senden):
     schritte = []
 
     def fertig(id, label, status, detail):
@@ -716,7 +713,7 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
         visuell = visuell or vorher["visuell"]
 
     kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte, "orte": orte,
-               "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False,
+               "kategorie": kategorie, "nutzer_werkzeuge": False,
                **konkurrenz_ergebnis}
     match_id = f"m_{uuid.uuid4().hex[:10]}"
     _matches[match_id] = kontext
@@ -792,7 +789,7 @@ async def werkzeuge_korrigieren(match_id: str, korrektur: WerkzeugKorrektur):
 async def _auswerten(match_id, kontext):
     """Erkennung (gecacht pro match_id) -> Kandidaten, Pfad, Rückfrage, Antwort für das Frontend."""
     erkannt, gewichte, visuell = kontext["erkannt"], kontext["gewichte"], kontext["visuell"]
-    verwendung, kategorie = kontext["verwendung"], kontext["kategorie"]
+    kategorie = kontext["kategorie"]
     schritte = list(kontext["schritte"])
     erkannte_gruppen = set(gewichte)
     rows = load_pocket_knives()
@@ -846,40 +843,14 @@ async def _auswerten(match_id, kontext):
     if nach_ausstattung and gewichte.get("zange", 0.0) >= ZANGE_SICHER:
         auswahl = [r for r in load_empfehlbare() if matching.produkt_gruppen(r)]
 
-    passung = {}  # artikelnummer -> z-Wert: wie gut das Produkt zum Verwendungszweck passt
-    if verwendung:
-        try:
-            passung = await asyncio.to_thread(embeddings.verwendung_passung, verwendung, auswahl)
-            schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "ok",
-                             "detail": f"„{verwendung}“ mit {len(auswahl)} Produktbeschreibungen verglichen (Embedding)"})
-        except Exception as fehler:
-            schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "warnung",
-                             "detail": f"Embedding nicht verfügbar ({fehler})"})
-
-    def zweck_faktor(nummer):
-        return math.exp(VERWENDUNG_GEWICHT * max(min(passung.get(nummer, 0.0), 3.0), -3.0))
-
-    def zweck_grund(k):
-        if passung.get(k["row"]["artikelnummer"], 0.0) >= 1.0:
-            k["gruende"].append(f"Passt zum Einsatz „{verwendung}“")
-
     if nach_ausstattung:
-        # 1. Verwendungszweck filtert: nur Produkte, die überdurchschnittlich zum Zweck passen
-        if passung:
-            passend = [r for r in auswahl if passung[r["artikelnummer"]] >= 0]
-            if len(passend) < MIN_NACH_ZWECK:
-                passend = sorted(auswahl, key=lambda r: -passung[r["artikelnummer"]])[:MIN_NACH_ZWECK]
-            schritte.append({"id": "verwendung", "label": "Nach Einsatzzweck gefiltert", "status": "ok",
-                             "detail": f"{len(passend)} von {len(auswahl)} Produkten passen zu „{verwendung}“"})
-            auswahl = passend
-        # 2. Ausstattung entscheidet, gewichtet mit Clefs Sicherheit je Werkzeug; Bild nur als Tiebreak
+        # Ausstattung entscheidet, gewichtet mit Clefs Sicherheit je Werkzeug; Bild nur als Tiebreak
         kandidaten = matching.rangliste(erkannte_gruppen, auswahl, erkannt, top=len(auswahl), gewichte=gewichte)
         hoechste = max(visuell.values(), default=0.0) or 1.0
         for k in kandidaten:
             nummer = k["row"]["artikelnummer"]
             k["score"] = round(min(k["score"] * kategorie_faktor(k["row"])
                                    + GEWICHT_BILD_TIEBREAK * visuell.get(nummer, 0.0) / hoechste, 1.0), 4)
-            zweck_grund(k)
         kandidaten = sorted(kandidaten, key=matching.sortierschluessel)[:3]
         schritte.append({"id": "suche", "label": "Ausstattung verglichen", "status": "ok" if kandidaten else "warnung",
                          "detail": f"{len(erkannte_gruppen)} Werkzeuge mit {len(auswahl)} Victorinox-Produkten verglichen"})
@@ -889,9 +860,8 @@ async def _auswerten(match_id, kontext):
         # liefern die Begründung
         nach_nummer = {r["artikelnummer"]: r for r in messer}
         kandidaten = []
-        # Kategorie und Verwendungszweck gewichten Clefs Wahrscheinlichkeiten, danach wieder auf
-        # Summe 1 normiert: Passen Bild und Zweck zusammen, steigt die Sicherheit von Platz 1
-        gewichtet = {n: p * kategorie_faktor(nach_nummer[n]) * zweck_faktor(n)
+        # Der Kategorie-Hinweis gewichtet Clefs Wahrscheinlichkeiten, danach wieder auf Summe 1 normiert
+        gewichtet = {n: p * kategorie_faktor(nach_nummer[n])
                      for n, p in visuell.items() if n in nach_nummer}
         summe = sum(gewichtet.values()) or 1.0
         gewichtet = {n: p / summe * sum(visuell.values()) for n, p in gewichtet.items()}
@@ -901,7 +871,6 @@ async def _auswerten(match_id, kontext):
                 "gemeinsam": set(), "fehlend": set(), "zusaetzlich": set(), "gruende": []}
             k["score"] = round(p, 4)
             k["gruende"].insert(0, f"Bildähnlichkeit {visuell[nummer]:.0%}")
-            zweck_grund(k)
             kandidaten.append(k)
         schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "ok",
                          "detail": f"Clef hat das Foto mit {len(messer)} Katalogbildern verglichen"})
@@ -911,8 +880,7 @@ async def _auswerten(match_id, kontext):
     else:
         kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=len(rows), gewichte=gewichte)
         for k in kandidaten:
-            k["score"] = round(min(k["score"] * kategorie_faktor(k["row"]) * zweck_faktor(k["row"]["artikelnummer"]), 1.0), 4)
-            zweck_grund(k)
+            k["score"] = round(min(k["score"] * kategorie_faktor(k["row"]), 1.0), 4)
         kandidaten = sorted(kandidaten, key=matching.sortierschluessel)[:3]
         schritte.append({"id": "suche", "label": "Katalog durchsucht",
                          "status": "ok" if kandidaten else "warnung",

@@ -72,7 +72,6 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
 | `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte der CSV-Spalte `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
-| `verwendung` | string | optional: Freitext „Wofür brauchst du das Messer?“ (max. 300 Zeichen). Per Embedding mit den Produkten abgeglichen: gewichtet Clefs Bildsuche, filtert bei fremden Marken die Kandidaten. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:

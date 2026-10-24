@@ -193,13 +193,12 @@ Full request/response contract: [docs/api.md](docs/api.md).
    only read from descriptions, so they are merged instead, and a model is only named when it is unique).
    This takes ~4–6 s instead of ~11 s (SWIZA D03 → "D03 AM" via image + tools; Leatherman → FREE P4;
    Gerber multitool → no unique model, recognised tools count). Without a model: recognised tools, weighted by Clef's probability, against the catalogue; plier
-   multitools (Leatherman, Gerber) also get the Swiss Tools as candidates; the use-case text
-   (`verwendung`, embedding in `embedings.py`) first filters to products that fit above average.
-   Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Spartan (with "picnic and wine"
-   → Picknicker), Gerber folder → Sentinel, Roxon → Cyber Tool M.
+   multitools (Leatherman, Gerber) also get the Swiss Tools as candidates.
+   Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Picknicker, Gerber folder → Sentinel,
+   Roxon → Cyber Tool M.
    In the app the user can correct the recognised tools (any brand; double-click an unsure,
    dashed tool to confirm it, × to remove, "+ Werkzeug" to add); `POST /api/match/{id}/werkzeuge`
-   re-ranks without a new Clef call. The category dropdown was removed; the use-case text replaces it.
+   re-ranks without a new Clef call. The category dropdown was removed.
    **Live features:** the app opens a live camera in the browser (`getUserMedia`, needs https or localhost;
    otherwise the phone's photo app opens) with an auto-shutter that fires once the picture is still and sharp
    (measured in the browser) **and** Clef confirms that a knife is in the frame (`/api/kamera/messer`, ~0.5 s;
@@ -210,7 +209,7 @@ Full request/response contract: [docs/api.md](docs/api.md).
    `/api/match/stream` streams every analysis step, including the
    tournament rounds of the visual search. "Röntgenblick": Clef locates each recognised tool on the photo via
    a labelled 4×4 grid (`clef.lokalisieren`, ~1 s, runs while the visual search continues); the markers
-   appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, while the use case is typed in),
+   appear on the preview right after the shot (`POST /api/roentgen`, ~3 s, before "Analysieren" is pressed),
    during the analysis and on the result card, linked to the tool chips. The analysis reuses the preview
    result (cached by image hash), so Clef is not asked twice.
 3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):

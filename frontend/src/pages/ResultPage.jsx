@@ -4,7 +4,6 @@ import { ArrowRight, FlaskConical, RotateCcw } from 'lucide-react'
 import ErkennungsKarte from '../components/ErkennungsKarte.jsx'
 import EmpfehlungsHero from '../components/EmpfehlungsHero.jsx'
 import KandidatenListe from '../components/KandidatenListe.jsx'
-import RueckfrageBanner from '../components/RueckfrageBanner.jsx'
 import FeedbackLeiste from '../components/FeedbackLeiste.jsx'
 import EmpfehlungsLotse from '../components/EmpfehlungsLotse.jsx'
 import { Abschnitt, Badge, Button } from '../components/ui.jsx'
@@ -25,10 +24,9 @@ export default function ResultPage() {
 }
 
 function Ergebnis({ scanId }) {
-  const { scans, starteScan, sendeFeedback, korrigiereWerkzeuge } = useScans()
+  const { scans, sendeFeedback, korrigiereWerkzeuge } = useScans()
   const navigate = useNavigate()
   const [auswahl, setAuswahl] = useState(0)
-  const [nachfotoLaedt, setNachfotoLaedt] = useState(false)
   const scan = scans[scanId]
 
   if (!scan) return <Navigate to="/" replace />
@@ -41,12 +39,6 @@ function Ergebnis({ scanId }) {
     const index = empfehlungen.findIndex((e) => e.produkt.artikelnummer === kandidat.produkt.artikelnummer)
     if (index >= 0) setAuswahl(index)
   }, [empfehlungen])
-
-  async function nachfoto(datei) {
-    setNachfotoLaedt(true)
-    const id = await starteScan(datei, { vorherigerScanId: scanId })
-    navigate(`/analyse/${id}`)
-  }
 
   return (
     <div>
@@ -67,23 +59,19 @@ function Ergebnis({ scanId }) {
         }}
       />
 
-      {(scan.vorherigerScanId || scan.kategorie || scan.verwendung) && (
+      {(scan.vorherigerScanId || scan.kategorie) && (
         <p className="mt-2 px-1 text-xs text-zinc-500">
-          {[scan.verwendung && `Einsatz: „${scan.verwendung}“`, scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
+          {[scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
             .filter(Boolean)
             .join(' · ')}
         </p>
       )}
 
       <div className="mt-4">
-        {unsicher ? (
-          <RueckfrageBanner rueckfrage={rueckfrage} onDatei={nachfoto} deaktiviert={nachfotoLaedt} />
-        ) : (
-          <p className="flex items-center gap-2 px-1 text-sm text-zinc-600">
-            <ArrowRight className="size-4 shrink-0 text-brand" />
-            {PFAD_TEXT[pfad] ?? 'Empfehlung'}
-          </p>
-        )}
+        <p className="flex items-center gap-2 px-1 text-sm text-zinc-600">
+          <ArrowRight className="size-4 shrink-0 text-brand" />
+          {PFAD_TEXT[pfad] ?? 'Empfehlung'}
+        </p>
       </div>
 
       {empfehlungen.length === 0 ? (

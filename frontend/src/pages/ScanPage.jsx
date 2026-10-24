@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, Loader2, RotateCcw, ScanEye, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
 import RoentgenBild from '../components/RoentgenBild.jsx'
-import VerwendungEingabe from '../components/VerwendungEingabe.jsx'
 import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import * as api from '../api/client.js'
@@ -22,15 +21,14 @@ export default function ScanPage() {
   const navigate = useNavigate()
   const [laedt, setLaedt] = useState(false)
   const [fehler, setFehler] = useState(null)
-  // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionaler Verwendungszweck, dann "Analysieren"
+  // Gewähltes, noch nicht analysiertes Foto: Vorschau mit Röntgenblick, dann "Analysieren"
   const [entwurf, setEntwurf] = useState(null)
-  const [verwendung, setVerwendung] = useState('')
   const [hervorgehoben, setHervorgehoben] = useState(null)
 
   const entwurfUrl = entwurf?.url
   useEffect(() => () => entwurfUrl && URL.revokeObjectURL(entwurfUrl), [entwurfUrl])
 
-  // Röntgenblick startet sofort nach der Aufnahme, noch während der Einsatzzweck eingetippt wird.
+  // Röntgenblick startet sofort nach der Aufnahme, noch bevor "Analysieren" gedrückt wird.
   // "Analysieren" schickt danach dieselben Bytes, damit das Backend das Ergebnis übernimmt.
   function waehle(datei, demo) {
     setFehler(null)
@@ -50,7 +48,7 @@ export default function ScanPage() {
     setFehler(null)
     try {
       const vorbereitet = await entwurf.vorbereitung
-      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, verwendung: verwendung.trim(), vorbereitet })
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, vorbereitet })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -88,7 +86,6 @@ export default function ScanPage() {
               <RoentgenStatus entwurf={entwurf} />
             </div>
             <div className="space-y-4 p-4">
-              <VerwendungEingabe wert={verwendung} onAendern={setVerwendung} deaktiviert={laedt} />
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <Button icon={ScanLine} onClick={scanne} disabled={laedt} className="py-3 text-base">
                   Analysieren
