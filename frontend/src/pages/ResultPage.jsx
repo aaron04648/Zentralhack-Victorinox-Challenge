@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, FlaskConical, RotateCcw } from 'lucide-react'
 import ErkennungsKarte from '../components/ErkennungsKarte.jsx'
@@ -6,6 +6,7 @@ import EmpfehlungsHero from '../components/EmpfehlungsHero.jsx'
 import KandidatenListe from '../components/KandidatenListe.jsx'
 import RueckfrageBanner from '../components/RueckfrageBanner.jsx'
 import FeedbackLeiste from '../components/FeedbackLeiste.jsx'
+import EmpfehlungsLotse from '../components/EmpfehlungsLotse.jsx'
 import { Abschnitt, Badge, Button } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { KONFIDENZ_SCHWELLE } from '../lib/format.js'
@@ -36,6 +37,10 @@ function Ergebnis({ scanId }) {
   const { erkannt, empfehlungen, rueckfrage, pfad, modus } = scan.ergebnis
   const unsicher = Boolean(rueckfrage) || erkannt.konfidenz < KONFIDENZ_SCHWELLE
   const empfehlung = empfehlungen[auswahl]
+  const waehleEmpfehlung = useCallback((kandidat) => {
+    const index = empfehlungen.findIndex((e) => e.produkt.artikelnummer === kandidat.produkt.artikelnummer)
+    if (index >= 0) setAuswahl(index)
+  }, [empfehlungen])
 
   async function nachfoto(datei) {
     setNachfotoLaedt(true)
@@ -94,6 +99,10 @@ function Ergebnis({ scanId }) {
             <Abschnitt titel="Mögliche Treffer">
               <KandidatenListe empfehlungen={empfehlungen} auswahl={auswahl} onWaehle={setAuswahl} />
             </Abschnitt>
+          )}
+
+          {empfehlungen.length > 1 && (
+            <EmpfehlungsLotse empfehlungen={empfehlungen} erkannt={erkannt} onEmpfehlung={waehleEmpfehlung} />
           )}
 
           <div className="mt-6">
