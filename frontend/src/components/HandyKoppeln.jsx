@@ -31,7 +31,7 @@ function qrSvg(text) {
  * - App unter localhost: Das Backend öffnet für diese Kopplung einen https-Tunnel (cloudflared) und
  *   schliesst ihn wieder, sobald das Foto da ist oder der Dialog zu ist. Geht auch in WLANs, in denen
  *   sich die Geräte nicht sehen. Schlägt das fehl: WLAN-Adresse (HANDY_BASIS_URL oder von Hand).
- * - Sonst (z. B. über Tailscale Funnel geöffnet): die eigene Adresse.
+ * - Sonst (z. B. über einen Tunnel geöffnet): die eigene Adresse.
  */
 export default function HandyKoppeln({ onFoto, onSchliessen }) {
   const [sitzung, setSitzung] = useState(null)
