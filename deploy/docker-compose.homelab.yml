@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8000"
+    # .env im Repo-Root wird gelesen (OPENROUTER_API_KEY fuer Clef, TYPESAFE_API_KEY fuer Jev).
+    env_file:
+      - ../.env
+      - ../deploy/homelab.env
+    environment:
+      - CORS_ORIGINS=*
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:80"
+    environment:
+      - API_TARGET=http://backend:8000
+    depends_on:
+      - backend
