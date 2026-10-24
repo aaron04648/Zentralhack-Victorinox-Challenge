@@ -13,7 +13,7 @@ import { bereiteFotoVor, ladeDemoDatei } from '../lib/image.js'
 // `demo` wählt im Mock das passende Szenario; das echte Backend bekommt nur das Bild.
 const BEISPIELE = [
   { demo: 'konkurrenz', bild: '/demo/swiza-d03.jpg', titel: 'SWIZA D03', text: 'Konkurrenzprodukt → Victorinox-Ersatz' },
-  { demo: 'victorinox', bild: '/demo/huntsman-lite-swiss-post.webp', titel: 'Huntsman Lite Swiss Post', text: 'Ausgelaufen → Nachfolger' },
+  { demo: 'victorinox', bild: '/demo/climber-wood-winter-magic.webp', titel: 'Climber Wood Winter Magic', text: 'Ausgelaufen → Nachfolger' },
   { demo: 'unsicher', bild: '/demo/climber-unscharf.webp', titel: 'Unscharfes Foto', text: 'Unsicher → Rückfrage' },
 ]
 
