@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/Header.jsx'
 import ScanPage from './pages/ScanPage.jsx'
@@ -8,12 +9,18 @@ import PresentationPage from './pages/PresentationPage.jsx'
 import HandyPage from './pages/HandyPage.jsx'
 
 export default function App() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const isPresentation = pathname === '/praesentation'
+
+  // Neue Seite beginnt oben; sonst bleibt die Scrollposition der vorherigen Seite stehen.
+  // Mit #Anker (z. B. /praesentation#beweis) scrollt die Seite selbst zum Ziel.
+  useLayoutEffect(() => {
+    if (!hash) window.scrollTo(0, 0)
+  }, [pathname])
   return (
     <div className="min-h-dvh">
-      <Header />
-      <main className={`mx-auto w-full ${isPresentation ? 'max-w-none px-0 pt-0' : 'max-w-3xl px-4 pt-4'} pb-32`}>
+      {!isPresentation && <Header />}
+      <main className={`mx-auto w-full ${isPresentation ? 'max-w-none' : 'max-w-3xl px-4 pt-4 pb-32'}`}>
         <Routes>
           <Route path="/praesentation" element={<PresentationPage />} />
           <Route path="/" element={<ScanPage />} />
