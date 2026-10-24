@@ -1,54 +1,40 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
-
-# 1. FastAPI-Instanz erstellen
-app = FastAPI(title="Mein erstes FastAPI-Projekt")
-
-# Beispiel-Datenbank im Speicher (In-Memory)
-fake_db = [
-    {"id": 1, "titel": "Einkaufen", "erledigt": False},
-    {"id": 2, "titel": "Python lernen", "erledigt": True}
-]
-
-# 2. Pydantic-Modell für die POST-Datenvalidierung definieren
-class TodoItem(BaseModel):
-    titel: str
-    erledigt: bool = False
+from typing import Dict
+import numpy as np
+from embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
 
 
-# --- ENDPOINTS ---
+app = FastAPI(title="Victorinox-Projekt")
 
-# GET: Startseite / Willkommen
-@app.get("/")
-def read_root():
-    return {"status": "aktiv", "nachricht": "Willkommen bei meiner FastAPI!"}
+category_emb = generate_category_embeddings()
 
-# GET: Alle Einträge abrufen
-@app.get("/items")
-def get_all_items():
-    return fake_db
 
-# GET: Einen spezifischen Eintrag via ID abrufen (Pfad-Parameter)
-@app.get("/items/{item_id}")
-def get_item(item_id: int):
-    # Sucht das Item mit der passenden ID
-    for item in fake_db:
-        if item["id"] == item_id:
-            return item
-    return {"fehler": "Eintrag nicht gefunden"}, 404
+class CategoryScores(BaseModel):
+    query: str
+    scores: Dict[str, float]
 
-# POST: Einen neuen Eintrag hinzufügen
-@app.post("/items")
-def create_item(item: TodoItem):
-    # Neue ID generieren
-    neue_id = max([i["id"] for i in fake_db]) + 1 if fake_db else 1
+
+@app.get("/score_categories", response_model=CategoryScores)
+def get_scores(q: str, category_embeddings=category_emb) -> CategoryScores:
+    # Falls die Anfrage leer ist, leeres Dict zurückgeben
+    if not q.strip():
+        return CategoryScores(query=q, scores={cat: 0.0 for cat in CATEGORIES})
+
+    # Suchtext einbetten
+    query_embedding = list(setup_embedding_model().embed([q]))[0]
     
-    # Daten aus dem Pydantic-Modell in ein Dictionary umwandeln
-    neuer_eintrag = {"id": neue_id, "titel": item.titel, "erledigt": item.erledigt}
+    # Dictionary für die Antwort aufbauen
+    scores_dict = {}
+    for category, cat_emb in zip(CATEGORIES, category_embeddings):
+        score = cosine_similarity(query_embedding, cat_emb)
+        scores_dict[category] = round(score, 4)
+        
+    # Das Dictionary nach den höchsten Scores sortieren möchten
+    sorted_scores_dict = dict(sorted(scores_dict.items(), key=lambda item: item[1], reverse=True))
     
-    # In der "Datenbank" speichern
-    fake_db.append(neuer_eintrag)
-    
-    return {"nachricht": "Erfolgreich erstellt", "daten": neuer_eintrag}
+    # Rückgabe validiert gegen Ihr Pydantic-Modell
+    return CategoryScores(query=q, scores=sorted_scores_dict)
+
+
 
