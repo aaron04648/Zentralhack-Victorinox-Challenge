@@ -54,7 +54,8 @@ export function ScanProvider({ children }) {
         [id]: { id, zeit: Date.now(), vorschau, kategorie, status: 'laeuft', vorherigerScanId: vorherigerScanId ?? null },
       }))
 
-      // Live-Ablauf: Schritte (gleiche id = Update) und erkannte Werkzeuge mit Position
+      // Live-Ablauf: Schritte (gleiche id = Update), erkannte Werkzeuge mit Position und
+      // die Ausschnitte des zweiten Blicks mit Urteil
       const live = (ereignis) =>
         setScans((alt) => {
           const bisher = alt[id]?.live ?? { schritte: [], werkzeuge: null }
@@ -68,7 +69,9 @@ export function ScanProvider({ children }) {
                 }
               : ereignis.typ === 'werkzeuge'
                 ? { ...bisher, werkzeuge: ereignis.werkzeuge }
-                : bisher
+                : ereignis.typ === 'pruefung'
+                  ? { ...bisher, pruefung: pruefungAktualisieren(bisher.pruefung, ereignis.werkzeuge) }
+                  : bisher
           return { ...alt, [id]: { ...alt[id], live: neu } }
         })
 
@@ -135,4 +138,11 @@ export function ScanProvider({ children }) {
 
 export function useScans() {
   return useContext(ScanContext)
+}
+
+// Zweiter Blick: erst kommen die Ausschnitte, dann die Urteile (ohne Bild) für dieselben Gruppen
+function pruefungAktualisieren(bisher = [], werkzeuge) {
+  if (!bisher.length) return werkzeuge
+  const neu = Object.fromEntries(werkzeuge.map((w) => [w.gruppe, w]))
+  return bisher.map((w) => ({ ...w, ...neu[w.gruppe] }))
 }

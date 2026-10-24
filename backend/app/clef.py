@@ -125,8 +125,17 @@ def schwellen():
     return {g: float(gelernt.get(g, standard)) for g in GRUPPEN}, bool(gelernt)
 
 
-def bild_vorbereiten(bild_url):
+def bild_vorbereiten(bild_url, max_seite=MAX_SEITE_PX):
     """http(s)- oder data:-URL -> verkleinertes JPEG als data:-URL (Clef nimmt keine URLs)."""
+    img = _bild_laden(bild_url)
+    img.thumbnail((max_seite, max_seite))
+    puffer = io.BytesIO()
+    img.save(puffer, "JPEG", quality=85)
+    return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+
+
+def _bild_laden(bild_url):
+    """http(s)- oder data:-URL -> PIL-Bild in RGB (Transparenz auf Weiss)."""
     from PIL import Image
 
     if bild_url.startswith("data:"):
@@ -141,11 +150,7 @@ def bild_vorbereiten(bild_url):
         hintergrund = Image.new("RGB", img.size, (255, 255, 255))
         hintergrund.paste(img, mask=img.split()[-1])  # transparente Packshots auf Weiss
         img = hintergrund
-    img = img.convert("RGB")
-    img.thumbnail((MAX_SEITE_PX, MAX_SEITE_PX))
-    puffer = io.BytesIO()
-    img.save(puffer, "JPEG", quality=85)
-    return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+    return img.convert("RGB")
 
 
 def entscheide(state, questions):
@@ -417,21 +422,22 @@ def modell_waehlen(bild_data_url, kandidaten):
 # Wahrscheinlichkeiten gewichtete Mittelpunkt der Zellen.
 ORT_RASTER = 4              # 4x4 Zellen, Spalten A-D, Zeilen 1-4
 ORT_MAX_WERKZEUGE = 12
+SPALTEN = "ABCDEFGH"
 
 
-def _ort_raster(bild_data_url):
+def _ort_raster(bild_data_url, n=ORT_RASTER):
     from PIL import Image, ImageDraw, ImageFont
 
     img = Image.open(io.BytesIO(base64.b64decode(bild_data_url.split(",", 1)[1]))).convert("RGB")
     zeichnen = ImageDraw.Draw(img, "RGBA")
     b, h = img.size
-    schrift = ImageFont.load_default(size=max(min(b, h) // 18, 12))
-    for i in range(1, ORT_RASTER):
-        zeichnen.line([(b * i / ORT_RASTER, 0), (b * i / ORT_RASTER, h)], fill=(0, 90, 255, 170), width=2)
-        zeichnen.line([(0, h * i / ORT_RASTER), (b, h * i / ORT_RASTER)], fill=(0, 90, 255, 170), width=2)
-    for s in range(ORT_RASTER):
-        for z in range(ORT_RASTER):
-            zeichnen.text((b * s / ORT_RASTER + 4, h * z / ORT_RASTER + 2), f"{'ABCD'[s]}{z + 1}",
+    schrift = ImageFont.load_default(size=max(min(b, h) // (4.5 * n), 12))
+    for i in range(1, n):
+        zeichnen.line([(b * i / n, 0), (b * i / n, h)], fill=(0, 90, 255, 170), width=2)
+        zeichnen.line([(0, h * i / n), (b, h * i / n)], fill=(0, 90, 255, 170), width=2)
+    for s in range(n):
+        for z in range(n):
+            zeichnen.text((b * s / n + 4, h * z / n + 2), f"{SPALTEN[s]}{z + 1}",
                           fill=(0, 90, 255, 230), font=schrift)
     puffer = io.BytesIO()
     img.save(puffer, "JPEG", quality=85)
@@ -471,3 +477,204 @@ def lokalisieren(bild_data_url, gruppen):
                    "y": round(sum(zellen[z][1] * p.get(z, 0) for z in nachbarn) / summe, 3),
                    "sicherheit": round(p[beste], 2)}
     return orte
+
+
+# --- Zweiter Blick: jedes verortete Werkzeug im vergrösserten Ausschnitt nachprüfen ----------
+# Die Erkennung sieht das ganze Messer auf 768 px; kleine Werkzeuge (Kapselheber, Ahle, Pinzette)
+# sind dort nur wenige Pixel gross, und Clef rät. Hier wird um die Röntgen-Position jedes erkannten
+# Werkzeugs ein Ausschnitt aus dem Originalfoto geschnitten, vergrössert und gezielt gefragt, ob
+# genau dieses Werkzeug darauf zu sehen ist. 4 Ausschnitte pro 2x2-Raster, bis zu 3 Raster +
+# das ganze Foto = 4 Bilder, also eine Clef-Anfrage pro 12 Werkzeuge.
+PRUEF_RASTER = 2               # 2x2 Ausschnitte à 512 px pro Rasterbild
+PRUEF_AUSSCHNITT = 0.45        # Kantenlänge des Ausschnitts relativ zur längeren Bildseite
+PRUEF_QUELLE_PX = 2048         # Ausschnitte aus dem Original (bis 2048 px), nicht aus dem 768-px-Bild
+# Je Gruppe gelernt (training/zweiter_blick.py --kalibrieren): ab welcher Wahrscheinlichkeit im
+# Ausschnitt das Werkzeug bleibt. Gruppen ohne Eintrag kippt der zweite Blick nie (z. B.
+# Kombiwerkzeuge, die er im Training öfter zu Unrecht verneint hat, als er Fehlalarme fand).
+PRUEF_GRENZEN = Path(__file__).resolve().parent.parent / "data" / "training" / "zweiter_blick_grenzen.json"
+# False: jedes verortete Werkzeug wird angeschaut (auch wenn nur die gelernten Gruppen streichen
+# dürfen). True: nur die gelernten Gruppen, gleiches Ergebnis, etwa halb so lange (gemessen 2.3 s statt 4.5 s).
+PRUEF_NUR_GELERNTE = False
+
+
+@lru_cache(maxsize=1)
+def pruef_grenzen():
+    if not PRUEF_GRENZEN.exists():
+        return {}
+    return json.loads(PRUEF_GRENZEN.read_text(encoding="utf-8"))["grenzen"]
+
+
+def gestrichen(pruefung):
+    """Werkzeuge, die der zweite Blick verwirft (nur Gruppen mit gelernter Grenze)."""
+    grenzen = pruef_grenzen()
+    return [g for g, v in pruefung.items() if g in grenzen and v < grenzen[g]]
+
+
+def _ausschnitt(img, x, y, rahmen=None):
+    """Quadrat um (x, y); Kantenlänge relativ zum Messer (rahmen) bzw. zum ganzen Foto."""
+    b, h = img.size
+    x0, y0, x1, y1 = rahmen or (0, 0, 1, 1)
+    k = min(round(max((x1 - x0) * b, (y1 - y0) * h) * PRUEF_AUSSCHNITT), b, h)
+    links = min(max(round(x * b - k / 2), 0), b - k)
+    oben = min(max(round(y * h - k / 2), 0), h - k)
+    return img.crop((links, oben, links + k, oben + k))
+
+
+def _pruef_raster(ausschnitte, buchstabe):
+    from PIL import Image, ImageDraw, ImageFont
+
+    t = 1024 // PRUEF_RASTER
+    img = Image.new("RGB", (t * PRUEF_RASTER, t * PRUEF_RASTER), "white")
+    zeichnen = ImageDraw.Draw(img)
+    schrift = ImageFont.load_default(size=t // 9)
+    for i, teil in enumerate(ausschnitte):
+        x, y = (i % PRUEF_RASTER) * t, (i // PRUEF_RASTER) * t
+        img.paste(teil.resize((t - 8, t - 8), Image.LANCZOS), (x + 4, y + 4))
+        zeichnen.rectangle([x, y, x + t - 1, y + t - 1], outline="black", width=3)
+        zeichnen.rectangle([x + 4, y + 4, x + 4 + t // 4, y + 4 + t // 8], fill="white")
+        zeichnen.text((x + 10, y + 6), f"{buchstabe}{i + 1}", fill="blue", font=schrift)
+    puffer = io.BytesIO()
+    img.save(puffer, "JPEG", quality=88)
+    return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+
+
+def _pruef_gruppen(orte):
+    gruppen = [g for g in orte if g in WERKZEUG_EN and (not PRUEF_NUR_GELERNTE or g in pruef_grenzen())]
+    return gruppen[:PRUEF_RASTER ** 2 * 3]
+
+
+def _pruef_quelle(bild_url):
+    img = _bild_laden(bild_url)
+    img.thumbnail((PRUEF_QUELLE_PX, PRUEF_QUELLE_PX))
+    return img
+
+
+def ausschnitt_bilder(bild_url, orte, rahmen=None, px=224):
+    """Dieselben Ausschnitte wie werkzeuge_pruefen, klein als data:-URLs (Live-Ansicht im Frontend)."""
+    gruppen = _pruef_gruppen(orte)
+    if not gruppen:
+        return {}
+    img = _pruef_quelle(bild_url)
+    bilder = {}
+    for g in gruppen:
+        teil = _ausschnitt(img, orte[g]["x"], orte[g]["y"], rahmen)
+        teil.thumbnail((px, px))
+        puffer = io.BytesIO()
+        teil.save(puffer, "JPEG", quality=80)
+        bilder[g] = f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+    return bilder
+
+
+def pruef_urteil(gruppe, v, gestrichen):
+    """Urteil des zweiten Blicks fürs Frontend: verworfen | bestaetigt | unsicher (bleibt trotzdem)."""
+    if gruppe in gestrichen:
+        return "verworfen"
+    grenze = pruef_grenzen().get(gruppe)
+    return "bestaetigt" if v >= 0.5 or (grenze is not None and v >= grenze) else "unsicher"
+
+
+def werkzeuge_pruefen(bild_url, orte, rahmen=None):
+    """Zweiter Blick -> {gruppe: Wahrscheinlichkeit, dass das Werkzeug im Ausschnitt zu sehen ist}.
+
+    bild_url: Originalfoto (http(s)- oder data:-URL, möglichst nicht verkleinert),
+    orte: Röntgen-Positionen aus lokalisieren(). Werkzeuge ohne Position werden nicht geprüft.
+    rahmen: Messerrahmen aus messer_rahmen(); die Ausschnitte werden dann relativ zum Messer bemessen.
+    """
+    gruppen = _pruef_gruppen(orte)
+    if not gruppen:
+        return {}
+    img = _pruef_quelle(bild_url)
+    pro_raster = PRUEF_RASTER ** 2
+    kachel = {}
+    state = [{"type": "text", "text": "Photo of a pocket knife or multitool:"},
+             {"type": "image_url", "image_url": {"url": zuschneiden(bild_url, rahmen) if rahmen
+                                                 else bild_vorbereiten(bild_url)}},
+             {"type": "text", "text": "Zoomed crops of the same photo, each labelled in blue in its top-left corner:"}]
+    for r in range(0, len(gruppen), pro_raster):
+        teil = gruppen[r:r + pro_raster]
+        buchstabe = "ABC"[r // pro_raster]
+        state.append({"type": "image_url", "image_url": {"url": _pruef_raster(
+            [_ausschnitt(img, orte[g]["x"], orte[g]["y"], rahmen) for g in teil], buchstabe)}})
+        kachel |= {g: f"{buchstabe}{i + 1}" for i, g in enumerate(teil)}
+    fragen = {g: {"type": "noul",
+                  "instructions": f"Look only at crop {kachel[g]}. Does it show {WERKZEUG_EN[g]}? "
+                                  "It may be part of a combination tool (e.g. a bottle opener with a "
+                                  "screwdriver tip and wire stripper) or stick out of the handle "
+                                  "(toothpick, tweezers, pen). Answer no if this tool is clearly not there.",
+                  "criteria": {"true": f"yes, crop {kachel[g]} shows it", "false": "no"}} for g in gruppen}
+    pakete = [dict(list(fragen.items())[i:i + FRAGEN_PRO_ANFRAGE]) for i in range(0, len(fragen), FRAGEN_PRO_ANFRAGE)]
+    with ThreadPoolExecutor(len(pakete)) as pool:
+        antworten = {}
+        for teil in pool.map(lambda q: entscheide(state, q), pakete):
+            antworten.update(teil)
+    return {g: round(float((antworten.get(g) or {}).get("noul") or 0), 3) for g in gruppen}
+
+
+# --- Messer-Zoom: erst das Messer finden, dann nur noch das Messer anschauen ----------------
+# Auf Handyfotos ist das Messer oft klein (Hand, Gesicht, Hintergrund). Clef sieht dann auf 768 px
+# nur wenige Pixel pro Werkzeug und meldet zu viele. Darum wird zuerst über ein beschriftetes
+# 6x6-Raster nach den vier Kanten des Messers gefragt (je eine Auswahlfrage über Spalten bzw.
+# Zeilen; Ja/Nein pro Zelle war gemessen zu verrauscht), und Erkennung, Röntgenblick und zweiter
+# Blick laufen auf dem Ausschnitt aus dem Original.
+MESSER_RASTER = 6
+MESSER_RAND = 0.35             # Rand um die Kanten, in Zellen
+MESSER_MAX_FLAECHE = 0.6       # füllt das Messer schon mehr als 60 % des Fotos, lohnt kein Zoom
+
+
+def messer_rahmen(bild_data_url):
+    """-> (x0, y0, x1, y1) des Messers relativ zum Foto (0..1), oder None (füllt das Bild / unklar)."""
+    n = MESSER_RASTER
+    state = [{"type": "text", "text": f"Photo with a labelled blue grid (columns {SPALTEN[0]}-{SPALTEN[n - 1]} "
+                                      f"left to right, rows 1-{n} top to bottom):"},
+             {"type": "image_url", "image_url": {"url": _ort_raster(bild_data_url, n)}}]
+    spalten = {SPALTEN[i]: f"column {SPALTEN[i]}" for i in range(n)}
+    zeilen = {str(i + 1): f"row {i + 1}" for i in range(n)}
+    teil = "the pocket knife or multitool, including all opened blades and tools (not the hand holding it)"
+    fragen = {
+        "links": {"type": "choice", "instructions": f"Which grid column contains the LEFT-most part of {teil}?",
+                  "criteria": spalten},
+        "rechts": {"type": "choice", "instructions": f"Which grid column contains the RIGHT-most part of {teil}?",
+                   "criteria": spalten},
+        "oben": {"type": "choice", "instructions": f"Which grid row contains the TOP-most part of {teil}?",
+                 "criteria": zeilen},
+        "unten": {"type": "choice", "instructions": f"Which grid row contains the BOTTOM-most part of {teil}?",
+                  "criteria": zeilen},
+    }
+    antworten = entscheide(state, fragen)
+
+    def index(frage, optionen):
+        p = (antworten.get(frage) or {}).get("probabilities") or {}
+        return list(optionen).index(max(optionen, key=lambda o: p.get(o, 0))) if p else None
+
+    links, rechts = index("links", spalten), index("rechts", spalten)
+    oben, unten = index("oben", zeilen), index("unten", zeilen)
+    if None in (links, rechts, oben, unten):
+        return None
+    links, rechts = min(links, rechts), max(links, rechts)
+    oben, unten = min(oben, unten), max(oben, unten)
+    x0, x1 = max(links - MESSER_RAND, 0) / n, min(rechts + 1 + MESSER_RAND, n) / n
+    y0, y1 = max(oben - MESSER_RAND, 0) / n, min(unten + 1 + MESSER_RAND, n) / n
+    if (x1 - x0) * (y1 - y0) > MESSER_MAX_FLAECHE:
+        return None
+    return round(x0, 3), round(y0, 3), round(x1, 3), round(y1, 3)
+
+
+def zuschneiden(bild_url, rahmen, max_seite=MAX_SEITE_PX):
+    """Messerausschnitt aus dem Original (volle Auflösung) -> verkleinertes JPEG als data:-URL."""
+    img = _bild_laden(bild_url)
+    b, h = img.size
+    x0, y0, x1, y1 = rahmen
+    img = img.crop((round(x0 * b), round(y0 * h), round(x1 * b), round(y1 * h)))
+    img.thumbnail((max_seite, max_seite))
+    puffer = io.BytesIO()
+    img.save(puffer, "JPEG", quality=85)
+    return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
+
+
+def orte_umrechnen(orte, rahmen):
+    """Orte relativ zum Messerausschnitt -> relativ zum ganzen Foto."""
+    if not rahmen:
+        return orte
+    x0, y0, x1, y1 = rahmen
+    return {g: {**o, "x": round(x0 + o["x"] * (x1 - x0), 3), "y": round(y0 + o["y"] * (y1 - y0), 3)}
+            for g, o in orte.items()}

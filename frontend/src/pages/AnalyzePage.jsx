@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import AgentSchritte, { STANDARD_SCHRITTE } from '../components/AgentSchritte.jsx'
 import RoentgenBild from '../components/RoentgenBild.jsx'
+import WerkzeugPruefung from '../components/WerkzeugPruefung.jsx'
 import { Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 
@@ -76,6 +77,8 @@ export default function AnalyzePage() {
           <span key={pos} className={`absolute size-7 border-brand ${pos}`} />
         ))}
       </div>
+
+      {!fehler && scan?.live?.pruefung?.length > 0 && <WerkzeugPruefung werkzeuge={scan.live.pruefung} />}
 
       <Karte className="mt-4 p-3">
         {fehler ? (

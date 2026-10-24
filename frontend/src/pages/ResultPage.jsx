@@ -13,7 +13,7 @@ import { kategorieLabel } from '../lib/kategorien.js'
 
 const PFAD_TEXT = {
   ersatz: 'Konkurrenzprodukt erkannt: Das ist der funktional beste Victorinox-Ersatz.',
-  nachfolger: 'Dieses Victorinox-Produkt ist nicht mehr erhältlich. Das sind die aktuellen Alternativen.',
+  nachfolger: null, // kein Hinweis
   aktuell: 'Victorinox-Produkt erkannt.',
 }
 
@@ -67,12 +67,14 @@ function Ergebnis({ scanId }) {
         </p>
       )}
 
-      <div className="mt-4">
-        <p className="flex items-center gap-2 px-1 text-sm text-zinc-600">
-          <ArrowRight className="size-4 shrink-0 text-brand" />
-          {PFAD_TEXT[pfad] ?? 'Empfehlung'}
-        </p>
-      </div>
+      {(pfad in PFAD_TEXT ? PFAD_TEXT[pfad] : 'Empfehlung') && (
+        <div className="mt-4">
+          <p className="flex items-center gap-2 px-1 text-sm text-zinc-600">
+            <ArrowRight className="size-4 shrink-0 text-brand" />
+            {pfad in PFAD_TEXT ? PFAD_TEXT[pfad] : 'Empfehlung'}
+          </p>
+        </div>
+      )}
 
       {empfehlungen.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500">
