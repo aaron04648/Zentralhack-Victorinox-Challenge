@@ -26,10 +26,10 @@ const chapters = [
   { id: 'ausgangspunkt', nummer: '01', label: 'Ausgangspunkt' },
   { id: 'loesung', nummer: '02', label: 'Die Lösung' },
   { id: 'beweis', nummer: '03', label: 'Der Beweis' },
-  { id: 'ergebnisse', nummer: '04', label: 'Ergebnisse' },
-  { id: 'architektur', nummer: '05', label: 'Architektur' },
-  { id: 'clef', nummer: '06', label: 'So arbeitet Clef' },
-  { id: 'clef-vorschlag', nummer: '07', label: 'Entscheidungslogik' },
+  { id: 'architektur', nummer: '04', label: 'Architektur' },
+  { id: 'clef', nummer: '05', label: 'So arbeitet Clef' },
+  { id: 'clef-vorschlag', nummer: '06', label: 'Entscheidungslogik' },
+  { id: 'ergebnisse', nummer: '07', label: 'Ergebnisse' },
   { id: 'naechster-schritt', nummer: '08', label: 'Roadmap' },
   { id: 'team', nummer: '09', label: 'Das Team' },
 ]
@@ -490,8 +490,52 @@ export default function PresentationPage() {
           </div>
         </Kapitel>
 
-        {/* 04 · Erfolgskriterien mit Messwerten */}
+        {/* 04 · Architektur und Entwicklung */}
         <Kapitel {...chapters[3]} className="border-b border-slate-200">
+          <Titel akzent="über APIs austauschbar.">Modular gebaut,</Titel>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">Jeder Baustein aus eurer Challenge-Beschreibung hat bei uns ein eigenes Modul. Ein FastAPI-Orchestrator ruft sie nacheinander auf und streamt jeden Schritt live ins Frontend.</p>
+          <div className="mt-8 grid items-stretch gap-3 lg:grid-cols-[auto_1fr_auto]">
+            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-slate-200 bg-white p-5 lg:flex-col">
+              <Camera className="size-7 text-brand" /><span className="text-sm font-semibold">Foto</span>
+            </div>
+            <div className="rounded-[28px] border-2 border-dashed border-red-200 bg-white/60 p-4">
+              <div className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-slate-700"><Workflow className="size-4 text-brand" /> Orchestrator · FastAPI <span className="font-mono text-xs font-normal text-slate-500">/api/match/stream</span></div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {BAUSTEINE.map(({ icon: Icon, rolle, modul, text }) => (
+                  <div key={rolle} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <Icon className="size-5 text-brand" />
+                    <div className="mt-3 text-sm font-bold">{rolle}</div>
+                    <div className="font-mono text-[11px] text-slate-500">{modul}</div>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-red-200 bg-red-50 p-5 lg:flex-col">
+              <Target className="size-7 text-brand" /><span className="text-sm font-semibold">Top-3</span>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="mr-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Stack</span>
+            {['Python · FastAPI', 'React · Vite', 'Clef · OpenRouter', 'Azure OpenAI (optional)', 'fastembed', 'Docker'].map((t) => (
+              <span key={t} className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-200">{t}</span>
+            ))}
+            <span className="ml-2 text-sm text-slate-600">· Vision-Modell per Umgebungsvariable wechselbar, ohne Code zu ändern.</span>
+          </div>
+        </Kapitel>
+
+        {/* 05 · Wie Clef arbeitet */}
+        <Kapitel {...chapters[4]} className="border-b border-slate-200">
+          <ClefErkennung />
+        </Kapitel>
+
+        {/* 06 · Vom Clef-Ergebnis zum Vorschlag */}
+        <Kapitel {...chapters[5]} className="border-b border-slate-200">
+          <ClefVorschlag />
+        </Kapitel>
+
+        {/* 07 · Erfolgskriterien mit Messwerten */}
+        <Kapitel {...chapters[6]} className="border-b border-slate-200">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {KRITERIEN.map((k, index) => (
               <motion.div key={k.kriterium} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }} viewport={{ once: true }}>
@@ -532,50 +576,6 @@ export default function PresentationPage() {
               </ul>
             </Karte>
           </div>
-        </Kapitel>
-
-        {/* 05 · Architektur und Entwicklung */}
-        <Kapitel {...chapters[4]} className="border-b border-slate-200">
-          <Titel akzent="über APIs austauschbar.">Modular gebaut,</Titel>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">Jeder Baustein aus eurer Challenge-Beschreibung hat bei uns ein eigenes Modul. Ein FastAPI-Orchestrator ruft sie nacheinander auf und streamt jeden Schritt live ins Frontend.</p>
-          <div className="mt-8 grid items-stretch gap-3 lg:grid-cols-[auto_1fr_auto]">
-            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-slate-200 bg-white p-5 lg:flex-col">
-              <Camera className="size-7 text-brand" /><span className="text-sm font-semibold">Foto</span>
-            </div>
-            <div className="rounded-[28px] border-2 border-dashed border-red-200 bg-white/60 p-4">
-              <div className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-slate-700"><Workflow className="size-4 text-brand" /> Orchestrator · FastAPI <span className="font-mono text-xs font-normal text-slate-500">/api/match/stream</span></div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                {BAUSTEINE.map(({ icon: Icon, rolle, modul, text }) => (
-                  <div key={rolle} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <Icon className="size-5 text-brand" />
-                    <div className="mt-3 text-sm font-bold">{rolle}</div>
-                    <div className="font-mono text-[11px] text-slate-500">{modul}</div>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-3 rounded-[24px] border border-red-200 bg-red-50 p-5 lg:flex-col">
-              <Target className="size-7 text-brand" /><span className="text-sm font-semibold">Top-3</span>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Stack</span>
-            {['Python · FastAPI', 'React · Vite', 'Clef · OpenRouter', 'Azure OpenAI (optional)', 'fastembed', 'Docker'].map((t) => (
-              <span key={t} className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-200">{t}</span>
-            ))}
-            <span className="ml-2 text-sm text-slate-600">· Vision-Modell per Umgebungsvariable wechselbar, ohne Code zu ändern.</span>
-          </div>
-        </Kapitel>
-
-        {/* 06 · Wie Clef arbeitet */}
-        <Kapitel {...chapters[5]} className="border-b border-slate-200">
-          <ClefErkennung />
-        </Kapitel>
-
-        {/* 07 · Vom Clef-Ergebnis zum Vorschlag */}
-        <Kapitel {...chapters[6]} className="border-b border-slate-200">
-          <ClefVorschlag />
         </Kapitel>
 
         {/* 08 · Roadmap */}
