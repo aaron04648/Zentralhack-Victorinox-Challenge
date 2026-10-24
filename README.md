@@ -47,7 +47,8 @@ The prototype must work end-to-end for **one clearly delimited product category*
 ### Out of scope for the prototype
 
 - Product categories other than SAK.
-- Training or fine-tuning of models.
+- Training models from scratch. The vision model uses few-shot reference images by default;
+  fine-tuning it is optional and prepared in `backend/training/` (decided 2026-10-23, budget-dependent).
 - Production integration with Victorinox PIM / ERP / DAM / Microsoft Fabric Lakehouse.
 - Any live write-back into customer systems; feedback is captured locally for the
   prototype only.
@@ -149,10 +150,44 @@ POST /api/products/image
 
 GET  /api/products?q=&kategorie=&limit=&offset=   catalogue search
 GET  /api/products/{artikelnummer}                 single product (variant numbers resolve too)
-POST /api/match                                    photo → recognition + recommendations (open, mocked in frontend)
+POST /api/match                                    photo → recognition + recommendations (needs a vision API key, see below)
 POST /api/feedback                                 correct / not correct + better hit (open, mocked in frontend)
 
 Full request/response contract: [docs/api.md](docs/api.md).
+
+## Vision, Jev & Training
+
+`POST /api/match` pipeline (`backend/app/`):
+
+1. **Vision** (`vision.py`): Azure OpenAI or OpenAI, any image-capable model. Returns brand, model and
+   visible tools, restricted to ~30 coarse tool groups (`werkzeuge.py`, e.g. all flat screwdriver sizes
+   → `schraubendreher_flach`). Uses 4 reference images as few-shot examples, or a fine-tuned model if
+   `VISION_FT_DEPLOYMENT` is set.
+2. **Jev** (`jev.py`, optional, TypeSafe AI, text only): re-maps each described tool to a group with a
+   calibrated confidence and decides whether to ask for another photo. Without `TYPESAFE_API_KEY` a
+   rule takes over (score gap between top 1 and 2 < 0.05).
+3. **Matching** (`matching.py`): tool-group overlap against the catalogue (recall 0.65, precision 0.30,
+   in stock +0.05; tools hidden in the scales don't count against a product). A visible article number
+   or a recognised Victorinox model name wins.
+
+Without a vision key the endpoint answers 503 and the frontend falls back to its mock.
+Keys go into `.env` (template: `.env.example`), loaded by docker compose.
+
+Training data and evaluation (`backend/training/`, run inside the backend container):
+
+```bash
+docker compose exec backend python -m scraper.victorinox        # catalogue + tools, sizes, images
+docker compose exec backend python -m training.konkurrenz       # SWIZA knives + tools (training only)
+docker compose exec backend python -m training.datensatz        # train/test split + reference images
+docker compose exec backend python -m training.evaluieren --modus oracle   # matching upper bound, free
+docker compose exec backend python -m training.evaluieren [--jev]          # real vision test (costs API calls)
+docker compose exec backend python -m training.finetune vorbereiten|starten|status <job>
+```
+
+The test set is held out by tool set (all knives with the same tools are on one side), so the model is
+tested on Victorinox knives whose tool combination it never saw. Current numbers without a vision key:
+with perfect detection the right knife is top-1 in 88 % and top-3 in 100 % of 32 test knives; with
+scale parts and one more tool missed, top-3 is still 94 %.
 
 ## Frontend
 

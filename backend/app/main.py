@@ -1,11 +1,15 @@
 import csv
 import os
+import uuid
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app import jev, matching, vision
+from app.werkzeuge import GRUPPEN
 
 PRODUCTS_CSV = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
 
@@ -45,8 +49,18 @@ class ProductFilter(BaseModel):
     farben: Value | None = None
     anzahl_werkzeuge: Value | None = None
     werkzeuge: Value | None = None
+    werkzeug_gruppen: Value | None = None
+    anzahl_funktionen: Value | None = None
+    laenge_mm: Value | None = None
+    breite_mm: Value | None = None
+    hoehe_mm: Value | None = None
+    gewicht_g: Value | None = None
+    material: Value | None = None
+    feststellbar: Value | None = None
+    einhandklinge: Value | None = None
     url: Value | None = None
     bild_url: Value | None = None
+    galerie_bilder: Value | None = None
 
     @model_validator(mode="after")
     def not_empty(self):
@@ -84,12 +98,16 @@ def split_list(cell, sep=","):
     return [part.strip() for part in cell.split(sep) if part.strip()]
 
 
+def to_number(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def to_product(row):
     """CSV-Zeile als bereinigtes Produkt für das Frontend (Listen statt Strings, Zahlen statt Text)."""
-    try:
-        preis = float(row["preis_chf"])
-    except ValueError:
-        preis = None
+    preis = to_number(row["preis_chf"])
     return {
         "artikelnummer": row["artikelnummer"],
         "name": row["name"],
@@ -100,6 +118,11 @@ def to_product(row):
         "lagerstatus": row["lagerstatus"] or None,
         "varianten_artikelnummern": split_list(row["varianten_artikelnummern"]),
         "farben": split_list(row["farben"]),
+        "werkzeuge": split_list(row.get("werkzeuge", ""), " / "),
+        "werkzeug_gruppen": split_list(row.get("werkzeug_gruppen", "")),
+        "anzahl_funktionen": to_number(row.get("anzahl_funktionen")),
+        "laenge_mm": to_number(row.get("laenge_mm")),
+        "material": row.get("material") or None,
         "url": row["url"],
         "bild_url": row["bild_url"],
     }
@@ -155,3 +178,130 @@ def get_product(artikelnummer: str):
         if artikelnummer in split_list(row["varianten_artikelnummern"]):
             return to_product(row)
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")
+
+
+# --- Foto-Matching -----------------------------------------------------------
+
+QUELLE_KATALOG = "Victorinox Produktdaten"
+RUECKFRAGE_SCHWELLE = 0.5      # Jev: Wahrscheinlichkeit "nicht unterscheidbar"
+RUECKFRAGE_ABSTAND = 0.05      # Fallback ohne Jev: Score-Abstand Platz 1 zu 2
+MAX_BILD_BYTES = 8 * 1024 * 1024
+_matches = {}                  # match_id -> erkannte Gruppen (für das zweite Foto nach Rückfrage)
+
+
+def produkt_merkmale(row):
+    merkmale = []
+    if row.get("werkzeuge"):
+        merkmale.append({"key": "werkzeuge", "label": "Werkzeuge", "quelle": QUELLE_KATALOG,
+                         "wert": sorted(GRUPPEN[g][0] for g in matching.produkt_gruppen(row))})
+    if row.get("anzahl_funktionen"):
+        merkmale.append({"key": "funktionen", "label": "Funktionen", "quelle": QUELLE_KATALOG,
+                         "wert": row["anzahl_funktionen"]})
+    if row.get("laenge_mm"):
+        merkmale.append({"key": "laenge", "label": "Länge", "quelle": QUELLE_KATALOG,
+                         "wert": f"{row['laenge_mm']} mm"})
+    if row.get("material"):
+        merkmale.append({"key": "schale", "label": "Schale", "quelle": QUELLE_KATALOG,
+                         "wert": row["material"]})
+    return merkmale
+
+
+@app.post("/api/match")
+async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None)):
+    """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
+    inhalt = await bild.read()
+    if not inhalt or len(inhalt) > MAX_BILD_BYTES:
+        raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
+
+    schritte = []
+    try:
+        erkannt = vision.erkenne(vision.bild_als_url(inhalt, bild.content_type or "image/jpeg"))
+    except vision.VisionNichtKonfiguriert as fehler:
+        raise HTTPException(status_code=503, detail=str(fehler))
+    except Exception as fehler:  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
+        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {fehler}")
+    info = erkannt.pop("modell_info")
+    art = "fine-getunt" if info["finetuned"] else f"{info['beispiele']} Referenzbilder"
+    schritte.append({"id": "vision", "label": "Bild analysiert", "status": "ok",
+                     "detail": f"{len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']}, {art})"})
+
+    werkzeuge = erkannt["werkzeuge"]
+    try:
+        zugeordnet = jev.werkzeuge_zuordnen(werkzeuge)
+    except Exception as fehler:
+        zugeordnet = None
+        schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "warnung",
+                         "detail": f"Jev nicht erreichbar, Zuordnung der Bilderkennung verwendet ({fehler})"})
+    if zugeordnet is not None:
+        werkzeuge = zugeordnet
+        schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "ok",
+                         "detail": f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt"})
+    erkannte_gruppen = {w["gruppe"] for w in werkzeuge}
+    if vorherige_match_id in _matches:
+        erkannte_gruppen |= _matches[vorherige_match_id]
+
+    marke = erkannt["marke"]
+    ist_victorinox = bool(marke and "victorinox" in marke.casefold())
+    schritte.append({"id": "marke", "label": "Marke bestimmt", "status": "ok" if marke else "warnung",
+                     "detail": marke or "Marke nicht erkennbar"})
+
+    rows = load_products()
+    kandidaten = matching.rangliste(erkannte_gruppen, rows, erkannt, top=3)
+    schritte.append({"id": "suche", "label": "Katalog durchsucht",
+                     "status": "ok" if kandidaten else "warnung",
+                     "detail": f"{sum(1 for r in rows if matching.produkt_gruppen(r))} Messer verglichen"})
+
+    eigenes = next((k for k in kandidaten if k["score"] >= 0.95 and ist_victorinox), None)
+    if eigenes:
+        pfad = "aktuell"
+    else:
+        # Victorinox erkannt, aber nicht im aktuellen Katalog -> vermutlich ausgelaufen
+        pfad = "nachfolger" if ist_victorinox else "ersatz"
+
+    rueckfrage = None
+    try:
+        unklar = jev.rueckfrage_noetig(erkannt, kandidaten)
+    except Exception:
+        unklar = None
+    if unklar is None and len(kandidaten) > 1:
+        unklar = 1.0 if kandidaten[0]["score"] - kandidaten[1]["score"] < RUECKFRAGE_ABSTAND else 0.0
+    if not erkannte_gruppen:
+        rueckfrage = {"frage": "Auf dem Foto sind keine Werkzeuge zu erkennen.",
+                      "hinweis": "Bitte das Messer aufgeklappt fotografieren."}
+    elif unklar is not None and unklar >= RUECKFRAGE_SCHWELLE:
+        rueckfrage = {"frage": "Mehrere Messer passen ähnlich gut.",
+                      "hinweis": "Ein Foto mit allen Werkzeugen ausgeklappt oder der Artikelnummer hilft."}
+    schritte.append({"id": "empfehlung", "label": "Empfehlung erstellt",
+                     "status": "warnung" if rueckfrage else "ok",
+                     "detail": f"Top-Score {kandidaten[0]['score']:.2f}" if kandidaten else "Keine passenden Messer"})
+
+    match_id = f"m_{uuid.uuid4().hex[:10]}"
+    _matches[match_id] = erkannte_gruppen
+
+    return {
+        "match_id": match_id,
+        "pfad": pfad,
+        "erkannt": {
+            "marke": marke,
+            "ist_victorinox": ist_victorinox,
+            "modell": erkannt["modell"],
+            "artikelnummer": erkannt["artikelnummer_sichtbar"],
+            "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
+            "konfidenz": erkannt["konfidenz"],
+            "produkt": to_product(eigenes["row"]) if eigenes else None,
+            "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge", "quelle": "Bilderkennung",
+                          "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],
+        },
+        "empfehlungen": [
+            {
+                "produkt": to_product(k["row"]),
+                "score": k["score"],
+                "begruendung": matching.begruendung(k),
+                "gruende": k["gruende"],
+                "merkmale": produkt_merkmale(k["row"]),
+            }
+            for k in kandidaten
+        ],
+        "rueckfrage": rueckfrage,
+        "schritte": schritte,
+    }
