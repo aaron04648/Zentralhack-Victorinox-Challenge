@@ -204,10 +204,107 @@ def direct_experiment(client: ClefClient, names: list[str], classes: list[str]) 
     print(f"\n  direct top-1: {hits}/{len(names)} = {hits / len(names):.0%}")
 
 
+def features_experiment(client: ClefClient, names: list[str], classes: list[str]) -> None:
+    """Measure tool-level detection against the catalogue's per-SKU tool sets."""
+    print("=" * 70)
+    print("EXPERIMENT 4: tool / feature detection")
+    print("=" * 70)
+    from tools.tool_vocab import EN_OPTIONS, tool_set_for
+
+    questions = {
+        "tools": {
+            "type": "choice",
+            "instructions": (
+                "Which of these tools are visible among the implements of this "
+                "pocket knife? Choose the single best match."
+            ),
+            "criteria": EN_OPTIONS(),
+        },
+        "open_state": {
+            "type": "noul",
+            "instructions": (
+                "Are the implements of this pocket knife shown OPEN (fanned out, "
+                "so several different tools are visible at once)?"
+            ),
+            "criteria": {
+                "true": "the knife is shown open with several tools visible",
+                "false": "the knife is closed or only one tool is visible",
+            },
+        },
+    }
+
+    results = {}
+    for name in names:
+        state = [
+            {"type": "text", "text": "Product photo:"},
+            {"type": "image_url", "image_url": {"url": _data_url(DATA_DIR / f"{name}.png")}},
+        ]
+        result = client.decide(state, questions)
+        results[name] = {
+            "open_state": result.answers["open_state"].noul,
+            "probabilities": dict(result.answers["tools"].probabilities),
+            "choice": result.answers["tools"].choice,
+            "confidence": result.answers["tools"].confidence,
+        }
+    (REPO / "data" / "clef_feature_results.json").write_text(json.dumps(results, indent=1))
+
+    print(f"\n  {'photo':<21}{'open':>7}  top-3 detected tools")
+    for name in names:
+        row = results[name]
+        top = sorted(row["probabilities"].items(), key=lambda kv: -kv[1])[:3]
+        print(
+            f"  {name:<21}{row['open_state']:>7.2f}  "
+            + ", ".join(f"{tool}({prob:.2f})" for tool, prob in top)
+        )
+
+    # Score the catalogue-known cases.
+    cases = [
+        ("p1_Im4_obj9", "1.3603", "Spartan, open"),
+        ("p22_Im2_obj26", "1.3603", "Spartan, closed"),
+        ("p1_Im5_obj11", "0.8226.20", "Synergy, open"),
+        ("p13_Im4_obj21", "0.8226.20", "Synergy, open"),
+    ]
+    print("\n  top-1 precision vs the catalogue's tool set:")
+    hits = 0
+    for photo, article, case in cases:
+        truth = tool_set_for(article)
+        probs = results[photo]["probabilities"]
+        top1 = max(probs.items(), key=lambda kv: kv[1]) if probs else ("", 0.0)
+        ok = top1[0] in truth
+        hits += ok
+        print(
+            f"    {photo:<16}{case:<18} top1={top1[0]:<14}({top1[1]:.2f})  "
+            f"{'IN TOOL SET' if ok else 'NOT in catalogue set'}"
+        )
+    print(f"\n  top-1 precision: {hits}/{len(cases)}")
+
+    print("\n  containment-filter threshold sweep (detected subset of catalogue set):")
+    from tools.tool_vocab import products
+
+    for threshold in (0.05, 0.10, 0.15, 0.20, 0.30, 0.50):
+        kept = 0
+        counts = []
+        for photo, article, _ in cases:
+            detected = {t for t, p in results[photo]["probabilities"].items() if p >= threshold}
+            consistent = [
+                p["artikelnummer"]
+                for p in products()
+                if tool_set_for(p["artikelnummer"]) and detected <= tool_set_for(p["artikelnummer"])
+            ]
+            counts.append(len(consistent))
+            kept += article in consistent
+        print(
+            f"    thr={threshold:<5} truth kept {kept}/{len(cases)}   "
+            f"avg candidates {sum(counts) / len(counts):.0f}   min {min(counts)}"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--experiment", choices=["all", "pairwise", "noul", "direct"], default="all"
+        "--experiment",
+        choices=["all", "pairwise", "noul", "direct", "features"],
+        default="all",
     )
     parser.add_argument("--model", default="cloudflare/clef-flash")
     args = parser.parse_args()
@@ -222,6 +319,8 @@ def main() -> None:
         noul_experiment(client, names, classes)
     if args.experiment in ("all", "direct"):
         direct_experiment(client, names, classes)
+    if args.experiment in ("all", "features"):
+        features_experiment(client, names, classes)
 
 
 if __name__ == "__main__":

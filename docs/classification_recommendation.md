@@ -46,7 +46,18 @@
    "same". *"Which brand is this?"* with detailed per-option criteria scored 11/12
    top-3. The prompt framing matters more than the model size.
 
-6. **Use OCR of the visible article number as a hard override.** It is the only
+6. **Feature-level detection works, but as description not as matching.** Asking the
+   model "which tool is visible?" over a **tight 18-option vocabulary** gives
+   **100% top-1 precision** against the catalogue's tool lists — and it correctly
+   reports "cannot see" for closed knives. But one detected tool is consistent with
+   **55–100 of the 247 SKUs**, so it cannot identify the SKU (two-stage filtering
+   scored 0/4). Use it for the rationale, a coarse category prior, and as a
+   consistency check on the final answer. See §9.
+   Two gotchas worth keeping: the vocabulary must be **short** (64 options drops
+   precision to 1/4 — near-synonyms like `bottle_cork` vs `corkscrew` win by
+   accident), and a closed knife must trigger a request for an open-tools photo.
+
+7. **Use OCR of the visible article number as a hard override.** It is the only
    signal in this domain that can be exact.
 
 **Proposed architecture (in priority order for the remaining time):**
@@ -975,7 +986,158 @@ criterion rewards.
 
 ---
 
-## 9. Provider interface (keeping the model swappable)
+## 9. Feature-level detection: does it help, and where does it break?
+
+The idea: instead of asking "which product is this?", ask "**which tools does it
+have?**" — a saw, scissors, a corkscrew — and match those features against the
+catalogue's per-SKU tool lists. The photo cannot distinguish two black multi-tools,
+but the *tool list* can, so detecting tools should sharpen the match.
+
+I tested this properly. The answer is **yes for describing the product, no for
+identifying the SKU** — and the reason is instructive.
+
+### The detection itself works well — with a tight vocabulary
+
+Two framings, both as a single `choice` question over the tool vocabulary
+(`tools/tool_vocab.py` maps all 147 catalogue tool names to English):
+
+| framing | top-1 precision vs catalogue truth | top-5 recall |
+| --- | --- | --- |
+| **multi-choice over the vocabulary** | **100%** (4/4) | 35% |
+| independent `noul` probes per tool | 43–80% | 50% |
+
+The multi-choice framing is clearly better: asking *one* question ("which of these
+tools is visible?") and reading the probability distribution beats asking 15
+independent yes/no questions, which accumulate false positives.
+
+#### The vocabulary size is the critical knob
+
+This is the most actionable finding in this section, and it is counter-intuitive.
+Same model, same photos, same prompt — only the number of options changed:
+
+| options offered | top-1 precision | what the top-1 became |
+| --- | --- | --- |
+| **18** (photo-visible subset) | **4/4** | `corkscrew`, `large_blade`, `scissors`, `scissors` |
+| 24 | 2/4 | `bottle_cork` instead of `corkscrew` |
+| 30 | 1/4 | `bottle_cork`, `paracord` |
+| 48 | 1/4 | `bottle_cork`, `paracord` |
+| 64 (full catalogue vocabulary) | 1/4 | `bottle_cork`, `paracord`, `ruler` |
+
+Every extra plausible option competes for probability mass, and near-synonyms win by
+accident: `bottle_cork` is actually a *coupling* for a corkscrew, not a corkscrew;
+`paracord` is a strap, not a tool. The model cannot separate them reliably, so
+including them turns a correct `corkscrew` into a wrong `bottle_cork`.
+
+**So: keep the option list short and photo-relevant.** `tools/tool_vocab.py`
+defines `PHOTO_VISIBLE_TOOLS` — 18 tools that are actually distinguishable in a
+photograph of an open knife — and `EN_OPTIONS()` uses it by default. The full
+64-tool mapping is still there for *catalogue* comparison (every SKU's tool set is
+translated), it just must not be offered as detection options.
+
+Per-photo results for the multi-choice framing, checked against the catalogue's
+tool set for that SKU:
+
+| photo | SKU | top-1 detected tool | in catalogue tool set? |
+| --- | --- | --- | --- |
+| `p1_Im4_obj9` (Spartan, open) | `1.3603` | `corkscrew` (0.51) | **yes** |
+| `p22_Im2_obj26` (Spartan, closed) | `1.3603` | `large_blade` (0.79) | **yes** |
+| `p1_Im5_obj11` (Synergy, open) | `0.8226.20` | `scissors` (0.59) | **yes** |
+| `p13_Im4_obj21` (Synergy, open) | `0.8226.20` | `scissors` (0.29) | **yes** |
+
+### Visibility is the gate, and it is cleanly detectable
+
+The `open_state` probe separates the photos almost perfectly: 0.84–0.96 for the nine
+open-tools photos, **0.02–0.03** for the three closed ones. That matters, because a
+closed knife genuinely cannot be feature-probed — and the model says so rather than
+guessing. On closed knives the tool probabilities collapse to ~0.02–0.05 across the
+board, which is the honest answer.
+
+So the pipeline should check `open_state` first and, when the knife is closed, ask
+for a photo of the open knife rather than pretending to detect features.
+
+### Where it breaks: one detected tool is far too weak a signal
+
+Here is the arithmetic that sank the idea, and it is worth stating precisely because
+it looks like it should work:
+
+| detected tool | SKUs in the catalogue containing it |
+| --- | --- |
+| `large_blade` | 100 / 247 (40%) |
+| `scissors` | 95 / 247 (38%) |
+| `tweezers` | 92 / 247 (37%) |
+| `corkscrew` | 55 / 247 (22%) |
+| `pliers` | 13 / 247 (5%) |
+
+A single detected tool is consistent with **55–100 SKUs**. Even the three most
+commonly detected tools together still leave **22–29 SKUs**. And detection is
+low-recall: the model reliably identifies *one* visible tool, not the full set of
+10–12.
+
+### Four ways of using the features — only one works, and it is the weakest
+
+All measured against the four catalogue-known photos:
+
+| approach | result |
+| --- | --- |
+| **hard containment filter** (`detected ⊆ catalogue tool set`) | truth kept 4/4 at threshold ≥ 0.30, but leaves 55–113 candidates — barely a filter. At threshold 0.05 it keeps only 2/4 and collapses to 1–2 candidates, because one false positive eliminates every SKU. |
+| **sum scoring** (sum detected probabilities over the SKU's tools) | truth ranks 28–45. Big multi-tools win because they contain everything. |
+| **normalised / precision scoring** (divide by the SKU's tool count) | truth ranks 27–77. |
+| **two-stage: filter → Clef `choice` over survivors** | **0/4**, and the model's confidence collapsed to ~0.02. |
+
+The two-stage failure is the most informative. Given 13–58 near-identical candidates
+(47 SKUs contain both a large blade and scissors), the criteria become
+indistinguishable, the model has no basis to choose, and it correctly reports low
+confidence. **That is the model behaving honestly, not failing** — but it means the
+features did not do the disambiguating work.
+
+### What the features *are* good for
+
+Not SKU identification — **description and shortlisting**:
+
+1. **Descriptive output for the UI.** "This knife has a corkscrew, a large blade and
+   a can opener" is exactly the kind of traceable, source-based detail the README
+   asks for, and it comes from the model's own observation rather than a guess.
+2. **A coarse category prior.** Tool *counts* separate the catalogue well (12 tools
+   vs 10 tools vs 20 tools), so the detected feature set can rule out whole
+   product families (a 3-tool knife cannot be a Swiss Champ) before the model chooses.
+3. **A confirmation signal for the final answer.** If the chosen SKU's catalogue
+   tool set contains the detected tool, that is corroborating evidence. If it does
+   not, that is a **conflict** worth surfacing — and possibly worth abstaining on.
+4. **Retrieval as a soft feature, not a filter.** Feed the detected-tool vector into
+   the candidate ranking alongside the embedding similarity, rather than using it as
+   a hard gate.
+
+### Recommended use
+
+```
+photo ──→ open_state probe ──┬── closed  → ask for an open-tools photo
+                             │
+                             └── open
+                                  ├─→ tool detection (multi-choice)  → description + soft prior
+                                  ├─→ brand/category decision (Clef choice)  → the product
+                                  └─→ cross-check: does the chosen SKU's catalogue
+                                      tool set contain the detected tool?
+                                      yes → corroborate      no → surface the conflict
+```
+
+So the answer to the question is: **yes, use it — as a description and a consistency
+check, not as the matching mechanism.** The matching still has to come from the
+brand/category decision plus the tool-count prior, and the catalogue's tool list is
+what makes the final comparison explainable.
+
+### Implementation
+
+- `tools/tool_vocab.py` — all 147 catalogue tool names mapped to English canonical
+  ids, plus `tool_set_for(article)` and `EN_OPTIONS()` for building criteria.
+  Run it directly to see coverage (currently 178/247 articles with tools, 0 unmapped
+  names).
+- `tools/feature_detection.py` — `detect_tools(image)` returning probabilities, the
+  open/closed gate, and `rank_catalogue()`.
+- `tools/eval_clef.py --experiment features` — the measurements above.
+
+---
+
+## 10. Provider interface (keeping the model swappable)
 
 The README requires a model-independent, provider-agnostic architecture. Two
 providers are needed anyway, and they expose different shapes:

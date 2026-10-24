@@ -254,6 +254,8 @@ frontend/                            React app (Vite, Tailwind)
 data/sak_ground_truth/               12 labelled product photos extracted from the input PDF
 tools/                               Classification workstream: Clef client + evaluation harnesses
   clef_client.py                     Clef decision client (OpenRouter /api/alpha/decisions)
+  tool_vocab.py                      German -> English mapping for all 147 catalogue tools
+  feature_detection.py               Detects which tools are visible in a photo
   eval_clef.py                       Clef decision experiments
   eval_retrieval.py                  Embedding retrieval baselines
 main.py                              Entry point
@@ -280,6 +282,7 @@ Summary of what was measured on the 12 labelled photos in `data/sak_ground_truth
 ```bash
 uv run python tools/eval_retrieval.py     # embedding baselines
 uv run python tools/eval_clef.py          # Clef decision experiments
+uv run python tools/feature_detection.py photo.jpg   # detect visible tools
 ```
 
 `tools/clef_client.py` is the decision client. `OPENROUTER_API_KEY` goes in `.env`
