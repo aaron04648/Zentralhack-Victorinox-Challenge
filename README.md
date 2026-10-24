@@ -306,10 +306,19 @@ docs/                                Challenge briefing and client documents
 infos_zentral_hack_regional_impact/  Original client files (Fragebogen, intro deck, input PDF)
 backend/                             FastAPI service + catalogue scraper
   app/main.py                        API endpoints
+  app/clef.py                        Clef vision: tools, brand, catalogue image search
+  app/konkurrenz.py                 Competitor cross-reference lookup
+  app/matching.py                    Tool-set scoring against the catalogue
   scraper/victorinox.py              Catalogue scraper
   data/                              Scraped SAK catalogue (products + per-SKU tools)
+  data/training/konkurrenz.csv      Competitor products with their exact tool lists
 frontend/                            React app (Vite, Tailwind)
-  Dockerfile.prod                    Production build (vite build + nginx) for the homelab
+  Dockerfile.prod                    Production build (vite build -> nginx)
+  nginx.conf                         SPA fallback + /api proxy
+deploy/                              Deployment runbook for the homelab
+  homelab.sh                        sync / up / serve / status / logs
+  docker-compose.homelab.yml        Compose stack for the homelab
+  README.md                          Deployment details and the pitfalls
 data/sak_ground_truth/               12 labelled packshots extracted from the input PDF
 data/real_photos/                   12 labelled real smartphone photos (the demo domain)
 tools/                               Classification workstream: Clef client + evaluation harnesses
@@ -318,6 +327,7 @@ tools/                               Classification workstream: Clef client + ev
   feature_detection.py               Detects which tools are visible in a photo
   eval_clef.py                       Clef decision experiments
   eval_real.py                       Evaluation on the real smartphone photos
+  eval_match_api.py                  End-to-end evaluation of /api/match
   eval_retrieval.py                  Embedding retrieval baselines
 main.py                              Entry point
 embeddings.py                        Embedding pipeline (in progress)
@@ -341,11 +351,27 @@ Summary of what was measured:
   it shows 9/12 at 100% precision and abstains on the rest. ~$0.00003 per decision.
 - It is reachable on OpenRouter at `POST /api/alpha/decisions` — **not**
   `/chat/completions`, and it is **not** listed in the model catalogue.
+- **The brand question must describe visible features, not brand names.** Victorinox and SWIZA
+  both put a cross on the handle; what separates them is the shape of the emblem (shield outline
+  vs. circle badge). With per-option criteria describing what is *visible* the live pipeline
+  reaches **top-1 = 9/13** on the 12 packshots plus the SWIZA D03 (was 8/12). Asking the brand
+  question in its own request instead of bundling it with the 12 tool questions helps: bundled,
+  the probability mass is shared and the brand is read worse.
+- **The brand question needs an abstention option.** "unclear" lets the model say "I cannot tell"
+  instead of guessing; when it wins, the app reports the brand as unknown with confidence 0 and
+  asks a clarifying question. On the live pipeline **8/12** brands are right on the real photos,
+  and every wrong answer scores below 0.6 — at confidence ≥ 0.6 the answers are correct.
+- **A closed knife shows no tools.** The catalogue's tool lists are the discriminator, not the
+  photo. For known competitor products the cross-reference table
+  (`backend/data/training/konkurrenz.csv`) provides the exact tool set, which replaces the noisy
+  photo detection: for the client's reference example (SWIZA D03 AM) it identifies the article
+  `KNI.0036.6330` and its 8 tools from the table.
 
 ```bash
 uv run python tools/eval_retrieval.py     # embedding baselines
 uv run python tools/eval_clef.py          # Clef decision experiments
 uv run python tools/eval_real.py          # evaluation on the real smartphone photos
+uv run python tools/eval_match_api.py     # end-to-end evaluation of /api/match
 uv run python tools/feature_detection.py photo.jpg   # detect visible tools
 ```
 
@@ -365,25 +391,23 @@ The backend and frontend run via Docker:
 docker compose up --build -V
 ```
 
-## Deployment auf dem Homelab
+## Deployment (Homelab, Tailscale)
 
-Das Runbook `deploy/homelab.sh` publiziert den Stack auf dem Homelab ueber Tailscale Serve (HTTPS,
-nur im eigenen Tailnet) und optional ueber Tailscale Funnel (oeffentlich). Die Konfiguration liegt in
-`deploy/homelab.env` (Ziel-Host, Ports, Remote-Verzeichnis).
+Backend and frontend run as Docker containers on the homelab (`simon@homelab`) and are published
+with **Tailscale Serve** over HTTPS. The local machine only transfers the repo (`rsync`); the build
+runs on the homelab, so no Node or Python toolchain is needed here.
 
 ```bash
-./deploy/homelab.sh sync     # Repo per rsync auf das Homelab kopieren
-./deploy/homelab.sh up       # Images bauen und Stack starten
-./deploy/homelab.sh serve    # ueber Tailscale Serve veroeffentlichen
-./deploy/homelab.sh funnel   # zusaetzlich oeffentlich via Funnel
-./deploy/homelab.sh status   # Status und erreichbare URLs
-./deploy/homelab.sh logs     # Backend-Logs (live)
+./deploy/homelab.sh sync && ./deploy/homelab.sh up    # transfer, build, start
+./deploy/homelab.sh status                           # container + Tailscale status
+./deploy/homelab.sh logs                              # backend logs
 ```
 
-Gegenueber `docker-compose.yml` (Entwicklung) nutzt `deploy/docker-compose.homelab.yml` den
-Produktions-Build des Frontends: `frontend/Dockerfile.prod` baut die App mit `vite build` und liefert
-sie ueber nginx aus (SPA-Fallback, `/api`-Proxy auf das Backend, 25 MB Upload-Limit). Beide Ports
-binden nur auf `127.0.0.1`; die Veroeffentlichung uebernimmt Tailscale.
+The app is then reachable at **https://homelab.tailb8858a.ts.net/** from any device in the tailnet
+(e.g. the Pixel), with a valid TLS certificate and no VPN or hotspot setup.
+
+Details, port choices and the two container pitfalls that cost time (uvicorn `--reload` vs. module
+name binding, Docker layer cache) are in [deploy/README.md](deploy/README.md).
 
 ## References
 

@@ -16,7 +16,7 @@ Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorin
 | `POST /api/match/{match_id}/werkzeuge` | vorhanden: Werkzeuge korrigieren und ohne neues Foto erneut suchen |
 | `GET /api/werkzeuge` | vorhanden: alle Werkzeuggruppen (Vorschläge beim Hinzufügen) |
 | `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
-| `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
+| `POST /api/feedback` | vorhanden: legt das Feedback lokal als JSONL neben den Katalogdaten ab (kein Rückkanal in Kunden-Systeme) |
 
 Fehlt ein Endpoint (404/405/501) oder ist das Backend nicht erreichbar, springt im Frontend automatisch
 der Mock ein (`VITE_USE_MOCK=auto`, Standard). Mit `VITE_USE_MOCK=false` werden Fehler stattdessen angezeigt,
@@ -136,7 +136,13 @@ oder `erkannt.konfidenz < 0.6` (`KONFIDENZ_SCHWELLE` in `frontend/src/lib/format
 ```
 
 Bei `korrekt: true` enthält `gewaehlte_artikelnummer` die angezeigte Empfehlung, bei `false` den vom
-Nutzer gewählten besseren Treffer (oder `null`). Antwort beliebig, z. B. `{ "gespeichert": true }`.
+Nutzer gewählten besseren Treffer (oder `null`).
+
+Antwort: `{ "gespeichert": true, "anzahl": 3 }` — `anzahl` ist die Zahl der bisherigen Einträge.
+
+Der Eintrag landet als eine JSON-Zeile in `backend/data/feedback.jsonl` (Zeitstempel, `match_id`,
+`korrekt`, `gewaehlte_artikelnummer`). Es gibt bewusst **keinen** Rückkanal in Systeme des Kunden:
+das Feedback bleibt im Prototyp lokal (siehe README, Scope).
 
 
 ## `POST /api/match/{match_id}/werkzeuge`
