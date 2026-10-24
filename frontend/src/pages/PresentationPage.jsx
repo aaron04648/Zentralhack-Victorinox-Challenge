@@ -57,6 +57,59 @@ function Signal({ icon: Icon, title, text }) {
   )
 }
 
+function ClefErklaerung() {
+  return (
+    <div id="clef" className="mt-16 scroll-mt-24 border-t border-slate-200 pt-14">
+      <div className="mb-8 grid gap-5 md:grid-cols-[1fr_0.9fr] md:items-end">
+        <div>
+          <div className="mb-3 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-brand"><span>Clef im Detail</span><span className="h-px w-8 bg-brand/40" /><span>Bild rein · Antworten raus</span></div>
+          <h3 className="max-w-xl text-3xl font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl">Kein Chatbot, der Messer beschreibt.</h3>
+        </div>
+        <p className="max-w-xl text-sm leading-relaxed text-slate-600">Cloudflare Clef Flash ist ein vortrainiertes Bildmodell. Unser Backend sendet das Foto und feste Fragen über OpenRouter an Clef. Wir trainieren kein eigenes Bildmodell und lassen Clef keine Produktfakten frei formulieren.</p>
+      </div>
+
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-700"><GitBranch className="size-4 text-brand" /> Beide Analysen starten gleichzeitig mit demselben Foto</div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <motion.article className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-7" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true }}>
+          <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-xl bg-red-50 text-brand ring-1 ring-red-100"><ScanSearch className="size-5" /></div><div><div className="font-semibold text-slate-900">1. Clef prüft sichtbare Merkmale</div><div className="text-xs text-slate-500">Fragen statt Freitext</div></div></div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs text-slate-500">Markenwahl</div><div className="mt-2 font-medium text-slate-900">Welche Marke ist auf dem Foto?</div><div className="mt-3 flex flex-wrap gap-1.5"><span className="rounded-lg bg-red-50 px-2 py-1 text-xs font-medium text-red-700">Victorinox</span><span className="rounded-lg bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200">SWIZA</span><span className="rounded-lg bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200">Andere</span></div></div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-xs text-slate-500">Werkzeugfrage</div><div className="mt-2 font-medium text-slate-900">Ist eine Schere sichtbar?</div><div className="mt-3 flex gap-2"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs text-emerald-800">Ja</span><span className="rounded-lg bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200">Nein</span></div></div>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">Clef liefert eine Wahrscheinlichkeit pro Antwort. Das System stellt für rund 30 Werkzeuggruppen je eine Ja/Nein-Frage und sendet sie in parallelen Paketen mit bis zu 12 Fragen. Zusätzlich prüft es, ob das Foto ein Taschenmesser zeigt, und fragt separat nach der Marke. Trainingsbilder helfen, die Schwelle festzulegen, ab der ein Werkzeug als erkannt gilt.</p>
+        </motion.article>
+
+        <motion.article className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-7" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} viewport={{ once: true }}>
+          <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-xl bg-red-50 text-brand ring-1 ring-red-100"><Database className="size-5" /></div><div><div className="font-semibold text-slate-900">2. Clef vergleicht Katalogbilder</div><div className="text-xs text-slate-500">Bildsuche, keine Textbeschreibung</div></div></div>
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="w-fit rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
+              <div className="mb-2 flex items-center justify-between px-1 text-[10px] font-semibold text-slate-500"><span>Schema · Raster A</span><span>3 × 3</span></div>
+              <div className="grid grid-cols-3 gap-1">{Array.from({ length: 9 }, (_, i) => <div key={i} className={`grid size-12 place-items-center rounded-lg border ${i === 1 || i === 4 || i === 8 ? 'border-brand bg-red-50' : 'border-slate-200 bg-white'}`}><span className="text-[9px] font-medium text-slate-500">A{i + 1}</span></div>)}</div>
+              <div className="mt-2 flex justify-center gap-1.5 text-[9px] font-semibold text-slate-500"><span className="rounded bg-red-50 px-1.5 py-0.5 text-red-700">A</span><span className="rounded bg-white px-1.5 py-0.5 ring-1 ring-slate-200">B</span><span className="rounded bg-white px-1.5 py-0.5 ring-1 ring-slate-200">C</span><span className="self-center">3 Raster</span></div>
+            </div>
+            <div className="flex-1 text-sm leading-relaxed text-slate-600"><p>Clef vergleicht das Kundenfoto mit beschrifteten Produktkacheln. Eine Anfrage enthält das Foto und bis zu drei Raster mit je neun Kandidaten: bis zu <strong className="text-slate-900">27 Produkte</strong>.</p><p className="mt-2">Die drei besten Kandidaten jeder Runde kommen weiter. Zwei Turniere mit anderer Bildreihenfolge werden gemittelt, damit die Reihenfolge das Resultat weniger beeinflusst.</p></div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-sm leading-relaxed text-slate-700"><strong className="text-red-700">Wenn es eine Konkurrenzmarke ist:</strong> Ab 60 % Markenwahrscheinlichkeit stoppt die Victorinox-Bildsuche. Vorhandene SWIZA-, Leatherman- oder Gerber-Kataloge gleichen Werkzeuglisten und, wenn vorhanden, Modellbilder ab.</div>
+        </motion.article>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <motion.article className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-7" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} viewport={{ once: true }}>
+          <div className="flex items-center gap-3"><div className="flex size-10 items-center justify-center rounded-xl bg-red-50 text-brand ring-1 ring-red-100"><Target className="size-5" /></div><div className="font-semibold text-slate-900">3. So wird daraus ein Victorinox-Vorschlag</div></div>
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">Bei einem Victorinox-Foto bestimmt die Bildsuche die Reihenfolge; erkannte Werkzeuge erklären die Treffer. Bei einem Konkurrenzprodukt wird das Modell über dessen Werkzeugliste und verfügbare Bilder bestimmt. Danach gleicht der Agent dessen Funktionen mit Victorinox-Produkten ab. Ist das Modell unklar, helfen erkannte Werkzeuge und der Einsatzzweck beim Eingrenzen. Verfügbarkeit und Produktdaten begründen den Vorschlag.</p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-700"><span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Bildähnlichkeit</span><span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Werkzeuge</span><span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Einsatzzweck</span><span className="rounded-lg bg-slate-100 px-2.5 py-1.5">Verfügbarkeit</span></div>
+          <div className="mt-4 rounded-xl bg-slate-950 p-4 text-sm text-white"><div className="text-xs text-slate-400">Beispiel aus dem Demo-Fall</div><div className="mt-1 font-semibold">SWIZA D03 AM <ArrowRight className="mx-1 inline size-4 text-red-300" /> Victorinox Spartan</div><div className="mt-2 text-xs leading-relaxed text-slate-300">Top 3, Konfidenz und Begründung werden sichtbar. Wenn die zwei besten Treffer weniger als 0,05 auseinanderliegen, fragt die App nach einem besseren Foto oder Merkmal.</div></div>
+        </motion.article>
+
+        <div className="grid gap-px overflow-hidden rounded-[28px] border border-slate-200 bg-slate-200">
+          <div className="bg-white p-5 sm:p-6"><div className="flex items-center gap-2 font-semibold text-slate-900"><Check className="size-4 text-emerald-700" /> Warum erfindet Clef keine Produktspezifikationen?</div><p className="mt-2 text-sm leading-relaxed text-slate-600">Clef beantwortet festgelegte Fragen und liefert Wahrscheinlichkeiten, keine freie Produktbeschreibung. Namen und technische Angaben stammen aus Katalogdaten; Matching-Regeln erklären, warum ein Treffer passt.</p></div>
+          <div className="bg-white p-5 sm:p-6"><div className="flex items-center gap-2 font-semibold text-slate-900"><CircleAlert className="size-4 text-amber-600" /> Kann die Erkennung trotzdem falsch sein?</div><p className="mt-2 text-sm leading-relaxed text-slate-600">Ja. Clef kann eine Marke verwechseln oder ein Werkzeug übersehen. Die App zeigt deshalb Konfidenz und mehrere Treffer. Geschlossene Antworten verhindern erfundene Daten, aber keine falsche Erkennung.</p></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PresentationPage() {
   const { scrollYProgress } = useScroll()
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 })
@@ -80,7 +133,7 @@ export default function PresentationPage() {
         </header>
 
         <div className="sticky top-0 z-40 -mx-5 overflow-x-auto border-y border-slate-200 bg-[#f9f6f2]/85 px-5 py-3 backdrop-blur-xl sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
-          <div className="flex min-w-max gap-5 text-xs font-medium text-slate-600">{chapters.slice(0, 3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}<a href="#entwicklung" className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">04</span>Entwicklung</a>{chapters.slice(3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}</div>
+          <div className="flex min-w-max gap-5 text-xs font-medium text-slate-600">{chapters.slice(0, 3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}<a href="#entwicklung" className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">04</span>Entwicklung</a><a href="#clef" className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">↳</span>Clef verstehen</a>{chapters.slice(3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-slate-900"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}</div>
         </div>
 
         <Kapitel {...chapters[0]} className="border-b border-slate-200">
@@ -117,11 +170,12 @@ export default function PresentationPage() {
             {[
               ['01', 'Daten erschliessen', 'Wir scrapen den Victorinox-Produktkatalog aus dem Produkt-PDF und bereiten Artikelnummern, Namen, Bilder, Werkzeuge und Verfügbarkeiten strukturiert auf. Zusätzlich erfassen wir Konkurrenzprodukte und Cross-References – zum Beispiel SWIZA, Roxon, Leatherman oder Gerber.', Database],
               ['02', 'Backend als Agent bauen', 'FastAPI orchestriert Vision, Katalogsuche, Matching und Feedback. Das Backend entscheidet nicht nur „was sieht es?“, sondern auch „welcher Victorinox-Ersatz passt funktional und ist verfügbar?“.', GitBranch],
-              ['03', 'Open-Source-Vision integrieren', 'Für die Bilderkennung nutzen wir Clef von Cloudflare – ein Open-Source-Jev-Modell. Über die OpenAI-kompatible Schnittstelle bleibt der Vision-Baustein austauschbar, während unsere Regeln und Produktdaten die Empfehlung erklären.', Sparkles],
+              ['03', 'Clef als Bild-Entscheider einsetzen', 'Cloudflare Clef Flash sieht das Foto und beantwortet gezielte Ja/Nein- und Auswahlfragen mit Wahrscheinlichkeiten. Es formuliert keine Produktdaten; die Empfehlung entsteht aus Bildvergleich, Katalog und unseren Matching-Regeln.', Sparkles],
               ['04', 'React-Frontend darauf setzen', 'Die mobile React-App führt durch Scan, Vorschau, Analyse und Ergebnis. Konfidenz, Quellen, technische Unterschiede und Rückfragen werden als verständliche Oberfläche sichtbar.', Target],
               ['05', 'Alles in Docker verpacken', 'Backend, Frontend und Laufzeit werden reproduzierbar als Container betrieben. Genau das vereinfacht den nächsten Schritt: auf Azure deployen, skalieren und später an produktive Datenquellen anschliessen.', Check],
             ].map(([nr, title, text, Icon], index) => <motion.div key={nr} className="relative mb-9 last:mb-0" initial={{ opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.08 }} viewport={{ once: true }}><div className="absolute -left-[2.15rem] top-0 flex size-7 items-center justify-center rounded-full border border-red-200 bg-white text-[11px] font-bold text-brand sm:-left-[2.65rem]">{nr}</div><div className="flex gap-3"><Icon className="mt-0.5 size-5 shrink-0 text-brand" /><div><h3 className="text-lg font-semibold text-slate-900">{title}</h3><p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">{text}</p></div></div></motion.div>)}
           </div>
+          <ClefErklaerung />
         </motion.section>
 
         <Kapitel {...chapters[3]} className="border-b border-slate-200">
