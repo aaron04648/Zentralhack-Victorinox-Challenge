@@ -118,6 +118,9 @@ labels by the client. These have been extracted to `data/sak_ground_truth/` and 
 used as the evaluation set for the classification workstream — see
 [docs/classification_recommendation.md](docs/classification_recommendation.md).
 
+`data/real_photos/` additionally holds 12 **real smartphone photos** of products on
+a desk — the actual demo domain, including competitor brands (Leatherman, Gerber).
+
 ## Success criteria
 
 For the defined test catalogue:
@@ -287,12 +290,15 @@ backend/                             FastAPI service + catalogue scraper
   scraper/victorinox.py              Catalogue scraper
   data/                              Scraped SAK catalogue (products + per-SKU tools)
 frontend/                            React app (Vite, Tailwind)
-data/sak_ground_truth/               12 labelled product photos extracted from the input PDF
+  Dockerfile.prod                    Production build (vite build + nginx) for the homelab
+data/sak_ground_truth/               12 labelled packshots extracted from the input PDF
+data/real_photos/                   12 labelled real smartphone photos (the demo domain)
 tools/                               Classification workstream: Clef client + evaluation harnesses
   clef_client.py                     Clef decision client (OpenRouter /api/alpha/decisions)
   tool_vocab.py                      German -> English mapping for all 147 catalogue tools
   feature_detection.py               Detects which tools are visible in a photo
   eval_clef.py                       Clef decision experiments
+  eval_real.py                       Evaluation on the real smartphone photos
   eval_retrieval.py                  Embedding retrieval baselines
 main.py                              Entry point
 embeddings.py                        Embedding pipeline (in progress)
@@ -304,20 +310,23 @@ pyproject.toml                       Python project definition
 The classification approach is documented in
 [docs/classification_recommendation.md](docs/classification_recommendation.md).
 
-Summary of what was measured on the 12 labelled photos in `data/sak_ground_truth/`:
+Summary of what was measured:
 
 - **Off-the-shelf image embeddings do not work here.** CLIP, SigLIP2, UniCom, nomic and
   resnet50 all produce a *negative* within-class vs between-class similarity gap —
   worse than chance at telling SAK variants apart. Best top-1 was **2/12**.
 - **[Cloudflare Clef](https://huggingface.co/Cloudflare/clef)** (Apache-2.0,
-  multimodal, Jev/SystemOne-compatible) does work: **top-3 = 11/12 (92%)**, which
-  meets the success criterion above, at ~$0.00003 per decision.
+  multimodal, Jev/SystemOne-compatible) does work. On the **real smartphone photos**
+  it reaches **top-1 = 9/12 (75%), top-3 = 11/12 (92%)**, and its confidence
+  separates cleanly (0.850 when correct vs 0.119 when wrong), so at confidence ≥ 0.3
+  it shows 9/12 at 100% precision and abstains on the rest. ~$0.00003 per decision.
 - It is reachable on OpenRouter at `POST /api/alpha/decisions` — **not**
   `/chat/completions`, and it is **not** listed in the model catalogue.
 
 ```bash
 uv run python tools/eval_retrieval.py     # embedding baselines
 uv run python tools/eval_clef.py          # Clef decision experiments
+uv run python tools/eval_real.py          # evaluation on the real smartphone photos
 uv run python tools/feature_detection.py photo.jpg   # detect visible tools
 ```
 
@@ -336,6 +345,26 @@ The backend and frontend run via Docker:
 ```bash
 docker compose up --build -V
 ```
+
+## Deployment auf dem Homelab
+
+Das Runbook `deploy/homelab.sh` publiziert den Stack auf dem Homelab ueber Tailscale Serve (HTTPS,
+nur im eigenen Tailnet) und optional ueber Tailscale Funnel (oeffentlich). Die Konfiguration liegt in
+`deploy/homelab.env` (Ziel-Host, Ports, Remote-Verzeichnis).
+
+```bash
+./deploy/homelab.sh sync     # Repo per rsync auf das Homelab kopieren
+./deploy/homelab.sh up       # Images bauen und Stack starten
+./deploy/homelab.sh serve    # ueber Tailscale Serve veroeffentlichen
+./deploy/homelab.sh funnel   # zusaetzlich oeffentlich via Funnel
+./deploy/homelab.sh status   # Status und erreichbare URLs
+./deploy/homelab.sh logs     # Backend-Logs (live)
+```
+
+Gegenueber `docker-compose.yml` (Entwicklung) nutzt `deploy/docker-compose.homelab.yml` den
+Produktions-Build des Frontends: `frontend/Dockerfile.prod` baut die App mit `vite build` und liefert
+sie ueber nginx aus (SPA-Fallback, `/api`-Proxy auf das Backend, 25 MB Upload-Limit). Beide Ports
+binden nur auf `127.0.0.1`; die Veroeffentlichung uebernimmt Tailscale.
 
 ## References
 

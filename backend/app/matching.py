@@ -14,8 +14,18 @@ from app.werkzeuge import GRUPPEN
 GEWICHT_ABDECKUNG = 0.65
 GEWICHT_PRAEZISION = 0.30
 BONUS_LIEFERBAR = 0.05
+BONUS_UMFANG = 0.10
 # Stecken in der Schale und sind auf Fotos selten zu sehen: zählen nicht gegen ein Produkt
 SCHALENTEILE = {"pinzette", "zahnstocher", "kugelschreiber", "stecknadel"}
+
+
+def _anzahl_werkzeuge(row):
+    """Anzahl der Werkzeuge eines Katalogprodukts (ohne Schalenteile)."""
+    try:
+        anzahl = int(row.get("anzahl_werkzeuge") or 0)
+    except (TypeError, ValueError):
+        return 0
+    return anzahl
 
 
 def produkt_gruppen(row):
@@ -58,6 +68,19 @@ def bewerte(erkannte_gruppen, row, erkannt=None, gewichte=None):
         gruende.append(f"{len(zusaetzlich)} zusätzliche Werkzeuge")
     if lieferbar:
         gruende.append("An Lager")
+
+    # Werkzeuganzahl: der Katalog kennt sie genau, das Foto nur ungefaehr. Ein Produkt,
+    # dessen Funktionsumfang dem erkannten Umfang entspricht, ist der bessere Ersatz
+    # als eines mit deutlich mehr (oder weniger) Werkzeugen.
+    anzahl = _anzahl_werkzeuge(row)
+    if anzahl:
+        erkannt_anzahl = len(erkannte_gruppen)
+        differenz = abs(anzahl - erkannt_anzahl)
+        if differenz <= 2:
+            score += BONUS_UMFANG
+            gruende.append(f"Ähnlicher Funktionsumfang ({anzahl} Werkzeuge)")
+        elif differenz <= 5:
+            score += BONUS_UMFANG / 2
 
     erkannt = erkannt or {}
     marke = (erkannt.get("marke") or "").casefold()

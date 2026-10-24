@@ -1,8 +1,10 @@
 import asyncio
 import csv
+import json
 import math
 import os
 import uuid
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -584,3 +586,42 @@ def get_scores(q: str) -> CategoryScores:
     
     # Rückgabe validiert gegen Ihr Pydantic-Modell
     return CategoryScores(query=q, scores=sorted_scores_dict)
+
+
+# --- Feedback -------------------------------------------------------------------
+# Das Feedback landet für den Prototyp lokal (JSONL-Datei neben den Katalogdaten).
+# Es gibt bewusst keinen Rückkanal in die Systeme des Kunden.
+
+FEEDBACK_CSV = Path(__file__).resolve().parent.parent / "data" / "feedback.jsonl"
+
+
+class FeedbackBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    match_id: str | None = None
+    korrekt: bool = False
+    gewaehlte_artikelnummer: str | None = None
+
+
+@app.post("/api/feedback")
+def feedback(body: FeedbackBody):
+    """Nimmt das Nutzerfeedback entgegen und legt es lokal ab."""
+    eintrag = {
+        "zeit": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "match_id": body.match_id,
+        "korrekt": body.korrekt,
+        "gewaehlte_artikelnummer": body.gewaehlte_artikelnummer,
+    }
+    try:
+        FEEDBACK_CSV.parent.mkdir(parents=True, exist_ok=True)
+        with FEEDBACK_CSV.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(eintrag, ensure_ascii=False) + "\n")
+    except OSError as fehler:
+        raise HTTPException(status_code=500, detail=f"Feedback konnte nicht gespeichert werden: {fehler}")
+    return {"gespeichert": True, "anzahl": _feedback_anzahl()}
+
+
+def _feedback_anzahl() -> int:
+    if not FEEDBACK_CSV.exists():
+        return 0
+    return sum(1 for _ in FEEDBACK_CSV.open(encoding="utf-8"))
