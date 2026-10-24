@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app import clef, jev, matching, vision
+from app import clef, jev, konkurrenz, matching, vision
 from app.werkzeuge import GRUPPEN
 
 # Das Embedding-Modul ist optional: es liefert nur die experimentelle
@@ -429,7 +429,30 @@ async def _auswerten(match_id, kontext):
     # und sobald der Nutzer die Werkzeuge korrigiert hat
     nach_ausstattung = (fremd or kontext["nutzer_werkzeuge"]) and bool(erkannte_gruppen)
 
+    # Querverweis auf die Konkurrenz: steht das Produkt in der Tabelle aus
+    # backend/data/training/konkurrenz.csv, kennen wir seine Werkzeugliste genau.
+    # Das ist verlaesslicher als die Bilderkennung, die nur offene Werkzeuge sieht
+    # und bei geschlossenen Messern danebenliegt.
+    konkurrenz_produkt = None
+    if fremd and erkannte_gruppen:
+        try:
+            konkurrenz_produkt = konkurrenz.finde_besten(marke, erkannte_gruppen)
+        except Exception as fehler:
+            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "warnung",
+                             "detail": f"Querverweistabelle nicht nutzbar ({fehler})"})
+        if konkurrenz_produkt:
+            erkannte_gruppen = set(konkurrenz_produkt.werkzeug_gruppen)
+            gewichte_aus_tabelle = {g: 1.0 for g in erkannte_gruppen}
+            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "ok",
+                             "detail": f"{konkurrenz_produkt.name} ({konkurrenz_produkt.artikelnummer}) – "
+                                       f"{len(erkannte_gruppen)} Werkzeuge aus der Querverweistabelle"})
+
+    # Fremde Marke: Kein Katalogbild kann dasselbe Modell zeigen, darum zählt die Ausstattung.
     # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
+    gewichte = {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
+    if konkurrenz_produkt:
+        # Die Werkzeugliste aus der Querverweistabelle gilt: alle Gruppen zählen voll.
+        gewichte = dict(gewichte_aus_tabelle)
     auswahl = messer
     if nach_ausstattung and gewichte.get("zange", 0.0) >= ZANGE_SICHER:
         auswahl = [r for r in load_empfehlbare() if matching.produkt_gruppen(r)]
@@ -535,8 +558,9 @@ async def _auswerten(match_id, kontext):
         "erkannt": {
             "marke": marke,
             "ist_victorinox": ist_victorinox,
-            "modell": erkannt["modell"],
-            "artikelnummer": erkannt["artikelnummer_sichtbar"],
+            "modell": (konkurrenz_produkt.name if konkurrenz_produkt else erkannt["modell"]),
+            "artikelnummer": (konkurrenz_produkt.artikelnummer if konkurrenz_produkt
+                              else erkannt["artikelnummer_sichtbar"]),
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
             "produkt": to_product(eigenes["row"]) if eigenes else None,
@@ -545,7 +569,9 @@ async def _auswerten(match_id, kontext):
                                  for g, p in gewichte.items()),
                                 key=lambda w: (-w["wahrscheinlichkeit"], w["label"])),
             "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge",
-                          "quelle": "Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung",
+                          "quelle": ("Querverweistabelle " + konkurrenz_produkt.marke
+                                     if konkurrenz_produkt
+                                     else ("Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung")),
                           "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],
         },
         "empfehlungen": [

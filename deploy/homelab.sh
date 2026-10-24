@@ -29,9 +29,13 @@ BACKEND_PORT="${BACKEND_PORT:-8100}"
 cmd_sync() {
   echo ">> rsync -> $HOMELAB_HOST:$REMOTE_DIR"
   ssh "$HOMELAB_HOST" "mkdir -p '$REMOTE_DIR'"
+  # katalog_kacheln ist der Bild-Cache der Clef-Bildsuche: er wird beim ersten
+  # Start aus den Katalogbildern erzeugt und soll nicht uebertragen oder geloescht
+  # werden (dann waechst er auf dem Homelab weiter).
   rsync -az --delete \
     --exclude '.git/' --exclude 'node_modules/' --exclude '__pycache__/' \
     --exclude '.venv/' --exclude '*.pyc' --exclude 'dist/' \
+    --exclude 'backend/data/katalog_kacheln/' \
     "$REPO_ROOT/" "$HOMELAB_HOST:$REMOTE_DIR/"
   echo ">> sync fertig"
 }
