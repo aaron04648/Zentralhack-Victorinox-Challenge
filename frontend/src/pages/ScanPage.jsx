@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, RotateCcw, ScanLine, Sparkles } from 'lucide-react'
+import { ChevronRight, Loader2, RotateCcw, ScanEye, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
+import RoentgenBild from '../components/RoentgenBild.jsx'
 import VerwendungEingabe from '../components/VerwendungEingabe.jsx'
 import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
-import { ladeDemoDatei } from '../lib/image.js'
+import * as api from '../api/client.js'
+import { bereiteFotoVor, ladeDemoDatei } from '../lib/image.js'
 
 // Feste Beispiele, damit die Live-Demo auch ohne Kamera/Licht funktioniert.
 // `demo` wählt im Mock das passende Szenario; das echte Backend bekommt nur das Bild.
@@ -23,20 +25,32 @@ export default function ScanPage() {
   // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionaler Verwendungszweck, dann "Analysieren"
   const [entwurf, setEntwurf] = useState(null)
   const [verwendung, setVerwendung] = useState('')
+  const [hervorgehoben, setHervorgehoben] = useState(null)
 
-  useEffect(() => () => entwurf && URL.revokeObjectURL(entwurf.url), [entwurf])
+  const entwurfUrl = entwurf?.url
+  useEffect(() => () => entwurfUrl && URL.revokeObjectURL(entwurfUrl), [entwurfUrl])
 
+  // Röntgenblick startet sofort nach der Aufnahme, noch während der Einsatzzweck eingetippt wird.
+  // "Analysieren" schickt danach dieselben Bytes, damit das Backend das Ergebnis übernimmt.
   function waehle(datei, demo) {
     setFehler(null)
-    setEntwurf({ datei, demo, url: URL.createObjectURL(datei) })
+    const id = Date.now()
+    const vorbereitung = bereiteFotoVor(datei)
+    setEntwurf({ id, datei, demo, url: URL.createObjectURL(datei), vorbereitung, roentgen: null, roentgenStatus: 'laeuft' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    const setzen = (aenderung) => setEntwurf((e) => (e?.id === id ? { ...e, ...aenderung } : e))
+    vorbereitung
+      .then(({ upload }) => api.roentgen(upload))
+      .then((roentgen) => setzen({ roentgen, roentgenStatus: roentgen ? 'ok' : 'aus' }))
+      .catch(() => setzen({ roentgenStatus: 'fehler' }))
   }
 
   async function scanne() {
     setLaedt(true)
     setFehler(null)
     try {
-      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, verwendung: verwendung.trim() })
+      const vorbereitet = await entwurf.vorbereitung
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, verwendung: verwendung.trim(), vorbereitet })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -60,8 +74,18 @@ export default function ScanPage() {
       <div className="mx-auto max-w-md">
         {entwurf ? (
           <Karte className="overflow-hidden">
-            <div className="aspect-[4/3] bg-zinc-100">
-              <img src={entwurf.url} alt="Gewähltes Foto" className="size-full object-contain" />
+            <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+              <RoentgenBild
+                src={entwurf.url}
+                werkzeuge={entwurf.roentgen?.werkzeuge}
+                hervorgehoben={hervorgehoben}
+                onHervorheben={setHervorgehoben}
+                className="size-full"
+              />
+              {entwurf.roentgenStatus === 'laeuft' && (
+                <div className="scan-line pointer-events-none absolute inset-x-0 h-0.5 bg-brand shadow-[0_0_14px_3px_rgba(227,6,19,0.55)]" />
+              )}
+              <RoentgenStatus entwurf={entwurf} />
             </div>
             <div className="space-y-4 p-4">
               <VerwendungEingabe wert={verwendung} onAendern={setVerwendung} deaktiviert={laedt} />
@@ -125,6 +149,27 @@ export default function ScanPage() {
             })}
           </Karte>
         </Abschnitt>
+      )}
+    </div>
+  )
+}
+
+/** Kleiner Hinweis unten links in der Vorschau: läuft / Ergebnis des Röntgenblicks. */
+function RoentgenStatus({ entwurf }) {
+  const { roentgenStatus: status, roentgen } = entwurf
+  if (status !== 'laeuft' && status !== 'ok') return null
+  const anzahl = roentgen?.werkzeuge?.filter((w) => w.position).length ?? 0
+  return (
+    <div className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
+      {status === 'laeuft' ? (
+        <>
+          <Loader2 className="size-3.5 animate-spin" /> Röntgenblick läuft …
+        </>
+      ) : (
+        <>
+          <ScanEye className="size-3.5" />
+          {anzahl} Werkzeuge erkannt{roentgen.marke ? ` · ${roentgen.marke}` : ''}
+        </>
       )}
     </div>
   )

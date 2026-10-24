@@ -42,12 +42,38 @@ async function mitFallback(echt, ersatz) {
 }
 
 /**
+ * Live-Ablauf: /api/match/stream liefert eine JSON-Zeile pro Ereignis (Schritt, Werkzeuge, Ergebnis).
+ * Gibt das Ergebnis zurück; Zwischenstände gehen an onEreignis.
+ */
+async function matchStream(form, onEreignis) {
+  const res = await fetch('/api/match/stream', { method: 'POST', body: form })
+  if (!res.ok || !res.body) throw new ApiFehler(res.status, res.statusText)
+  const leser = res.body.pipeThrough(new TextDecoderStream()).getReader()
+  let puffer = ''
+  for (;;) {
+    const { value, done } = await leser.read()
+    if (done) break
+    puffer += value
+    const zeilen = puffer.split('\n')
+    puffer = zeilen.pop()
+    for (const zeile of zeilen) {
+      if (!zeile.trim()) continue
+      const ereignis = JSON.parse(zeile)
+      if (ereignis.typ === 'fehler') throw new ApiFehler(ereignis.status, ereignis.detail)
+      if (ereignis.typ === 'ergebnis') return ereignis.ergebnis
+      onEreignis?.(ereignis)
+    }
+  }
+  throw new ApiFehler(502, 'Verbindung zur Analyse abgebrochen')
+}
+
+/**
  * Foto analysieren und Victorinox-Empfehlung holen.
  * @param {Blob} bild
- * @param {{ kategorie?: string, verwendung?: string, vorherigeMatchId?: string, demo?: string }} optionen
+ * @param {{ kategorie?: string, verwendung?: string, vorherigeMatchId?: string, demo?: string, onEreignis?: Function }} optionen
  *   kategorie = optionaler Hinweis aus dem Dropdown, verwendung = Freitext "wofür", demo steuert nur den Mock
  */
-export function match(bild, { kategorie, verwendung, vorherigeMatchId, demo } = {}) {
+export function match(bild, { kategorie, verwendung, vorherigeMatchId, demo, onEreignis } = {}) {
   return mitFallback(
     async () => {
       const form = new FormData()
@@ -55,9 +81,31 @@ export function match(bild, { kategorie, verwendung, vorherigeMatchId, demo } = 
       if (kategorie) form.append('kategorie', kategorie)
       if (verwendung) form.append('verwendung', verwendung)
       if (vorherigeMatchId) form.append('vorherige_match_id', vorherigeMatchId)
-      return { modus: 'live', ...(await request('/api/match', { method: 'POST', body: form })) }
+      try {
+        return { modus: 'live', ...(await matchStream(form, onEreignis)) }
+      } catch (fehler) {
+        // Älteres Backend ohne Stream-Endpoint: normale Anfrage
+        if (!(fehler instanceof ApiFehler) || ![404, 405].includes(fehler.status)) throw fehler
+        return { modus: 'live', ...(await request('/api/match', { method: 'POST', body: form })) }
+      }
     },
     () => mock.match({ kategorie, vorherigeMatchId, demo }),
+  )
+}
+
+/**
+ * Röntgenblick direkt nach der Aufnahme: Marke + Werkzeuge mit Position (ohne Katalogsuche, ca. 3 s).
+ * Das Backend merkt sich das Ergebnis; match() mit demselben Blob übernimmt es.
+ * @returns {{ marke, konfidenz, werkzeuge }} oder null (Mock / Clef nicht aktiv)
+ */
+export function roentgen(bild) {
+  return mitFallback(
+    async () => {
+      const form = new FormData()
+      form.append('bild', bild, 'foto.jpg')
+      return request('/api/roentgen', { method: 'POST', body: form })
+    },
+    async () => null,
   )
 }
 

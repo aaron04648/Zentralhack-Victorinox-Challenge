@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Loader2, Plus, ShieldCheck, Store, Wrench, X } from 'lucide-react'
+import { Loader2, Plus, ScanEye, ShieldCheck, Store, Wrench, X } from 'lucide-react'
 import KonfidenzRing from './KonfidenzRing.jsx'
+import RoentgenBild from './RoentgenBild.jsx'
 import { Badge, Karte, StatusBadge } from './ui.jsx'
 import { BELIEBT, WERKZEUGE } from '../lib/werkzeuge.js'
 
@@ -22,6 +23,8 @@ const istSicher = (w) => w.wahrscheinlichkeit == null || w.wahrscheinlichkeit >=
 /** Was der Agent auf dem Foto erkannt hat, klar getrennt nach Victorinox und Konkurrenz. */
 export default function ErkennungsKarte({ vorschau, erkannt, sucheLaeuft, fehler, onWerkzeugeAendern }) {
   const werkzeuge = erkannteWerkzeuge(erkannt)
+  const [hervorgehoben, setHervorgehoben] = useState(null)
+  const mitOrt = werkzeuge.some((w) => w.position)
   return (
     <Karte className="p-4">
       <div className="flex items-center gap-4">
@@ -46,8 +49,31 @@ export default function ErkennungsKarte({ vorschau, erkannt, sucheLaeuft, fehler
         </div>
         <KonfidenzRing wert={erkannt.konfidenz} groesse={60} label="Sicherheit" />
       </div>
+      {mitOrt && (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            <ScanEye className="size-3.5" />
+            Röntgenblick
+            <span className="normal-case tracking-normal text-zinc-400">· wo das Modell die Werkzeuge sieht</span>
+          </div>
+          <RoentgenBild
+            src={vorschau}
+            werkzeuge={werkzeuge}
+            hervorgehoben={hervorgehoben}
+            onHervorheben={setHervorgehoben}
+            className="h-72 rounded-xl border border-zinc-100 bg-white sm:h-96"
+          />
+        </div>
+      )}
       {(werkzeuge.length > 0 || onWerkzeugeAendern) && (
-        <WerkzeugListe werkzeuge={werkzeuge} sucheLaeuft={sucheLaeuft} fehler={fehler} onAendern={onWerkzeugeAendern} />
+        <WerkzeugListe
+          werkzeuge={werkzeuge}
+          sucheLaeuft={sucheLaeuft}
+          fehler={fehler}
+          onAendern={onWerkzeugeAendern}
+          hervorgehoben={hervorgehoben}
+          onHervorheben={setHervorgehoben}
+        />
       )}
     </Karte>
   )
@@ -58,7 +84,7 @@ export default function ErkennungsKarte({ vorschau, erkannt, sucheLaeuft, fehler
  * Doppelklick auf ein unsicheres Werkzeug bestätigt es, × entfernt ein Werkzeug, "+" fügt eines hinzu.
  * Jede Änderung startet im Backend eine neue Suche (ohne neues Foto).
  */
-function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern }) {
+function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern, hervorgehoben, onHervorheben }) {
   const [hinzufuegen, setHinzufuegen] = useState(false)
   const sicher = werkzeuge.filter(istSicher)
   const unsicher = werkzeuge.filter((w) => !istSicher(w))
@@ -87,7 +113,14 @@ function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern }) {
       </div>
       <div className={`flex flex-wrap gap-1.5 transition ${sucheLaeuft ? 'opacity-60' : ''}`}>
         {sicher.map((w) => (
-          <span key={w.gruppe ?? w.label} className="inline-flex items-center gap-1 rounded-full bg-zinc-900 py-1 pl-2.5 pr-1.5 text-xs font-medium text-white">
+          <span
+            key={w.gruppe ?? w.label}
+            onMouseEnter={() => onHervorheben(w.gruppe)}
+            onMouseLeave={() => onHervorheben(null)}
+            className={`inline-flex items-center gap-1 rounded-full py-1 pl-2.5 pr-1.5 text-xs font-medium text-white transition ${
+              hervorgehoben === w.gruppe ? 'bg-brand' : 'bg-zinc-900'
+            }`}
+          >
             {w.label}
             {w.gruppe && onAendern && (
               <button
@@ -108,8 +141,12 @@ function WerkzeugListe({ werkzeuge, sucheLaeuft, fehler, onAendern }) {
             type="button"
             disabled={!aenderbar}
             onDoubleClick={() => bestaetige(w.gruppe)}
+            onMouseEnter={() => onHervorheben(w.gruppe)}
+            onMouseLeave={() => onHervorheben(null)}
             title={`Unsicher erkannt (${Math.round(w.wahrscheinlichkeit * 100)} %). Doppelklick: Werkzeug ist vorhanden`}
-            className="select-none rounded-full border border-dashed border-zinc-300 px-2.5 py-1 text-xs text-zinc-500 transition hover:border-zinc-500 hover:text-zinc-700"
+            className={`select-none rounded-full border border-dashed px-2.5 py-1 text-xs transition hover:border-zinc-500 hover:text-zinc-700 ${
+              hervorgehoben === w.gruppe ? 'border-brand text-brand' : 'border-zinc-300 text-zinc-500'
+            }`}
           >
             {w.label}?
           </button>

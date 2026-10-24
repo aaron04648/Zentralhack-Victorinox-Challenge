@@ -1,9 +1,12 @@
 import asyncio
+import copy
 import csv
+import hashlib
 import json
 import math
 import os
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -11,6 +14,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app import clef, jev, konkurrenz, matching, vision
 from app.werkzeuge import GRUPPEN
@@ -266,6 +270,8 @@ MIN_NACH_ZWECK = 10            # so viele Produkte bleiben mindestens nach dem Z
 GEWICHT_BILD_TIEBREAK = 0.05   # fremde Marke: Bildähnlichkeit entscheidet nur bei gleicher Ausstattung
 VERWENDUNG_GEWICHT = 0.5       # Stärke des Verwendungszwecks: Faktor exp(0.5 * z) auf Clefs Wahrscheinlichkeit          # ... und wenn er mindestens so viel mal wahrscheinlicher ist als Platz 2
 _matches = {}                  # match_id -> Erkennungskontext (zweites Foto, Werkzeug-Korrektur ohne neue Clef-Anfrage)
+_vorab = OrderedDict()         # sha1(Foto) -> Task mit Erkennung + Orten aus dem Röntgenblick der Vorschau
+MAX_VORAB = 50
 
 
 @app.on_event("startup")
@@ -276,7 +282,8 @@ async def kacheln_laden():
     if clef.aktiv():
         loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
     # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
-    loop.run_in_executor(None, embedings.verwendung_passung, "Alltag", messer)
+    if EMBEDDINGS_AKTIV:
+        loop.run_in_executor(None, embeddings.verwendung_passung, "Alltag", messer)
 
 
 def produkt_merkmale(row):
@@ -301,53 +308,208 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
                 kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
     """Foto -> erkannte Werkzeuge (Vision-Modell) -> Zuordnung/Rückfrage (Jev) -> Top-3 aus dem Katalog."""
     inhalt = await bild.read()
+    async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie, verwendung):
+        if ereignis["typ"] == "fehler":
+            raise HTTPException(status_code=ereignis["status"], detail=ereignis["detail"])
+        if ereignis["typ"] == "ergebnis":
+            return ereignis["ergebnis"]
+
+
+@app.post("/api/match/stream")
+async def match_stream(bild: UploadFile = File(...), vorherige_match_id: str | None = Form(None),
+                       kategorie: str | None = Form(None), verwendung: str | None = Form(None)):
+    """Wie /api/match, aber als Live-Ablauf: eine JSON-Zeile pro Ereignis (application/x-ndjson).
+
+    {"typ": "schritt", "schritt": {...}}     Schritt startet ("laeuft") oder ist fertig ("ok"/"warnung")
+    {"typ": "werkzeuge", "werkzeuge": [...]} erkannte Werkzeuge mit Position auf dem Foto (Röntgenblick)
+    {"typ": "ergebnis", "ergebnis": {...}}   wie die Antwort von /api/match, danach Ende
+    {"typ": "fehler", "status": 503, "detail": "..."}
+    """
+    inhalt = await bild.read()
+
+    async def zeilen():
+        async for ereignis in _match_ablauf(inhalt, bild.content_type, vorherige_match_id, kategorie, verwendung):
+            yield json.dumps(ereignis, ensure_ascii=False) + "\n"
+
+    return StreamingResponse(zeilen(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/roentgen")
+async def roentgen(bild: UploadFile = File(...)):
+    """Röntgenblick sofort nach der Aufnahme: Marke + Werkzeuge mit Position, ohne Katalogsuche.
+
+    Das Ergebnis wird unter dem Hash des Fotos gemerkt; /api/match mit demselben Foto übernimmt es,
+    statt Clef ein zweites Mal zu fragen.
+    """
+    inhalt = await bild.read()
     if not inhalt or len(inhalt) > MAX_BILD_BYTES:
         raise HTTPException(status_code=400, detail="Bild fehlt oder ist grösser als 8 MB")
+    if not (vision.anbieter() == "clef" and clef.aktiv()):
+        raise HTTPException(status_code=503, detail="Röntgenblick braucht Clef")
+    try:
+        vorab = await asyncio.shield(_vorab_starten(inhalt, bild.content_type))
+    except Exception as fehler:
+        raise HTTPException(status_code=502, detail=f"Röntgenblick fehlgeschlagen: {fehler}")
+    erkannt = vorab["erkannt"]
+    return {"marke": erkannt.get("marke"), "konfidenz": erkannt.get("konfidenz"),
+            "werkzeuge": _werkzeug_liste(_gewichte(erkannt["werkzeuge"]), vorab["orte"])}
 
+
+def _gewichte(werkzeuge):
+    """Gruppe -> Wahrscheinlichkeit (1.0 = sicher, z. B. ohne Angabe oder vom Nutzer bestätigt)."""
+    return {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
+
+
+def _vorab_starten(inhalt, content_type):
+    """Erkennung + Verortung für dieses Foto (einmal pro Foto; läuft eine schon, wird sie geteilt)."""
+    schluessel = hashlib.sha1(inhalt).hexdigest()
+    task = _vorab.get(schluessel)
+    if task and not (task.done() and (task.cancelled() or task.exception())):
+        _vorab.move_to_end(schluessel)
+        return task
+
+    async def berechnen():
+        bild_url = vision.bild_als_url(inhalt, content_type or "image/jpeg")
+        bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
+        erkannt = await asyncio.to_thread(vision.erkenne, bild_url)
+        erkannt.pop("_bild", None)
+        gewichte = _gewichte(erkannt["werkzeuge"])
+        orte = {}
+        if gewichte:
+            orte = await asyncio.to_thread(clef.lokalisieren, bild_url, sorted(gewichte, key=gewichte.get, reverse=True))
+        return {"erkannt": erkannt, "orte": orte}
+
+    task = _vorab[schluessel] = asyncio.create_task(berechnen())
+    while len(_vorab) > MAX_VORAB:
+        _vorab.popitem(last=False)
+    return task
+
+
+def _schritt(id, label, status, detail=""):
+    return {"typ": "schritt", "schritt": {"id": id, "label": label, "status": status, "detail": detail}}
+
+
+async def _match_ablauf(inhalt, content_type, vorherige_match_id, kategorie, verwendung):
+    """Die ganze Analyse als Folge von Ereignissen (siehe /api/match/stream)."""
+    if not inhalt or len(inhalt) > MAX_BILD_BYTES:
+        yield {"typ": "fehler", "status": 400, "detail": "Bild fehlt oder ist grösser als 8 MB"}
+        return
+    loop = asyncio.get_running_loop()
+    ereignisse = asyncio.Queue()
+
+    def senden(ereignis):  # auch aus Worker-Threads (Fortschritt der Bildsuche)
+        loop.call_soon_threadsafe(ereignisse.put_nowait, ereignis)
+
+    async def arbeit():
+        try:
+            await _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verwendung, senden)
+        except Exception as fehler:  # unerwartet: trotzdem sauber beenden statt hängen
+            senden({"typ": "fehler", "status": 500, "detail": f"Analyse fehlgeschlagen: {fehler}"})
+
+    aufgabe = asyncio.create_task(arbeit())
+    try:
+        while True:
+            ereignis = await ereignisse.get()
+            yield ereignis
+            if ereignis["typ"] in ("ergebnis", "fehler"):
+                break
+    finally:
+        if not aufgabe.done():
+            aufgabe.cancel()
+
+
+async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verwendung, senden):
     schritte = []
+
+    def fertig(id, label, status, detail):
+        schritte.append({"id": id, "label": label, "status": status, "detail": detail})
+        senden(_schritt(id, label, status, detail))
+
     messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
-    bild_url = vision.bild_als_url(inhalt, bild.content_type or "image/jpeg")
+    bild_url = vision.bild_als_url(inhalt, content_type or "image/jpeg")
     # Bei Clef läuft die visuelle Katalogsuche parallel zur Werkzeug- und Markenerkennung
     mit_bildsuche = vision.anbieter() == "clef" and clef.aktiv()
+    senden(_schritt("vision", "Bild analysieren", "laeuft", "Marke, Messer und 32 Werkzeugtypen prüfen"))
     try:
         if mit_bildsuche:
             bild_url = await asyncio.to_thread(clef.bild_vorbereiten, bild_url)
-        aufgaben = [asyncio.to_thread(vision.erkenne, bild_url)]
-        if mit_bildsuche:
-            aufgaben.append(asyncio.to_thread(clef.visuell_suchen, bild_url, messer))
-        ergebnisse = await asyncio.gather(*aufgaben, return_exceptions=True)
-    except Exception as fehler:  # Bild nicht lesbar
-        raise HTTPException(status_code=400, detail=f"Bild nicht lesbar: {fehler}")
-    erkannt = ergebnisse[0]
-    if isinstance(erkannt, vision.VisionNichtKonfiguriert):
-        raise HTTPException(status_code=503, detail=str(erkannt))
-    if isinstance(erkannt, Exception):  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
-        raise HTTPException(status_code=502, detail=f"Bilderkennung fehlgeschlagen: {erkannt}")
+    except Exception as fehler:
+        senden({"typ": "fehler", "status": 400, "detail": f"Bild nicht lesbar: {fehler}"})
+        return
+    vorab = _vorab.get(hashlib.sha1(inhalt).hexdigest()) if mit_bildsuche else None
+
+    async def erkennen():
+        """(Erkennung, Orte) – aus dem Röntgenblick der Vorschau, sonst neu."""
+        if vorab:
+            try:
+                ergebnis = copy.deepcopy(await asyncio.shield(vorab))
+                return ergebnis["erkannt"], ergebnis["orte"]
+            except Exception:
+                pass  # Vorschau fehlgeschlagen: normal erkennen
+        return await asyncio.to_thread(vision.erkenne, bild_url), None
+
+    erkennung = asyncio.create_task(erkennen())
+    bildsuche = None
+    if mit_bildsuche:
+        senden(_schritt("bildsuche", "Katalogbilder vergleichen", "laeuft",
+                        f"{len(messer)} Katalogbilder, zwei Turniere in unterschiedlicher Reihenfolge"))
+        bildsuche = asyncio.create_task(asyncio.to_thread(
+            clef.visuell_suchen, bild_url, messer,
+            lambda text: senden(_schritt("bildsuche", "Katalogbilder vergleichen", "laeuft", text))))
+
+    try:
+        erkannt, orte_vorab = await erkennung
+    except vision.VisionNichtKonfiguriert as fehler:
+        senden({"typ": "fehler", "status": 503, "detail": str(fehler)})
+        return
+    except Exception as fehler:  # Anbieterfehler (Netz, Quote, Inhaltsfilter)
+        senden({"typ": "fehler", "status": 502, "detail": f"Bilderkennung fehlgeschlagen: {fehler}"})
+        return
     info = erkannt.pop("modell_info")
     erkannt.pop("_bild", None)
-    schritte.append({"id": "vision", "label": "Bild analysiert", "status": "ok",
-                     "detail": f"{len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']}, {info['art']})"})
+    fertig("vision", "Bild analysiert", "ok",
+           f"{erkannt['marke'] or 'Marke unklar'}, {len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']})"
+           + (", aus der Vorschau übernommen" if orte_vorab is not None else ""))
 
     werkzeuge = erkannt["werkzeuge"]
     try:
-        zugeordnet = jev.werkzeuge_zuordnen(werkzeuge)
+        zugeordnet = await asyncio.to_thread(jev.werkzeuge_zuordnen, werkzeuge)
     except Exception as fehler:
         zugeordnet = None
-        schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "warnung",
-                         "detail": f"Jev nicht erreichbar, Zuordnung der Bilderkennung verwendet ({fehler})"})
+        fertig("ocr", "Werkzeuge zugeordnet", "warnung",
+               f"Jev nicht erreichbar, Zuordnung der Bilderkennung verwendet ({fehler})")
     if zugeordnet is not None:
         werkzeuge = zugeordnet
-        schritte.append({"id": "ocr", "label": "Werkzeuge zugeordnet", "status": "ok",
-                         "detail": f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt"})
-    # Gruppe -> Wahrscheinlichkeit (1.0 = sicher, z. B. ohne Angabe oder vom Nutzer bestätigt)
-    gewichte = {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
+        fertig("ocr", "Werkzeuge zugeordnet", "ok", f"Jev: {len(werkzeuge)} Werkzeuge mit Konfidenz bestätigt")
+    gewichte = _gewichte(werkzeuge)
+
+    # Röntgenblick: erkannte Werkzeuge auf dem Foto verorten (läuft, während die Bildsuche weiterrechnet)
+    orte = {}
+    if mit_bildsuche and gewichte:
+        senden(_schritt("roentgen", "Werkzeuge auf dem Foto verorten", "laeuft", "Röntgenblick"))
+        zu_verorten = sorted(gewichte, key=gewichte.get, reverse=True)
+        if orte_vorab is not None:  # aus der Vorschau; nur Werkzeuge, die Jev neu zugeordnet hat, nachverorten
+            orte = {g: orte_vorab[g] for g in zu_verorten if g in orte_vorab}
+            zu_verorten = [g for g in zu_verorten if g not in orte_vorab]
+        try:
+            if zu_verorten:
+                orte |= await asyncio.to_thread(clef.lokalisieren, bild_url, zu_verorten)
+            fertig("roentgen", "Werkzeuge auf dem Foto verortet", "ok", f"{len(orte)} Werkzeuge markiert"
+                   + (" (aus der Vorschau)" if orte_vorab is not None else ""))
+        except Exception as fehler:
+            fertig("roentgen", "Werkzeuge auf dem Foto verortet", "warnung", f"Nicht verfügbar ({fehler})")
+    senden({"typ": "werkzeuge", "werkzeuge": _werkzeug_liste(gewichte, orte)})
+
     visuell = {}
-    if mit_bildsuche:
-        if isinstance(ergebnisse[1], Exception):
-            schritte.append({"id": "suche", "label": "Katalogbilder verglichen", "status": "warnung",
-                             "detail": f"Bildsuche fehlgeschlagen, nur Werkzeug-Matching ({ergebnisse[1]})"})
-        else:
-            visuell = dict(ergebnisse[1])
+    if bildsuche:
+        try:
+            visuell = dict(await bildsuche)
+            fertig("bildsuche", "Katalogbilder verglichen", "ok",
+                   f"Clef hat das Foto mit {len(messer)} Katalogbildern verglichen")
+        except Exception as fehler:
+            fertig("bildsuche", "Katalogbilder verglichen", "warnung",
+                   f"Bildsuche fehlgeschlagen, nur Werkzeug-Matching ({fehler})")
     vorher = _matches.get(vorherige_match_id)
     if vorher:
         for g, p in vorher["gewichte"].items():
@@ -356,11 +518,18 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
             visuell = {n: (visuell.get(n, 0) + vorher["visuell"].get(n, 0)) / 2 for n in visuell.keys() | vorher["visuell"].keys()}
         visuell = visuell or vorher["visuell"]
 
-    kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte,
+    kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte, "orte": orte,
                "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False}
     match_id = f"m_{uuid.uuid4().hex[:10]}"
     _matches[match_id] = kontext
-    return await _auswerten(match_id, kontext)
+    senden({"typ": "ergebnis", "ergebnis": await _auswerten(match_id, kontext)})
+
+
+def _werkzeug_liste(gewichte, orte):
+    """Erkannte Werkzeuge mit Sicherheit und Position, sicherste zuerst (1.0 = sicher/vom Nutzer bestätigt)."""
+    return sorted(({"gruppe": g, "label": GRUPPEN[g][0], "wahrscheinlichkeit": round(p, 2), "position": orte.get(g)}
+                   for g, p in gewichte.items()),
+                  key=lambda w: (-w["wahrscheinlichkeit"], w["label"]))
 
 
 class Werkzeug(BaseModel):
@@ -434,7 +603,8 @@ async def _auswerten(match_id, kontext):
     # Das ist verlaesslicher als die Bilderkennung, die nur offene Werkzeuge sieht
     # und bei geschlossenen Messern danebenliegt.
     konkurrenz_produkt = None
-    if fremd and erkannte_gruppen:
+    # Hat der Nutzer die Werkzeuge korrigiert, gilt seine Liste und nicht die Tabelle
+    if fremd and erkannte_gruppen and not kontext["nutzer_werkzeuge"]:
         try:
             konkurrenz_produkt = konkurrenz.finde_besten(marke, erkannte_gruppen)
         except Exception as fehler:
@@ -449,7 +619,6 @@ async def _auswerten(match_id, kontext):
 
     # Fremde Marke: Kein Katalogbild kann dasselbe Modell zeigen, darum zählt die Ausstattung.
     # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
-    gewichte = {w["gruppe"]: float(w.get("wahrscheinlichkeit") or 1.0) for w in werkzeuge}
     if konkurrenz_produkt:
         # Die Werkzeugliste aus der Querverweistabelle gilt: alle Gruppen zählen voll.
         gewichte = dict(gewichte_aus_tabelle)
@@ -460,7 +629,7 @@ async def _auswerten(match_id, kontext):
     passung = {}  # artikelnummer -> z-Wert: wie gut das Produkt zum Verwendungszweck passt
     if verwendung:
         try:
-            passung = await asyncio.to_thread(embedings.verwendung_passung, verwendung, auswahl)
+            passung = await asyncio.to_thread(embeddings.verwendung_passung, verwendung, auswahl)
             schritte.append({"id": "verwendung", "label": "Verwendungszweck abgeglichen", "status": "ok",
                              "detail": f"„{verwendung}“ mit {len(auswahl)} Produktbeschreibungen verglichen (Embedding)"})
         except Exception as fehler:
@@ -564,10 +733,7 @@ async def _auswerten(match_id, kontext):
             "kategorie": "Taschenmesser (SAK)" if erkannt["ist_taschenmesser"] else None,
             "konfidenz": erkannt["konfidenz"],
             "produkt": to_product(eigenes["row"]) if eigenes else None,
-            # Erkannte Werkzeuge mit Sicherheit, sicherste zuerst (1.0 = sicher/vom Nutzer bestätigt)
-            "werkzeuge": sorted(({"gruppe": g, "label": GRUPPEN[g][0], "wahrscheinlichkeit": round(p, 2)}
-                                 for g, p in gewichte.items()),
-                                key=lambda w: (-w["wahrscheinlichkeit"], w["label"])),
+            "werkzeuge": _werkzeug_liste(gewichte, kontext.get("orte", {})),
             "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge",
                           "quelle": ("Querverweistabelle " + konkurrenz_produkt.marke
                                      if konkurrenz_produkt

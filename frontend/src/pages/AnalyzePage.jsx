@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import AgentSchritte, { STANDARD_SCHRITTE } from '../components/AgentSchritte.jsx'
+import RoentgenBild from '../components/RoentgenBild.jsx'
 import { Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 
@@ -15,13 +16,15 @@ export default function AnalyzePage() {
   const [aktiv, setAktiv] = useState(0)
   const [ergebnis, setErgebnis] = useState(null)
   const [fehler, setFehler] = useState(null)
+  // Backend streamt echte Schritte (Live-Ablauf); sonst (Mock, altes Backend) wird simuliert
+  const live = scan?.live?.schritte?.length > 0
 
   // Fortschritt simulieren, bis die Antwort da ist; der letzte Schritt dreht weiter.
   useEffect(() => {
-    if (ergebnis || fehler) return
+    if (ergebnis || fehler || live) return
     const t = setInterval(() => setAktiv((a) => Math.min(a + 1, STANDARD_SCHRITTE.length - 1)), TAKT_MS)
     return () => clearInterval(t)
-  }, [ergebnis, fehler])
+  }, [ergebnis, fehler, live])
 
   useEffect(() => {
     if (scan?.status === 'fertig') {
@@ -44,18 +47,25 @@ export default function AnalyzePage() {
   // Antwort da: restliche Schritte zügig abhaken, dann zum Ergebnis.
   useEffect(() => {
     if (!ergebnis) return
+    if (live) {
+      // Schritte waren schon live zu sehen: kurz das Endergebnis zeigen, dann weiter
+      const t = setTimeout(() => navigate(`/ergebnis/${scanId}`, { replace: true }), 1200)
+      return () => clearTimeout(t)
+    }
     if (aktiv < (ergebnis.schritte?.length || STANDARD_SCHRITTE.length)) {
       const t = setTimeout(() => setAktiv((a) => a + 1), 220)
       return () => clearTimeout(t)
     }
     const t = setTimeout(() => navigate(`/ergebnis/${scanId}`, { replace: true }), 500)
     return () => clearTimeout(t)
-  }, [ergebnis, aktiv, navigate, scanId])
+  }, [ergebnis, aktiv, navigate, scanId, live])
 
   return (
     <div className="mx-auto max-w-md pt-2">
       <div className="relative mx-auto aspect-[4/5] w-full overflow-hidden rounded-3xl bg-zinc-900 shadow-xl">
-        {scan?.vorschau && <img src={scan.vorschau} alt="Aufgenommenes Foto" className="size-full object-contain" />}
+        {scan?.vorschau && (
+          <RoentgenBild src={scan.vorschau} werkzeuge={scan.live?.werkzeuge} className="size-full bg-white" />
+        )}
         {!fehler && !ergebnis && (
           <>
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand/5 to-transparent" />
@@ -82,7 +92,11 @@ export default function AnalyzePage() {
             <div className="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">
               {ergebnis ? 'Fertig' : 'Agent arbeitet …'}
             </div>
-            <AgentSchritte aktiv={aktiv} schritte={ergebnis?.schritte} />
+            {live ? (
+              <AgentSchritte live schritte={ergebnis?.schritte ?? scan.live.schritte} />
+            ) : (
+              <AgentSchritte aktiv={aktiv} schritte={ergebnis?.schritte} />
+            )}
           </>
         )}
       </Karte>
