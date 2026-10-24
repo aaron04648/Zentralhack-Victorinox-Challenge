@@ -60,6 +60,15 @@ export default function ProductPage() {
             </div>
 
             <Karte className="mt-4 divide-y divide-zinc-100">
+              <Zeile label={`Werkzeuge${produkt.anzahl_werkzeuge ? ` (${produkt.anzahl_werkzeuge})` : ''}`}>
+                {produkt.werkzeuge?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {produkt.werkzeuge.map((w) => (
+                      <span key={w} className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs font-medium text-zinc-700">{w}</span>
+                    ))}
+                  </div>
+                )}
+              </Zeile>
               <Zeile label="Shop-Kategorie">{produkt.shop_kategorie}</Zeile>
               <Zeile label="Unterkategorien">{produkt.unterkategorien?.join(', ')}</Zeile>
               <Zeile label="Farben">

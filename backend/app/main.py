@@ -84,6 +84,28 @@ def split_list(cell, sep=","):
     return [part.strip() for part in cell.split(sep) if part.strip()]
 
 
+# Scope des Prototyps: nur Taschenmesser (siehe README). Die CSV enthält das ganze
+# SAK-Sortiment inkl. Zubehör, Nagelpflege, Swiss Cards und Swiss Tools (Zangen).
+MESSER_KATEGORIEN = ("Everyday", "Outdoor & Sports", "Trades & Crafts")
+KEINE_MESSER_SHOP = ("Personal Care", "Accessoires")
+KEINE_MESSER_NAMEN = ("Swiss Card", "Smart Card", "Grillgabel", "Golf Tool", "Venture")
+
+
+def is_pocket_knife(row):
+    kategorien = split_list(row["kategorien"], ";")
+    return (
+        any(k in kategorien for k in MESSER_KATEGORIEN)
+        and "Swiss Tools" not in kategorien
+        and row["shop_kategorie"].replace("\xa0", " ") not in KEINE_MESSER_SHOP
+        and not any(name in row["name"] for name in KEINE_MESSER_NAMEN)
+    )
+
+
+@lru_cache
+def load_pocket_knives():
+    return [row for row in load_products() if is_pocket_knife(row)]
+
+
 def to_product(row):
     """CSV-Zeile als bereinigtes Produkt für das Frontend (Listen statt Strings, Zahlen statt Text)."""
     try:
@@ -100,6 +122,9 @@ def to_product(row):
         "lagerstatus": row["lagerstatus"] or None,
         "varianten_artikelnummern": split_list(row["varianten_artikelnummern"]),
         "farben": split_list(row["farben"]),
+        "anzahl_werkzeuge": int(row["anzahl_werkzeuge"]) if row["anzahl_werkzeuge"].isdigit() else None,
+        # " / " trennt Werkzeuge; " | " verbindet Teile eines Kombi-Werkzeugs und bleibt drin
+        "werkzeuge": split_list(row["werkzeuge"], " / "),
         "url": row["url"],
         "bild_url": row["bild_url"],
     }
@@ -130,12 +155,12 @@ def product_image(body: ProductFilter):
 
 @app.get("/api/products")
 def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)):
-    """Katalog-Suche. `q` sucht in Name, Artikelnummer (inkl. Varianten) und Farben,
-    `kategorie` filtert auf eine der Hauptkategorien (z. B. "Everyday")."""
+    """Suche über die Taschenmesser. `q` sucht in Name, Artikelnummer (inkl. Varianten) und Farben,
+    `kategorie` filtert auf eine der Messer-Kategorien (z. B. "Everyday")."""
     needle = q.strip().casefold()
     kategorie = kategorie.strip().casefold()
     found = []
-    for row in load_products():
+    for row in load_pocket_knives():
         if kategorie and kategorie not in (k.casefold() for k in split_list(row["kategorien"], ";")):
             continue
         haystack = " ".join((row["name"], row["artikelnummer"], row["varianten_artikelnummern"], row["farben"]))
@@ -147,11 +172,11 @@ def list_products(q: str = "", kategorie: str = "", limit: int = Query(50, ge=1,
 
 @app.get("/api/products/{artikelnummer}")
 def get_product(artikelnummer: str):
-    """Ein Produkt per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
-    for row in load_products():
+    """Ein Taschenmesser per Artikelnummer; Varianten-Artikelnummern werden auf ihr Produkt aufgelöst."""
+    for row in load_pocket_knives():
         if row["artikelnummer"] == artikelnummer:
             return to_product(row)
-    for row in load_products():
+    for row in load_pocket_knives():
         if artikelnummer in split_list(row["varianten_artikelnummern"]):
             return to_product(row)
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")

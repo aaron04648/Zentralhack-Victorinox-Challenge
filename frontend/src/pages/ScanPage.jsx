@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, Sparkles } from 'lucide-react'
+import { ChevronRight, RotateCcw, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
-import { Abschnitt, Badge, Karte } from '../components/ui.jsx'
+import KategorieAuswahl from '../components/KategorieAuswahl.jsx'
+import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { ladeDemoDatei } from '../lib/image.js'
 import { prozent } from '../lib/format.js'
@@ -20,12 +21,23 @@ export default function ScanPage() {
   const navigate = useNavigate()
   const [laedt, setLaedt] = useState(false)
   const [fehler, setFehler] = useState(null)
+  // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionale Kategorie, dann "Analysieren"
+  const [entwurf, setEntwurf] = useState(null)
+  const [kategorie, setKategorie] = useState('')
 
-  async function scanne(datei, optionen) {
+  useEffect(() => () => entwurf && URL.revokeObjectURL(entwurf.url), [entwurf])
+
+  function waehle(datei, demo) {
+    setFehler(null)
+    setEntwurf({ datei, demo, url: URL.createObjectURL(datei) })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function scanne() {
     setLaedt(true)
     setFehler(null)
     try {
-      const id = await starteScan(datei, optionen)
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -47,7 +59,26 @@ export default function ScanPage() {
       </div>
 
       <div className="mx-auto max-w-md">
-        <FotoAufnahme onDatei={(datei) => scanne(datei)} deaktiviert={laedt} />
+        {entwurf ? (
+          <Karte className="overflow-hidden">
+            <div className="aspect-[4/3] bg-zinc-100">
+              <img src={entwurf.url} alt="Gewähltes Foto" className="size-full object-contain" />
+            </div>
+            <div className="space-y-4 p-4">
+              <KategorieAuswahl wert={kategorie} onAendern={setKategorie} deaktiviert={laedt} />
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <Button icon={ScanLine} onClick={scanne} disabled={laedt} className="py-3 text-base">
+                  Analysieren
+                </Button>
+                <Button variante="sekundaer" icon={RotateCcw} onClick={() => setEntwurf(null)} disabled={laedt}>
+                  Anderes Foto
+                </Button>
+              </div>
+            </div>
+          </Karte>
+        ) : (
+          <FotoAufnahme onDatei={(datei) => waehle(datei)} deaktiviert={laedt} />
+        )}
         {fehler && <p className="mt-3 text-center text-sm text-brand">{fehler}</p>}
       </div>
 
@@ -57,7 +88,7 @@ export default function ScanPage() {
             <button
               key={b.demo}
               disabled={laedt}
-              onClick={async () => scanne(await ladeDemoDatei(b.bild), { demo: b.demo })}
+              onClick={async () => waehle(await ladeDemoDatei(b.bild), b.demo)}
               className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
             >
               <div className="aspect-square bg-white p-2">

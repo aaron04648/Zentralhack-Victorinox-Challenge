@@ -1,5 +1,5 @@
-import { Link, NavLink } from 'react-router-dom'
-import { LayoutGrid, ScanLine } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { ScanLine } from 'lucide-react'
 
 export function Logo({ className = 'size-8' }) {
   return (
@@ -10,24 +10,8 @@ export function Logo({ className = 'size-8' }) {
   )
 }
 
-function NavEintrag({ to, icon: Icon, children }) {
-  return (
-    <NavLink
-      to={to}
-      end
-      className={({ isActive }) =>
-        `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
-          isActive ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-zinc-100'
-        }`
-      }
-    >
-      <Icon className="size-4" />
-      <span className="hidden sm:inline">{children}</span>
-    </NavLink>
-  )
-}
-
 export default function Header() {
+  const { pathname } = useLocation()
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
@@ -38,10 +22,12 @@ export default function Header() {
             <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Victorinox · SAK</div>
           </div>
         </Link>
-        <nav className="flex items-center gap-1">
-          <NavEintrag to="/" icon={ScanLine}>Scannen</NavEintrag>
-          <NavEintrag to="/katalog" icon={LayoutGrid}>Katalog</NavEintrag>
-        </nav>
+        {pathname !== '/' && (
+          <Link to="/" className="flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800">
+            <ScanLine className="size-4" />
+            Neuer Scan
+          </Link>
+        )}
       </div>
     </header>
   )
