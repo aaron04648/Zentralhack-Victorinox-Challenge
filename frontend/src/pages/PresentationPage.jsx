@@ -28,7 +28,7 @@ const chapters = [
   { id: 'beweis', nummer: '03', label: 'Der Beweis' },
   { id: 'ergebnisse', nummer: '04', label: 'Ergebnisse' },
   { id: 'architektur', nummer: '05', label: 'Architektur' },
-  { id: 'clef', nummer: '06', label: 'Clef im Detail' },
+  { id: 'clef', nummer: '06', label: 'So arbeitet Clef' },
   { id: 'clef-vorschlag', nummer: '07', label: 'Entscheidungslogik' },
   { id: 'naechster-schritt', nummer: '08', label: 'Roadmap' },
   { id: 'team', nummer: '09', label: 'Das Team' },
@@ -102,10 +102,11 @@ const RAND = 32 // Abstand oben und unten pro Folie (md:py-8)
 
 /**
  * Eine Folie füllt am Desktop genau eine Bildschirmhöhe unter der Kapitel-Leiste.
- * Ist der Inhalt höher (kleiner Beamer), wird er per CSS-zoom verkleinert, damit jede Pfeiltaste genau eine Folie weiterspringt.
+ * Ist der Inhalt höher (kleiner Beamer), wird der Folieninhalt verkleinert. Die Kapitelzeile bleibt gleich gross.
  */
 function Kapitel({ id, nummer, label, children, className = '' }) {
   const innen = useRef(null)
+  const kopf = useRef(null)
   const [zoom, setZoom] = useState(1)
 
   useLayoutEffect(() => {
@@ -114,9 +115,12 @@ function Kapitel({ id, nummer, label, children, className = '' }) {
       if (window.innerWidth < 768) return setZoom(1)
       const vorher = el.style.zoom
       el.style.zoom = '1'
-      const hoehe = el.offsetHeight
+      const inhaltHoehe = el.offsetHeight
       el.style.zoom = vorher
-      setZoom(Math.min(1, (window.innerHeight - LEISTE - 2 * RAND) / hoehe))
+      const kopfStil = window.getComputedStyle(kopf.current)
+      const kopfHoehe = kopf.current.offsetHeight + parseFloat(kopfStil.marginBottom)
+      const platz = window.innerHeight - LEISTE - 2 * RAND - kopfHoehe
+      setZoom(Math.max(0.1, Math.min(1, platz / inhaltHoehe)))
     }
     messen()
     document.fonts?.ready.then(messen)
@@ -134,12 +138,10 @@ function Kapitel({ id, nummer, label, children, className = '' }) {
       whileInView="visible"
       viewport={{ once: true, amount: 0.15 }}
     >
-      <div ref={innen} style={{ zoom }}>
-        <div className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-brand">
-          <span>{nummer}</span><span className="h-px w-8 bg-brand/40" /><span>{label}</span>
-        </div>
-        {children}
+      <div ref={kopf} className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-brand">
+        <span>{nummer}</span><span className="h-px w-8 bg-brand/40" /><span>{label}</span>
       </div>
+      <div ref={innen} style={{ zoom }}>{children}</div>
     </motion.section>
   )
 }
@@ -290,27 +292,26 @@ function useFolienSteuerung() {
 function ClefErkennung() {
   return (
     <div className="mx-auto max-w-5xl">
-      <Titel akzent="Architektur & Ablauf.">So arbeitet Clef</Titel>
       <div className="mt-8 grid items-center gap-3 lg:grid-cols-[1fr_auto_1.25fr_auto_1fr]">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Camera className="size-4" /> Eingabe</div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Camera className="size-4" /> Eingabe</div>
           <div className="mt-4 text-lg font-semibold">Foto</div>
-          <div className="mt-1 text-sm leading-relaxed text-slate-500">Backend lädt, normalisiert und verkleinert auf max. 768 px.</div>
-          <div className="mt-3 font-mono text-[11px] text-slate-400">JPEG → data URL</div>
+          <div className="mt-1 text-sm leading-relaxed text-slate-500">Der Server wandelt es in ein JPEG mit höchstens 768 Pixeln Kantenlänge um.</div>
+          <div className="mt-3 font-mono text-[11px] text-slate-400">JPEG → Bilddaten</div>
         </div>
         <ArrowRight className="mx-auto hidden size-5 text-slate-300 lg:block" />
-        <div className="rounded-[28px] border-2 border-red-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-between"><div className="flex items-center gap-2 font-semibold"><ScanSearch className="size-5 text-brand" /> Clef · multimodales Entscheidungsmodell</div><span className="rounded-full bg-red-50 px-2.5 py-1 font-mono text-[10px] text-red-700">OpenRouter API</span></div>
-          <div className="mt-4 rounded-xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-200"><span className="text-emerald-300">state</span> = Bild + Kontext <span className="px-2 text-slate-500">·</span> <span className="text-amber-200">questions</span> = typisierte Optionen</div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold">NOUL</div><div className="mt-1 text-xs text-slate-500">Ja / Nein pro Werkzeuggruppe; in Paketen mit 12 Fragen</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold">Choice</div><div className="mt-1 text-xs text-slate-500">Markenwahl mit „unklar“ und „andere“</div></div></div>
+        <div className="rounded-2xl border border-slate-300 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 font-semibold"><ScanSearch className="size-5 text-brand" /> Clef · Bildmodell</div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600">OpenRouter API</span></div>
+          <div className="mt-4 rounded-xl bg-slate-100 px-4 py-3 font-mono text-xs text-slate-700"><span className="font-semibold text-brand">Bild</span> + feste Fragen → Antwortverteilung</div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold">Ja / Nein</div><div className="mt-1 text-xs text-slate-500">Ist dieses Werkzeug sichtbar? Bis zu 12 Fragen je Anfrage.</div></div><div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold">Markenwahl</div><div className="mt-1 text-xs text-slate-500">Auswahl mit „unklar“ und „andere“.</div></div></div>
         </div>
         <ArrowRight className="mx-auto hidden size-5 text-slate-300 lg:block" />
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400"><Target className="size-4" /> Ausgabe</div>
-          <div className="mt-4 space-y-2"><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Marke</span><span className="font-mono text-xs text-brand">p(Option)</span></div><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Werkzeuge</span><span className="font-mono text-xs text-brand">p(Ja)</span></div><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Taschenmesser?</span><span className="font-mono text-xs text-brand">p(Ja)</span></div></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Target className="size-4" /> Ergebnis</div>
+          <div className="mt-4 space-y-2"><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Marke</span><span className="text-xs font-medium text-brand">Wahrscheinlichkeit</span></div><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Werkzeuge</span><span className="text-xs font-medium text-brand">Wahrscheinlichkeit</span></div><div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span>Taschenmesser</span><span className="text-xs font-medium text-brand">Ja / Nein</span></div></div>
         </div>
       </div>
-      <div className="mt-5 flex flex-col gap-3 border-l-2 border-red-200 pl-4 sm:flex-row sm:items-center sm:justify-between sm:pl-5"><div><div className="font-semibold">Backend kalibriert die Ausgaben</div><div className="text-sm text-slate-500">Gelernte Schwellen filtern Werkzeug-Antworten; Marken-Konfidenz berücksichtigt den Abstand zur zweitbesten Option.</div></div><div className="shrink-0 rounded-xl bg-red-50 px-4 py-2 font-mono text-xs text-red-800">JSON → Erkennung</div></div>
+      <div className="mt-5 flex flex-col gap-3 border-l-2 border-brand pl-4 sm:flex-row sm:items-center sm:justify-between sm:pl-5"><div><div className="font-semibold">Der Server wertet die Antworten aus</div><div className="text-sm text-slate-500">Gelernte Schwellen entscheiden, welche Werkzeuge als erkannt gelten. Bei der Marke zählt auch der Abstand zur nächstbesten Antwort.</div></div><div className="shrink-0 rounded-xl bg-white px-4 py-2 text-xs text-slate-700 ring-1 ring-slate-200">Strukturierte Erkennung</div></div>
     </div>
   )
 }
@@ -319,19 +320,18 @@ function ClefErkennung() {
 function ClefVorschlag() {
   return (
     <div className="mx-auto max-w-5xl">
-      <Titel akzent="zum passenden Victorinox.">Vom erkannten Produkt</Titel>
       <div className="mt-5 overflow-x-auto pb-2">
         <div className="mx-auto min-w-[720px] max-w-4xl">
           <div className="flex justify-center"><div className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white">Marke erkannt</div></div>
           <svg className="h-12 w-full" viewBox="0 0 800 48" preserveAspectRatio="none" aria-hidden="true"><path d="M400 0 V18 H200 V48 M400 18 H600 V48" fill="none" stroke="#cbd5e1" strokeWidth="2" /></svg>
           <div className="grid grid-cols-2 gap-16">
-            <div className="text-center"><span className="inline-block rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">Konkurrenz</span><div className="mt-3 text-sm font-semibold text-slate-800">Querverweis / Werkzeugliste</div><div className="mt-1 text-xs text-slate-500">Modell bestimmen, falls bekannt</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Victorinox nach Werkzeugen ordnen</div><div className="mt-1 text-[11px] text-slate-400">Bildähnlichkeit = kleiner Gleichstandsbonus</div></div>
-            <div className="text-center"><span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">Victorinox / unklar</span><div className="mt-3 text-sm font-semibold text-slate-800">Katalogbild-Vergleich</div><div className="mt-1 text-xs text-slate-500">Foto gegen Victorinox-Katalog</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Nach Bildtreffer ordnen</div><div className="mt-1 text-[11px] text-slate-400">Ohne Bildtreffer: Werkzeug-Abgleich</div></div>
+            <div className="text-center"><span className="inline-block rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Konkurrenzprodukt</span><div className="mt-3 text-sm font-semibold text-slate-800">Querverweis und Werkzeugliste</div><div className="mt-1 text-xs text-slate-500">Bekanntes Modell zuordnen</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Victorinox nach Werkzeugen ordnen</div><div className="mt-1 text-[11px] text-slate-400">Bildvergleich hilft bei Gleichstand</div></div>
+            <div className="text-center"><span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Victorinox oder unbekannt</span><div className="mt-3 text-sm font-semibold text-slate-800">Katalogbilder vergleichen</div><div className="mt-1 text-xs text-slate-500">Kundenfoto mit Victorinox-Produkten</div><div className="mx-auto h-7 w-px bg-slate-300" /><div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm"><span className="text-brand">●</span> Nach Bildtreffer ordnen</div><div className="mt-1 text-[11px] text-slate-400">Ohne Bildtreffer: Werkzeuge vergleichen</div></div>
           </div>
           <svg className="h-12 w-full" viewBox="0 0 800 48" preserveAspectRatio="none" aria-hidden="true"><path d="M200 0 V18 H400 V48 M600 0 V18 H400" fill="none" stroke="#cbd5e1" strokeWidth="2" /></svg>
-          <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm text-slate-700">Kategorie-Hinweis passt? <span className="text-slate-400">Ja: normal gewichtet · Nein: Score halbiert</span></div>
+          <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm text-slate-700">Treffer aus der gewählten Kategorie erhalten das volle Gewicht</div>
           <div className="mx-auto h-8 w-px bg-slate-300" />
-          <div className="flex justify-center"><div className="rounded-full bg-red-600 px-7 py-3 text-sm font-bold text-white shadow-md">Top 3 Victorinox-Empfehlungen</div></div>
+          <div className="flex justify-center"><div className="rounded-full bg-brand px-7 py-3 text-sm font-semibold text-white">Drei Victorinox-Vorschläge</div></div>
           <div className="mx-auto h-7 w-px bg-slate-300" />
           <div className="text-center text-sm"><span className="font-semibold text-slate-800">Genug Abstand zwischen Treffern?</span><span className="px-2 text-slate-400">Nein → Rückfrage</span><span className="text-slate-400"> · Ja → Ergebnis zeigen</span></div>
         </div>
