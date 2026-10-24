@@ -492,11 +492,7 @@ export default function PresentationPage() {
 
         {/* 04 · Erfolgskriterien mit Messwerten */}
         <Kapitel {...chapters[3]} className="border-b border-slate-200">
-          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
-            <Titel akzent="gemessen, nicht behauptet.">Eure Erfolgskriterien –</Titel>
-            <p className="max-w-xs text-sm text-slate-600">Gemessen auf echten Smartphone-Fotos, nicht auf Produktbildern aus dem Shop.</p>
-          </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {KRITERIEN.map((k, index) => (
               <motion.div key={k.kriterium} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06 }} viewport={{ once: true }}>
                 <Karte className="h-full px-5 py-4">
