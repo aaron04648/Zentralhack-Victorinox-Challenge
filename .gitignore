@@ -9,3 +9,4 @@ __pycache__/
 # Fine-Tuning-Dateien mit eingebetteten Bildern (gross, jederzeit neu erzeugbar)
 backend/data/training/ft_*.jsonl
 backend/data/katalog_kacheln/
+backend/data/.fastembed/

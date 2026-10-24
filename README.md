@@ -181,7 +181,13 @@ Full request/response contract: [docs/api.md](docs/api.md).
    This decides order and score of the recommendations (~10–15 s per photo, tiles are cached in
    `backend/data/katalog_kacheln/`, prepared at startup). "aktuell" if Victorinox, top ≥ 0.3 and
    ≥ 2.5 × the runner-up.
-3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking only without Clef):
+   For **competitor brands** the visual search is only a tie-breaker (no catalogue photo can show the
+   same model). Instead: recognised tools, weighted by Clef's probability, against the catalogue; plier
+   multitools (Leatherman, Gerber) also get the Swiss Tools as candidates; the use-case text
+   (`verwendung`, embedding in `embedings.py`) first filters to products that fit above average.
+   Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Spartan (with "picnic and wine"
+   → Picknicker), Gerber folder → Sentinel, Roxon → Cyber Tool M.
+3. **Tool matching** (`matching.py`, reasons for every recommendation; ranking for competitors and without Clef):
    tool-group overlap against the catalogue (recall 0.65, precision 0.30, in stock +0.05; tools hidden
    in the scales don't count against a product). A visible article number or model name wins.
 4. **Clarification**: ask for another photo if the top two are within 0.05, or, with OpenAI + Jev

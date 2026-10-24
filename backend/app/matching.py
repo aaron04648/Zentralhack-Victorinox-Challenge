@@ -29,14 +29,21 @@ def name_passt(modell, produktname):
     return a == b or (len(a) >= 4 and (a in b or b in a))
 
 
-def bewerte(erkannte_gruppen, row, erkannt=None):
+def bewerte(erkannte_gruppen, row, erkannt=None, gewichte=None):
+    """gewichte: optional {gruppe: Wahrscheinlichkeit}; unsichere Werkzeuge zählen dann weniger."""
     gruppen = produkt_gruppen(row)
     if not gruppen or not erkannte_gruppen:
         return None
     gemeinsam = erkannte_gruppen & gruppen
-    abdeckung = len(gemeinsam) / len(erkannte_gruppen)
     sichtbar = gruppen - (SCHALENTEILE - erkannte_gruppen)
-    praezision = len(gemeinsam) / len(sichtbar) if sichtbar else 0.0
+    if gewichte:
+        w = lambda g: gewichte.get(g, 1.0)
+        abdeckung = sum(map(w, gemeinsam)) / (sum(map(w, erkannte_gruppen)) or 1.0)
+        # Produktwerkzeuge, die nicht erkannt wurden, zählen voll; erkannte mit ihrem Gewicht
+        praezision = sum(map(w, gemeinsam)) / ((sum(map(w, gemeinsam)) + len(sichtbar - gemeinsam)) or 1.0)
+    else:
+        abdeckung = len(gemeinsam) / len(erkannte_gruppen)
+        praezision = len(gemeinsam) / len(sichtbar) if sichtbar else 0.0
     lieferbar = row.get("lagerstatus") == "inStock"
     score = GEWICHT_ABDECKUNG * abdeckung + GEWICHT_PRAEZISION * praezision + (BONUS_LIEFERBAR if lieferbar else 0)
 
@@ -73,8 +80,8 @@ def bewerte(erkannte_gruppen, row, erkannt=None):
     }
 
 
-def rangliste(erkannte_gruppen, rows, erkannt=None, top=3):
-    bewertet = [b for row in rows if (b := bewerte(erkannte_gruppen, row, erkannt))]
+def rangliste(erkannte_gruppen, rows, erkannt=None, top=3, gewichte=None):
+    bewertet = [b for row in rows if (b := bewerte(erkannte_gruppen, row, erkannt, gewichte))]
     bewertet.sort(key=lambda b: (-b["score"], len(b["zusaetzlich"]), b["row"]["name"]))
     return bewertet[:top]
 

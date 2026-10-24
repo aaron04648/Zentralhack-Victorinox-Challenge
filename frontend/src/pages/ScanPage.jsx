@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, RotateCcw, ScanLine, Sparkles } from 'lucide-react'
 import FotoAufnahme from '../components/FotoAufnahme.jsx'
 import KategorieAuswahl from '../components/KategorieAuswahl.jsx'
+import VerwendungEingabe from '../components/VerwendungEingabe.jsx'
 import { Abschnitt, Badge, Button, Karte } from '../components/ui.jsx'
 import { useScans } from '../state/ScanContext.jsx'
 import { ladeDemoDatei } from '../lib/image.js'
@@ -24,6 +25,7 @@ export default function ScanPage() {
   // Gewähltes, noch nicht analysiertes Foto: Vorschau + optionale Kategorie, dann "Analysieren"
   const [entwurf, setEntwurf] = useState(null)
   const [kategorie, setKategorie] = useState('')
+  const [verwendung, setVerwendung] = useState('')
 
   useEffect(() => () => entwurf && URL.revokeObjectURL(entwurf.url), [entwurf])
 
@@ -37,7 +39,7 @@ export default function ScanPage() {
     setLaedt(true)
     setFehler(null)
     try {
-      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie })
+      const id = await starteScan(entwurf.datei, { demo: entwurf.demo, kategorie, verwendung: verwendung.trim() })
       navigate(`/analyse/${id}`)
     } catch (e) {
       setFehler(`Das Bild konnte nicht gelesen werden (${e.message ?? 'unbekannter Fehler'}).`)
@@ -65,6 +67,7 @@ export default function ScanPage() {
               <img src={entwurf.url} alt="Gewähltes Foto" className="size-full object-contain" />
             </div>
             <div className="space-y-4 p-4">
+              <VerwendungEingabe wert={verwendung} onAendern={setVerwendung} deaktiviert={laedt} />
               <KategorieAuswahl wert={kategorie} onAendern={setKategorie} deaktiviert={laedt} />
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <Button icon={ScanLine} onClick={scanne} disabled={laedt} className="py-3 text-base">

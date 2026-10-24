@@ -46,7 +46,8 @@ So liefern es `GET /api/products` und `GET /api/products/{artikelnummer}`, und s
 Antwort: `{ "anzahl": 41, "produkte": [Product, …] }`.
 
 Beide Produkt-Endpoints liefern **nur Taschenmesser** (153 von 247 CSV-Zeilen, siehe `is_pocket_knife()` in
-`backend/app/main.py`). Zubehör, Nagelpflege, Swiss Cards, Swiss Tools und Venture ergeben 404 bzw. keinen Treffer.
+`backend/app/main.py`). Zubehör, Nagelpflege, Swiss Cards und Venture ergeben 404 bzw. keinen Treffer. Swiss Tools sind nicht in der
+Suche, aber per Artikelnummer abrufbar, weil `/api/match` sie als Ersatz für fremde Zangen-Multitools empfiehlt.
 
 ### `GET /api/products/{artikelnummer}`
 
@@ -60,6 +61,7 @@ Löst auch Varianten-Artikelnummern auf (z. B. `1.3603.3` → Spartan). 404, wen
 | --- | --- | --- |
 | `bild` | Datei (JPEG, max. 1600 px, vom Frontend verkleinert) | Pflicht |
 | `kategorie` | string | optional: Hinweis aus dem Dropdown, `Everyday` \| `Outdoor & Sports` \| `Trades & Crafts` (= Werte der CSV-Spalte `kategorien`). Weicher Filter für die Kandidaten. Fehlt das Feld, ist „automatisch“ gewählt. |
+| `verwendung` | string | optional: Freitext „Wofür brauchst du das Messer?“ (max. 300 Zeichen). Per Embedding mit den Produkten abgeglichen: gewichtet Clefs Bildsuche, filtert bei fremden Marken die Kandidaten. |
 | `vorherige_match_id` | string | optional: zweites Foto nach einer Rückfrage, mit dem vorherigen Ergebnis kombinieren |
 
 Antwort:

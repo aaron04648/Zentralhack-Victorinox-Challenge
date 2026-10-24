@@ -54,9 +54,9 @@ function Ergebnis({ scanId }) {
 
       <ErkennungsKarte vorschau={scan.vorschau} erkannt={erkannt} />
 
-      {(scan.vorherigerScanId || scan.kategorie) && (
+      {(scan.vorherigerScanId || scan.kategorie || scan.verwendung) && (
         <p className="mt-2 px-1 text-xs text-zinc-500">
-          {[scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
+          {[scan.verwendung && `Einsatz: „${scan.verwendung}“`, scan.kategorie && `Kategorie-Hinweis: ${kategorieLabel(scan.kategorie)}`, scan.vorherigerScanId && 'Mit zweitem Foto präzisiert']
             .filter(Boolean)
             .join(' · ')}
         </p>
