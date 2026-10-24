@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 .env
 .DS_Store
+
+# Fine-Tuning-Dateien mit eingebetteten Bildern (gross, jederzeit neu erzeugbar)
+backend/data/training/ft_*.jsonl

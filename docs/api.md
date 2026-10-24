@@ -9,7 +9,7 @@ Feldnamen sind deutsch und entsprechen den CSV-Spalten in `backend/data/victorin
 | `POST /api/products/image` | vorhanden (Filter auf CSV-Spalten) |
 | `GET /api/products` | vorhanden |
 | `GET /api/products/{artikelnummer}` | vorhanden |
-| `POST /api/match` | **offen**, Frontend nutzt bis dahin den Mock (`frontend/src/api/mock.js`) |
+| `POST /api/match` | vorhanden (braucht Vision-Key in `.env`, sonst 503 → Frontend nutzt den Mock) |
 | `POST /api/feedback` | **offen**, Mock speichert lokal im Browser |
 
 Fehlt ein Endpoint (404/405/501) oder ist das Backend nicht erreichbar, springt im Frontend automatisch

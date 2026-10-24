@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Climber „Place to Be”",
+    "marke": "Victorinox",
+    "bild_url": "https://imageengine.victorinox.com/transform/f166dd1d-d2a2-48a8-a160-2f5b0845298c/SAK_1_3703_E95__S1?io=transform:fill,width:768&format=jpg",
+    "werkzeug_gruppen": [
+      "ahle",
+      "dosenoeffner",
+      "kapselheber",
+      "klinge_gross",
+      "klinge_klein",
+      "korkenzieher",
+      "mehrzweckhaken",
+      "pinzette",
+      "schere",
+      "zahnstocher"
+    ]
+  },
+  {
+    "name": "Synergy X Alox",
+    "marke": "Victorinox",
+    "bild_url": "https://imageengine.victorinox.com/transform/12c466ee-728e-41e9-ac2c-e5d6ad66b975/SAK_0-8226-20_S1?io=transform:fill,width:768&format=jpg",
+    "werkzeug_gruppen": [
+      "drahtwerkzeug",
+      "kapselheber",
+      "kistenoeffner",
+      "klinge_gross",
+      "nagelfeile",
+      "nagelpflege",
+      "schere",
+      "schraubendreher_flach",
+      "trageclip"
+    ]
+  },
+  {
+    "name": "Schweizer Soldatenmesser 08",
+    "marke": "Victorinox",
+    "bild_url": "https://imageengine.victorinox.com/transform/57ea3e8e-b6a3-4ea4-a426-6fba231ba766/SAK_0_8461_MWCH__S1?io=transform:fill,width:768&format=jpg",
+    "werkzeug_gruppen": [
+      "ahle",
+      "dosenoeffner",
+      "drahtwerkzeug",
+      "holzsaege",
+      "kapselheber",
+      "klinge_wellenschliff",
+      "schraubendreher_flach",
+      "schraubendreher_kreuz"
+    ]
+  },
+  {
+    "name": "Switzerland Great Since 1291",
+    "marke": "SWIZA",
+    "bild_url": "https://cdn.shopify.com/s/files/1/0862/8417/3643/files/KNI.0076.1000.SWI.png?width=768&format=pjpg",
+    "werkzeug_gruppen": [
+      "ahle",
+      "drahtwerkzeug",
+      "kapselheber",
+      "klinge_gross",
+      "korkenzieher",
+      "lupe",
+      "pinzette",
+      "schraubendreher_flach"
+    ]
+  }
+]

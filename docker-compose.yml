@@ -5,6 +5,9 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
+    env_file:
+      - path: .env        # API-Keys für Azure/OpenAI und Jev, siehe .env.example
+        required: false
     environment:
       - CORS_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
 

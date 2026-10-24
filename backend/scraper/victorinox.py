@@ -9,6 +9,7 @@ vorkommen; die Zugehörigkeit steht in der Spalte "kategorien" sowie in je einer
 Die Werkzeuge eines Messers stehen nur auf der Produktseite (Merkmal
 "Hauptfunktion"). Sie landen als Spalte "werkzeuge" in der Haupt-CSV und
 zusätzlich als eine Zeile pro Messer und Werkzeug in einer zweiten CSV.
+Von dort kommen auch Masse, Material und alle Galeriebilder (Trainingsdaten).
 
 Aufruf:  python -m scraper.victorinox [ausgabe.csv]
 """
@@ -23,6 +24,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from app.werkzeuge import gruppen
+
 API = "https://b2cstore-victorinox.frontastic.live/frontastic/data-source"
 SITE = "https://www.victorinox.com/de-CH"
 PAGE_SIZE = 30
@@ -35,7 +38,18 @@ HEADERS = {
 }
 PAGE_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh) Chrome/130.0 (ZentralHack scraper)"}
 PAGE_WORKERS = 4
-TOOLS_FEATURE = "class_sak_functions.sak_main_function"
+# Merkmale der Produktseite: Spalte -> Code-Endung des Merkmals
+FEATURES = {
+    "werkzeuge": "class_sak_functions.sak_main_function",
+    "anzahl_funktionen": "base_sales_info.base_no_features",
+    "laenge_mm": "base_size.base_length",
+    "breite_mm": "base_size.base_width",
+    "hoehe_mm": "base_size.base_height",
+    "gewicht_g": "base_size.base_weight_net",
+    "material": "sak_material.sak_scale_material",
+    "feststellbar": "sak_functions.sak_lockable",
+    "einhandklinge": "sak_functions.sak_onehand",
+}
 TOOLS_SEPARATOR = " / "  # wie auf der Webseite
 
 # Jede Kategorie besteht aus Quellen: (Typ, ID, Unterkategorie).
@@ -136,32 +150,55 @@ def fetch_source(kind, component_id, page):
     return docs
 
 
-def find_feature(node, code_suffix):
+def collect_features(node, found):
+    """Alle Klassifikationsmerkmale {code: values}; das erste Vorkommen gewinnt."""
     if isinstance(node, dict):
-        if str(node.get("code", "")).endswith(code_suffix) and isinstance(node.get("values"), list):
-            return node["values"]
+        code = node.get("code")
+        if isinstance(code, str) and isinstance(node.get("values"), list):
+            found.setdefault(code, node["values"])
+        children = node.values()
+    elif isinstance(node, list):
+        children = node
+    else:
+        return found
+    for child in children:
+        collect_features(child, found)
+    return found
+
+
+def find_gallery(node):
+    if isinstance(node, dict):
+        if isinstance(node.get("galleryImages"), list):
+            return [image_url(img) for img in node["galleryImages"] if image_url(img)]
         children = node.values()
     elif isinstance(node, list):
         children = node
     else:
         return None
     for child in children:
-        found = find_feature(child, code_suffix)
+        found = find_gallery(child)
         if found is not None:
             return found
     return None
 
 
-def fetch_tools(url):
-    """Werkzeugliste von der Produktseite (Next.js-Daten); leer bei Zubehör o. ä."""
+def fetch_details(url):
+    """Werkzeuge, Masse und Galeriebilder von der Produktseite (Next.js-Daten)."""
+    details = {"werkzeuge": [], "galerie": []}
     if not url:
-        return []
+        return details
     html = fetch(url, PAGE_HEADERS)
     match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
     if not match:
-        return []
-    values = find_feature(json.loads(match.group(1)), TOOLS_FEATURE) or []
-    return [v.replace("\xa0", " ").strip() for v in values if v and v.strip()]
+        return details
+    data = json.loads(match.group(1))
+    features = collect_features(data, {})
+    for column, suffix in FEATURES.items():
+        values = next((v for code, v in features.items() if code.endswith(suffix)), [])
+        values = [v.replace("\xa0", " ").strip() for v in values if v and v.strip()]
+        details[column] = values if column == "werkzeuge" else ", ".join(values)
+    details["galerie"] = find_gallery(data) or []
+    return details
 
 
 def image_url(image):
@@ -222,11 +259,16 @@ def scrape():
             row[c] = int(c in cats)
         rows.append(row)
 
-    print(f"  Lade Werkzeuge von {len(rows)} Produktseiten ...", file=sys.stderr)
+    print(f"  Lade Details von {len(rows)} Produktseiten ...", file=sys.stderr)
     with ThreadPoolExecutor(PAGE_WORKERS) as pool:
-        for row, tools in zip(rows, pool.map(lambda r: fetch_tools(r["url"]), rows)):
+        for row, details in zip(rows, pool.map(lambda r: fetch_details(r["url"]), rows)):
+            tools = details.pop("werkzeuge")
+            galerie = details.pop("galerie")
+            row.update(details)
             row["werkzeuge"] = TOOLS_SEPARATOR.join(tools)
             row["anzahl_werkzeuge"] = len(tools)
+            row["werkzeug_gruppen"] = ", ".join(sorted(gruppen(tools)))
+            row["galerie_bilder"] = " ".join(galerie)
 
     rows.sort(key=lambda r: (r["kategorien"], r["name"]))
     return rows
@@ -236,9 +278,11 @@ PRODUCT_COLUMNS = [
     "artikelnummer", "name", "kategorien", "anzahl_kategorien", *CATEGORIES,
     "unterkategorien", "shop_kategorie", "preis_chf", "lagerstatus",
     "anzahl_varianten", "varianten_artikelnummern", "farben",
-    "anzahl_werkzeuge", "werkzeuge", "url", "bild_url",
+    "anzahl_werkzeuge", "werkzeuge", "werkzeug_gruppen", "anzahl_funktionen",
+    "laenge_mm", "breite_mm", "hoehe_mm", "gewicht_g", "material", "feststellbar",
+    "einhandklinge", "url", "bild_url", "galerie_bilder",
 ]
-TOOL_COLUMNS = ["artikelnummer", "name", "werkzeug"]
+TOOL_COLUMNS = ["artikelnummer", "name", "werkzeug", "werkzeug_gruppe"]
 
 
 def write_csv(rows, path, columns):
@@ -253,7 +297,8 @@ def write_csv(rows, path, columns):
 def tool_rows(rows):
     """Eine Zeile pro Messer und Werkzeug, für einfaches Filtern/Joinen."""
     return [
-        {"artikelnummer": r["artikelnummer"], "name": r["name"], "werkzeug": tool}
+        {"artikelnummer": r["artikelnummer"], "name": r["name"], "werkzeug": tool,
+         "werkzeug_gruppe": ", ".join(sorted(gruppen([tool])))}
         for r in rows if r["werkzeuge"]
         for tool in r["werkzeuge"].split(TOOLS_SEPARATOR)
     ]
