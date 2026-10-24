@@ -28,7 +28,22 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--nur-marke", action="store_true",
                         help="Nur die Markenfrage stellen (ohne Werkzeugpakete).")
+    parser.add_argument("--variante", default="standard", choices=["standard", "terse"])
     args = parser.parse_args()
+
+    if args.variante == "terse":
+        # Enge Auswahl: nur die Marken, die im Demo-Material wirklich vorkommen.
+        clef.MARKEN = {
+            "victorinox": ("Victorinox", "VICTORINOX engraved on the blade, or a Swiss cross emblem "
+                                         "on the handle"),
+            "swiza": ("SWIZA", "SWIZA engraved on the blade or handle, or a Swiss cross in a plain "
+                              "round badge"),
+            "roxon": ("Roxon", "ROXON engraved on the handle or blade"),
+            "helton": ("The Helton", "plain black handle with no logo and no lettering at all"),
+            "leatherman": ("Leatherman", "LEATHERMAN engraved on the handle"),
+            "gerber": ("Gerber", "GERBER engraved on the handle or blade"),
+            "andere": (None, "unclear: nothing readable"),
+        }
 
     labels = json.loads((DATA_DIR / "labels.json").read_text())
     fotos = []

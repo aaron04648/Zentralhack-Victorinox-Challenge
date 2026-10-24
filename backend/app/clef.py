@@ -102,6 +102,10 @@ MARKEN = {
                         "ROXON printed in white capitals on the handle or blade"),
     "helton": ("The Helton", "The Helton Swiss Army Knife: plain black textured handle with no logo and no "
                              "lettering, narrow plain blade"),
+    # "unclear" ist die Abstention-Option: das Modell soll ein Foto, auf dem sich keine
+    # Marke sicher feststellen laesst, hier abgeben und nicht raten.
+    "unclear": (None, "unclear: no logo and no lettering is readable, or the knife does not match any of "
+                      "the brands above"),
     "andere": (None, "another or unknown brand, no readable logo or lettering"),
 }
 
@@ -216,18 +220,28 @@ def auswerten(roh):
         for g, p in sorted(roh["werkzeuge"].items(), key=lambda kv: -kv[1]) if p >= grenzen[g]
     ]
     marken = roh["marke"]
+    # "unclear"/"andere" sind Abstentions-Optionen: gewinnt eine davon, ist die Marke
+    # nicht bestimmbar und wird als None gemeldet.
     beste = max(marken, key=marken.get) if marken else "andere"
+    abstention = beste in ("unclear", "andere")
     werte = sorted(marken.values(), reverse=True) + [0, 0]
+    # Konfidenz: hoechster Wert, aber nur so hoch, wie die Unterscheidung zwischen den
+    # beiden besten Marken traegt. So faellt ein Foto, das keine Marke sicher zeigt
+    # (Kandidat "unclear"), auf eine tiefe Konfidenz und loest eine Rueckfrage aus,
+    # statt eine falsche Marke zu behaupten.
+    if abstention:
+        konfidenz = 0.0
+    else:
+        konfidenz = min(werte[0], max(werte[0] - werte[1], 0.0) + 0.5 * werte[0])
     return {
         "ist_taschenmesser": roh["messer"] >= 0.5,
-        "marke": MARKEN.get(beste, (None,))[0],
+        "marke": None if abstention else MARKEN.get(beste, (None,))[0],
         "marke_wahrscheinlichkeiten": {k: round(v, 3) for k, v in marken.items()},
         "modell": None,
         "artikelnummer_sichtbar": None,
         "geoeffnet": bool(werkzeuge),
         "werkzeuge": werkzeuge,
-        # Konfidenz = Abstand der Top-2-Marken (Simon: Margin trägt mehr als die Rohwahrscheinlichkeit)
-        "konfidenz": round(min(max(werte[0] - werte[1], 0.0) + 0.5 * werte[0], 1.0), 3),
+        "konfidenz": round(konfidenz, 3),
     }
 
 

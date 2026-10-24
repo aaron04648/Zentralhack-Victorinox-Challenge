@@ -10,9 +10,30 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from app import clef, embedings, jev, matching, vision
-from app.embedings import CATEGORIES, cosine_similarity, generate_category_embeddings, setup_embedding_model
+from app import clef, jev, matching, vision
 from app.werkzeuge import GRUPPEN
+
+# Das Embedding-Modul ist optional: es liefert nur die experimentelle
+# /score_categories-Route. Wenn es nicht verfuegbar ist (fehlende Abhaengigkeiten,
+# laufende Umbauten), startet der Kern der Demo trotzdem.
+try:
+    from app import embeddings
+    from app.embeddings import (CATEGORIES, cosine_similarity,
+                                generate_category_embeddings, setup_embedding_model)
+    EMBEDDINGS_AKTIV = True
+except Exception:  # pragma: no cover - abhaengig von der lokalen Umgebung
+    embeddings = None
+    CATEGORIES: list[str] = []
+    EMBEDDINGS_AKTIV = False
+
+    def generate_category_embeddings():
+        return []
+
+    def setup_embedding_model():
+        raise RuntimeError("Embedding-Modul nicht verfuegbar")
+
+    def cosine_similarity(a, b):
+        return 0.0
 
 PRODUCTS_CSV = Path(__file__).resolve().parent.parent / "data" / "victorinox_sak_produkte.csv"
 
@@ -26,6 +47,8 @@ app.add_middleware(
 )
 
 Value = str | int | float | bool
+
+category_embeddings = generate_category_embeddings() if EMBEDDINGS_AKTIV else []
 
 class CategoryScores(BaseModel):
     query: str
@@ -543,6 +566,9 @@ def get_scores(q: str) -> CategoryScores:
     # Falls die Anfrage leer ist, leeres Dict zurückgeben
     if not q.strip():
         return CategoryScores(query=q, scores={cat: 0.0 for cat in CATEGORIES})
+
+    if not EMBEDDINGS_AKTIV:
+        raise HTTPException(status_code=503, detail="Embedding-Modul nicht verfuegbar")
 
     # Suchtext einbetten
     query_embedding = list(setup_embedding_model().embed([q]))[0]
