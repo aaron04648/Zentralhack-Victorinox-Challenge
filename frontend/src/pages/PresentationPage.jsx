@@ -13,14 +13,13 @@ import {
   Users,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Logo } from '../components/Header.jsx'
 
 const chapters = [
   { id: 'ausgangspunkt', nummer: '01', label: 'Ausgangspunkt' },
   { id: 'idee', nummer: '02', label: 'Die Idee' },
   { id: 'ablauf', nummer: '03', label: 'Der Ablauf' },
-  { id: 'beispiel', nummer: '04', label: 'Der Beweis' },
-  { id: 'naechster-schritt', nummer: '05', label: 'Der nächste Schritt' },
+  { id: 'beispiel', nummer: '05', label: 'Der Beweis' },
+  { id: 'naechster-schritt', nummer: '06', label: 'Der nächste Schritt' },
 ]
 
 const reveal = {
@@ -64,11 +63,6 @@ export default function PresentationPage() {
     <div className="overflow-hidden bg-zinc-950 text-white">
       <motion.div className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-brand" style={{ scaleX }} />
       <div className="mx-auto max-w-4xl px-5 sm:px-10">
-        <nav className="flex items-center justify-between py-5 text-sm">
-          <Link to="/" className="flex items-center gap-2.5"><Logo className="size-8" /><span className="font-semibold tracking-tight">Product Match Agent</span></Link>
-          <Link to="/" className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-white/50 hover:text-white">App öffnen</Link>
-        </nav>
-
         <header className="relative flex min-h-[78dvh] flex-col justify-center py-20">
           <div className="pointer-events-none absolute -right-32 top-16 size-80 rounded-full bg-brand/20 blur-3xl" />
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
@@ -80,7 +74,7 @@ export default function PresentationPage() {
         </header>
 
         <div className="sticky top-0 z-40 -mx-5 overflow-x-auto border-y border-white/10 bg-zinc-950/90 px-5 py-3 backdrop-blur sm:-mx-10 sm:px-10">
-          <div className="flex min-w-max gap-5 text-xs font-medium text-zinc-500">{chapters.map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-white"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}</div>
+          <div className="flex min-w-max gap-5 text-xs font-medium text-zinc-500">{chapters.slice(0, 3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-white"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}<a href="#entwicklung" className="transition hover:text-white"><span className="mr-1.5 text-brand">04</span>Entwicklung</a>{chapters.slice(3).map((chapter) => <a key={chapter.id} href={`#${chapter.id}`} className="transition hover:text-white"><span className="mr-1.5 text-brand">{chapter.nummer}</span>{chapter.label}</a>)}</div>
         </div>
 
         <Kapitel {...chapters[0]} className="border-b border-white/10">
@@ -102,6 +96,27 @@ export default function PresentationPage() {
             ['03', Sparkles, 'Victorinox vorschlagen', 'Ein oder mehrere Treffer – priorisiert, technisch belegt und transparent.'],
           ].map(([nr, Icon, title, text], index) => <motion.div key={nr} className="relative rounded-3xl bg-white p-6 text-zinc-900" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.12 }} viewport={{ once: true }}><div className="flex items-center justify-between"><span className="text-4xl font-bold text-brand/25">{nr}</span><Icon className="size-6 text-brand" /></div><h3 className="mt-8 text-lg font-bold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-zinc-500">{text}</p></motion.div>)}</div>
         </Kapitel>
+
+        <motion.section
+          id="entwicklung"
+          className="relative border-b border-white/10 py-20 sm:py-28"
+          variants={reveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          <div className="mb-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-brand"><span>04</span><span className="h-px w-8 bg-brand/40" /><span>Entwicklung</span></div>
+          <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-end"><div><h2 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Vom Rohmaterial<br /><span className="text-brand">zum Live-Prototyp.</span></h2><p className="mt-5 text-base leading-relaxed text-zinc-400">Wir haben die Lösung in nachvollziehbaren Schichten gebaut. Jede Schicht löst ein konkretes Problem – und bleibt über eine API austauschbar.</p></div><div className="rounded-3xl border border-white/10 bg-white/[0.05] p-5"><div className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">Technologie-Stack</div><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-zinc-300">Python · FastAPI</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-zinc-300">React · Vite</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-zinc-300">Jev · Clef</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-zinc-300">Docker</span></div></div></div>
+          <div className="relative mt-12 ml-2 border-l border-white/15 pl-7 sm:ml-5 sm:pl-10">
+            {[
+              ['01', 'Daten erschliessen', 'Wir scrapen den Victorinox-Produktkatalog aus dem Produkt-PDF und bereiten Artikelnummern, Namen, Bilder, Werkzeuge und Verfügbarkeiten strukturiert auf. Zusätzlich erfassen wir Konkurrenzprodukte und Cross-References – zum Beispiel SWIZA, Roxon, Leatherman oder Gerber.', Database],
+              ['02', 'Backend als Agent bauen', 'FastAPI orchestriert Vision, Katalogsuche, Matching und Feedback. Das Backend entscheidet nicht nur „was sieht es?“, sondern auch „welcher Victorinox-Ersatz passt funktional und ist verfügbar?“.', GitBranch],
+              ['03', 'Open-Source-Vision integrieren', 'Für die Bilderkennung nutzen wir Clef von Cloudflare – ein Open-Source-Jev-Modell. Über die OpenAI-kompatible Schnittstelle bleibt der Vision-Baustein austauschbar, während unsere Regeln und Produktdaten die Empfehlung erklären.', Sparkles],
+              ['04', 'React-Frontend darauf setzen', 'Die mobile React-App führt durch Scan, Vorschau, Analyse und Ergebnis. Konfidenz, Quellen, technische Unterschiede und Rückfragen werden als verständliche Oberfläche sichtbar.', Target],
+              ['05', 'Alles in Docker verpacken', 'Backend, Frontend und Laufzeit werden reproduzierbar als Container betrieben. Genau das vereinfacht den nächsten Schritt: auf Azure deployen, skalieren und später an produktive Datenquellen anschliessen.', Check],
+            ].map(([nr, title, text, Icon], index) => <motion.div key={nr} className="relative mb-9 last:mb-0" initial={{ opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.08 }} viewport={{ once: true }}><div className="absolute -left-[2.15rem] top-0 flex size-7 items-center justify-center rounded-full border border-brand/50 bg-zinc-950 text-[11px] font-bold text-brand sm:-left-[2.65rem]">{nr}</div><div className="flex gap-3"><Icon className="mt-0.5 size-5 shrink-0 text-brand" /><div><h3 className="text-lg font-semibold">{title}</h3><p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-400">{text}</p></div></div></motion.div>)}
+          </div>
+        </motion.section>
 
         <Kapitel {...chapters[3]} className="border-b border-white/10">
           <div className="grid gap-8 md:grid-cols-[0.85fr_1.15fr] md:items-center"><div className="overflow-hidden rounded-3xl bg-white p-4"><img src="/demo/swiza-d03.jpg" alt="SWIZA D03 Beispiel" className="aspect-[4/3] w-full object-contain" /><div className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">Eingabe · SWIZA D03 AM</div></div><div><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-red-200"><Check className="size-3.5" /> Beispiel aus dem Case</div><h2 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Nicht nur ähnlich.<br /><span className="text-brand">Begründet passend.</span></h2><p className="mt-5 text-base leading-relaxed text-zinc-400">Aus dem Konkurrenzprodukt SWIZA D03 wird ein passender Victorinox-Vorschlag: <strong className="text-white">Spartan</strong>. Die Empfehlung basiert auf sichtbaren Funktionen, Produktmerkmalen und dem verfügbaren Katalog – nicht auf einer erfundenen Spezifikation.</p><div className="mt-6 flex items-center gap-3"><div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm">SWIZA D03</div><ArrowRight className="size-4 text-brand" /><div className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold">Victorinox Spartan</div></div></div></div>
