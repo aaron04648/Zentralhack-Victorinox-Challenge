@@ -4,13 +4,10 @@ import os
 import uuid
 from functools import lru_cache
 from pathlib import Path
-<<<<<<< Updated upstream
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
-=======
 from typing import Dict
 from fastapi import FastAPI, HTTPException, Query
->>>>>>> Stashed changes
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
@@ -217,7 +214,6 @@ def get_product(artikelnummer: str):
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")
 
 
-<<<<<<< Updated upstream
 # --- Foto-Matching -----------------------------------------------------------
 
 QUELLE_KATALOG = "Victorinox Produktdaten"
@@ -403,7 +399,7 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         "rueckfrage": rueckfrage,
         "schritte": schritte,
     }
-=======
+    
 @app.get("/score_categories", response_model=CategoryScores)
 def get_scores(q: str) -> CategoryScores:
     # Falls die Anfrage leer ist, leeres Dict zurückgeben
@@ -424,4 +420,3 @@ def get_scores(q: str) -> CategoryScores:
     
     # Rückgabe validiert gegen Ihr Pydantic-Modell
     return CategoryScores(query=q, scores=sorted_scores_dict)
->>>>>>> Stashed changes
