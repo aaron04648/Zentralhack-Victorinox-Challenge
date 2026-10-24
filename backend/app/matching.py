@@ -19,15 +19,6 @@ BONUS_UMFANG = 0.10
 SCHALENTEILE = {"pinzette", "zahnstocher", "kugelschreiber", "stecknadel"}
 
 
-def _anzahl_werkzeuge(row):
-    """Anzahl der Werkzeuge eines Katalogprodukts (ohne Schalenteile)."""
-    try:
-        anzahl = int(row.get("anzahl_werkzeuge") or 0)
-    except (TypeError, ValueError):
-        return 0
-    return anzahl
-
-
 def produkt_gruppen(row):
     return {g.strip() for g in row.get("werkzeug_gruppen", "").split(",") if g.strip()}
 
@@ -72,15 +63,16 @@ def bewerte(erkannte_gruppen, row, erkannt=None, gewichte=None):
     # Werkzeuganzahl: der Katalog kennt sie genau, das Foto nur ungefaehr. Ein Produkt,
     # dessen Funktionsumfang dem erkannten Umfang entspricht, ist der bessere Ersatz
     # als eines mit deutlich mehr (oder weniger) Werkzeugen.
-    anzahl = _anzahl_werkzeuge(row)
-    if anzahl:
-        erkannt_anzahl = len(erkannte_gruppen)
-        differenz = abs(anzahl - erkannt_anzahl)
-        if differenz <= 2:
-            score += BONUS_UMFANG
-            gruende.append(f"Ähnlicher Funktionsumfang ({anzahl} Werkzeuge)")
-        elif differenz <= 5:
-            score += BONUS_UMFANG / 2
+    # Verglichen werden die Werkzeug*gruppen* - das ist die Groesse, die auch das
+    # Bildmodell liefert (die Werkzeuganzahl des Katalogs zaehlt Kombi-Werkzeuge doppelt).
+    anzahl = len(gruppen)
+    erkannt_anzahl = len(erkannte_gruppen)
+    differenz = abs(anzahl - erkannt_anzahl)
+    if differenz <= 2:
+        score += BONUS_UMFANG
+        gruende.append(f"Ähnlicher Funktionsumfang ({anzahl} Werkzeuge)")
+    elif differenz <= 5:
+        score += BONUS_UMFANG / 2
 
     erkannt = erkannt or {}
     marke = (erkannt.get("marke") or "").casefold()
