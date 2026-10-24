@@ -7,10 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.161.1",
     "fastembed>=0.9.0",
-<<<<<<< Updated upstream
     "httpx>=0.27.0",
-=======
     "numpy>=2.5.4",
     "uvicorn>=0.54.0",
->>>>>>> Stashed changes
 ]

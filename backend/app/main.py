@@ -4,10 +4,16 @@ import os
 import uuid
 from functools import lru_cache
 from pathlib import Path
+<<<<<<< Updated upstream
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+=======
+from typing import Dict
+from fastapi import FastAPI, HTTPException, Query
+>>>>>>> Stashed changes
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from embedings import cosine_similarity, CATEGORIES, generate_category_embeddings, setup_embedding_model
 
 from app import clef, jev, matching, vision
 from app.werkzeuge import GRUPPEN
@@ -24,6 +30,12 @@ app.add_middleware(
 )
 
 Value = str | int | float | bool
+
+category_embeddings = generate_category_embeddings()
+
+class CategoryScores(BaseModel):
+    query: str
+    scores: Dict[str, float]
 
 
 class ProductFilter(BaseModel):
@@ -205,6 +217,7 @@ def get_product(artikelnummer: str):
     raise HTTPException(status_code=404, detail=f"Kein Produkt mit Artikelnummer {artikelnummer}")
 
 
+<<<<<<< Updated upstream
 # --- Foto-Matching -----------------------------------------------------------
 
 QUELLE_KATALOG = "Victorinox Produktdaten"
@@ -390,3 +403,25 @@ async def match(bild: UploadFile = File(...), vorherige_match_id: str | None = F
         "rueckfrage": rueckfrage,
         "schritte": schritte,
     }
+=======
+@app.get("/score_categories", response_model=CategoryScores)
+def get_scores(q: str) -> CategoryScores:
+    # Falls die Anfrage leer ist, leeres Dict zurückgeben
+    if not q.strip():
+        return CategoryScores(query=q, scores={cat: 0.0 for cat in CATEGORIES})
+
+    # Suchtext einbetten
+    query_embedding = list(setup_embedding_model().embed([q]))[0]
+    
+    # Dictionary für die Antwort aufbauen
+    scores_dict = {}
+    for category, cat_emb in zip(CATEGORIES, category_embeddings):
+        score = cosine_similarity(query_embedding, cat_emb)
+        scores_dict[category] = round(score, 4)
+        
+    # Das Dictionary nach den höchsten Scores sortieren möchten
+    sorted_scores_dict = dict(sorted(scores_dict.items(), key=lambda item: item[1], reverse=True))
+    
+    # Rückgabe validiert gegen Ihr Pydantic-Modell
+    return CategoryScores(query=q, scores=sorted_scores_dict)
+>>>>>>> Stashed changes
