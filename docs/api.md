@@ -168,6 +168,9 @@ Gleiche Form-Felder wie `POST /api/match`. Antwort `application/x-ndjson`, eine 
 { "typ": "fehler", "status": 503, "detail": "…" }                                    // statt ergebnis
 ```
 
+Bei einer fremden Marke mit eigenen Daten (SWIZA, Leatherman, Gerber) endet der Schritt `bildsuche` sofort mit
+„Übersprungen“, dafür kommt `markenkatalog` (Modell im Katalog der Marke, `erkannt.modell`/`artikelnummer`).
+
 Ein Schritt mit derselben `id` kann mehrfach kommen (`laeuft` mit neuem `detail`, dann `ok`/`warnung`).
 Der Röntgenblick (`position`) kommt von Clef: Über das Foto wird ein beschriftetes 4×4-Raster gelegt und pro
 Werkzeug gefragt, in welcher Zelle es liegt (`clef.lokalisieren`).

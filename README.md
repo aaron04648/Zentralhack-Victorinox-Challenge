@@ -184,8 +184,15 @@ Full request/response contract: [docs/api.md](docs/api.md).
    This decides order and score of the recommendations (~10–15 s per photo, tiles are cached in
    `backend/data/katalog_kacheln/`, prepared at startup). "aktuell" if Victorinox, top ≥ 0.3 and
    ≥ 2.5 × the runner-up.
-   For **competitor brands** the visual search is only a tie-breaker (no catalogue photo can show the
-   same model). Instead: recognised tools, weighted by Clef's probability, against the catalogue; plier
+   For **competitor brands** with their own data (SWIZA, Leatherman, Gerber: `app/konkurrenz.py` loads
+   `data/training/konkurrenz.csv` and `data/kataloge/{swiza,leatherman_2019,gerber}.json`) the Victorinox
+   visual search is **aborted** as soon as the brand is recognised (≥ 60 %), because no Victorinox photo can
+   show that model. Instead the model is looked up in the brand's own catalogue: recognised tools against
+   each model's tool list, plus one Clef request comparing the photo with up to 27 candidate images where
+   images exist (SWIZA webshop). Its complete tool list then replaces the recognised tools (Gerber lists are
+   only read from descriptions, so they are merged instead, and a model is only named when it is unique).
+   This takes ~4–6 s instead of ~11 s (SWIZA D03 → "D03 AM" via image + tools; Leatherman → FREE P4;
+   Gerber multitool → no unique model, recognised tools count). Without a model: recognised tools, weighted by Clef's probability, against the catalogue; plier
    multitools (Leatherman, Gerber) also get the Swiss Tools as candidates; the use-case text
    (`verwendung`, embedding in `embedings.py`) first filters to products that fit above average.
    Examples: Gerber multitool → Swiss Tool Spirit MXBS, SWIZA D03 → Spartan (with "picnic and wine"

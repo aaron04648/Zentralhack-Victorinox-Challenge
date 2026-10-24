@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import os
+import threading
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -262,6 +263,7 @@ QUELLE_KATALOG = "Victorinox Produktdaten"
 RUECKFRAGE_SCHWELLE = 0.5      # Jev: Wahrscheinlichkeit "nicht unterscheidbar"
 RUECKFRAGE_ABSTAND = 0.05      # Fallback ohne Jev: Score-Abstand Platz 1 zu 2
 MAX_BILD_BYTES = 8 * 1024 * 1024
+MARKE_SICHER = 0.6            # ab dieser Markenwahrscheinlichkeit wird bei Fremdmarken nur im Markenkatalog gesucht
 VISUELL_SICHER = 0.3          # Clef-Bildsuche: Platz 1 gilt als das fotografierte Produkt ab dieser Wahrscheinlichkeit
 KATEGORIE_MALUS = 0.5          # Score-Faktor für Kandidaten ausserhalb der gewählten Kategorie
 VISUELL_ABSTAND = 2.5
@@ -281,6 +283,7 @@ async def kacheln_laden():
     messer = [r for r in load_pocket_knives() if matching.produkt_gruppen(r)]
     if clef.aktiv():
         loop.run_in_executor(None, clef.kacheln_vorbereiten, messer)
+        loop.run_in_executor(None, clef.kacheln_vorbereiten, konkurrenz.bild_rows(konkurrenz.produkte()))
     # Embedding-Modell laden und Produkte einbetten, damit der erste Scan nicht wartet
     if EMBEDDINGS_AKTIV:
         loop.run_in_executor(None, embeddings.verwendung_passung, "Alltag", messer)
@@ -451,12 +454,17 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
 
     erkennung = asyncio.create_task(erkennen())
     bildsuche = None
+    abbruch = threading.Event()  # gesetzt, sobald eine fremde Marke mit eigenem Katalog erkannt ist
     if mit_bildsuche:
         senden(_schritt("bildsuche", "Katalogbilder vergleichen", "laeuft",
                         f"{len(messer)} Katalogbilder, zwei Turniere in unterschiedlicher Reihenfolge"))
-        bildsuche = asyncio.create_task(asyncio.to_thread(
-            clef.visuell_suchen, bild_url, messer,
-            lambda text: senden(_schritt("bildsuche", "Katalogbilder vergleichen", "laeuft", text))))
+
+        def melden(text):
+            if not abbruch.is_set():
+                senden(_schritt("bildsuche", "Katalogbilder vergleichen", "laeuft", text))
+
+        bildsuche = asyncio.create_task(asyncio.to_thread(clef.visuell_suchen, bild_url, messer, melden, abbruch))
+        bildsuche.add_done_callback(lambda t: t.cancelled() or t.exception())  # Abbruch nicht als Fehler loggen
 
     try:
         erkannt, orte_vorab = await erkennung
@@ -472,6 +480,18 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
            f"{erkannt['marke'] or 'Marke unklar'}, {len(erkannt['werkzeuge'])} Werkzeuge erkannt ({info['modell']})"
            + (", aus der Vorschau übernommen" if orte_vorab is not None else ""))
 
+    # Fremde Marke mit eigenem Katalog (SWIZA, Leatherman, Gerber): Die Victorinox-Bildsuche kann dieses
+    # Modell nicht finden, darum wird sie abgebrochen und das Modell im Katalog der Marke bestimmt.
+    marke = erkannt.get("marke")
+    marke_p = max((erkannt.get("marke_wahrscheinlichkeiten") or {}).values(), default=1.0)
+    im_markenkatalog = (bool(marke) and marke != "Victorinox" and marke_p >= MARKE_SICHER
+                        and konkurrenz.hat_katalog(marke))
+    if im_markenkatalog and bildsuche:
+        abbruch.set()
+        fertig("bildsuche", "Katalogbilder verglichen", "ok",
+               f"Übersprungen: {marke} erkannt ({marke_p:.0%}), Modell wird im {marke}-Katalog gesucht")
+        bildsuche = None
+
     werkzeuge = erkannt["werkzeuge"]
     try:
         zugeordnet = await asyncio.to_thread(jev.werkzeuge_zuordnen, werkzeuge)
@@ -485,6 +505,12 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
     gewichte = _gewichte(werkzeuge)
 
     # Röntgenblick: erkannte Werkzeuge auf dem Foto verorten (läuft, während die Bildsuche weiterrechnet)
+    modellsuche = None
+    if im_markenkatalog and gewichte:
+        senden(_schritt("markenkatalog", f"Modell im {marke}-Katalog suchen", "laeuft",
+                        f"{len(konkurrenz.produkte_von_marke(marke))} {marke}-Modelle nach Werkzeugen und Bild vergleichen"))
+        modellsuche = asyncio.create_task(_markenmodell(bild_url if mit_bildsuche else None, marke, dict(gewichte)))
+
     orte = {}
     if mit_bildsuche and gewichte:
         senden(_schritt("roentgen", "Werkzeuge auf dem Foto verorten", "laeuft", "Röntgenblick"))
@@ -500,6 +526,22 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
         except Exception as fehler:
             fertig("roentgen", "Werkzeuge auf dem Foto verortet", "warnung", f"Nicht verfügbar ({fehler})")
     senden({"typ": "werkzeuge", "werkzeuge": _werkzeug_liste(gewichte, orte)})
+
+    konkurrenz_ergebnis = {}
+    if modellsuche:
+        try:
+            produkt, grund, anzahl = await modellsuche
+            konkurrenz_ergebnis = {"konkurrenz_produkt": produkt}
+            if produkt:
+                fertig("markenkatalog", f"Modell im {marke}-Katalog bestimmt", "ok",
+                       f"{produkt.name}{f' ({produkt.artikelnummer})' if produkt.artikelnummer else ''}: {grund}, "
+                       f"{produkt.anzahl_gruppen} Werkzeuge laut {produkt.quelle}"
+                       + ("" if produkt.vollstaendig else " (Liste unvollständig, erkannte bleiben dazu)"))
+            else:
+                fertig("markenkatalog", f"Modell im {marke}-Katalog gesucht", "warnung",
+                       f"{anzahl} Kandidaten, {grund}; es zählen die erkannten Werkzeuge")
+        except Exception as fehler:
+            fertig("markenkatalog", f"Modell im {marke}-Katalog gesucht", "warnung", f"Nicht verfügbar ({fehler})")
 
     visuell = {}
     if bildsuche:
@@ -519,10 +561,26 @@ async def _analysieren(inhalt, content_type, vorherige_match_id, kategorie, verw
         visuell = visuell or vorher["visuell"]
 
     kontext = {"erkannt": erkannt, "gewichte": gewichte, "visuell": visuell, "schritte": schritte, "orte": orte,
-               "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False}
+               "verwendung": (verwendung or "").strip()[:300], "kategorie": kategorie, "nutzer_werkzeuge": False,
+               **konkurrenz_ergebnis}
     match_id = f"m_{uuid.uuid4().hex[:10]}"
     _matches[match_id] = kontext
     senden({"typ": "ergebnis", "ergebnis": await _auswerten(match_id, kontext)})
+
+
+async def _markenmodell(bild_url, marke, gewichte):
+    """Modell einer fremden Marke: Werkzeug-Score im Markenkatalog, dazu ein Bildvergleich (eine
+    Clef-Anfrage) mit den besten Kandidaten, die ein Produktbild haben. -> (Produkt|None, Grund, Anzahl)"""
+    bewertet = konkurrenz.kandidaten(marke, gewichte)
+    bild = {}
+    mit_bild = konkurrenz.fuer_bildvergleich(bewertet) if bild_url else []
+    if mit_bild:
+        try:
+            bild = await asyncio.to_thread(clef.modell_waehlen, bild_url, konkurrenz.bild_rows(mit_bild))
+        except Exception:
+            bild = {}  # Bildvergleich ist nur ein Zusatz, Werkzeuge reichen auch
+    produkt, grund = konkurrenz.waehle(bewertet, bild)
+    return produkt, grund, len(bewertet)
 
 
 def _werkzeug_liste(gewichte, orte):
@@ -605,17 +663,24 @@ async def _auswerten(match_id, kontext):
     konkurrenz_produkt = None
     # Hat der Nutzer die Werkzeuge korrigiert, gilt seine Liste und nicht die Tabelle
     if fremd and erkannte_gruppen and not kontext["nutzer_werkzeuge"]:
-        try:
-            konkurrenz_produkt = konkurrenz.finde_besten(marke, erkannte_gruppen)
-        except Exception as fehler:
-            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "warnung",
-                             "detail": f"Querverweistabelle nicht nutzbar ({fehler})"})
+        if "konkurrenz_produkt" in kontext:  # schon beim Foto im Markenkatalog bestimmt (_markenmodell)
+            konkurrenz_produkt = kontext["konkurrenz_produkt"]
+        else:
+            try:
+                konkurrenz_produkt = konkurrenz.finde_besten(marke, erkannte_gruppen)
+            except Exception as fehler:
+                schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "warnung",
+                                 "detail": f"Konkurrenzdaten nicht nutzbar ({fehler})"})
+            if konkurrenz_produkt:
+                schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "ok",
+                                 "detail": f"{konkurrenz_produkt.name} ({konkurrenz_produkt.artikelnummer}) – "
+                                           f"{konkurrenz_produkt.anzahl_gruppen} Werkzeuge laut {konkurrenz_produkt.quelle}"})
         if konkurrenz_produkt:
-            erkannte_gruppen = set(konkurrenz_produkt.werkzeug_gruppen)
-            gewichte_aus_tabelle = {g: 1.0 for g in erkannte_gruppen}
-            schritte.append({"id": "ocr", "label": "Konkurrenz-Produkt zugeordnet", "status": "ok",
-                             "detail": f"{konkurrenz_produkt.name} ({konkurrenz_produkt.artikelnummer}) – "
-                                       f"{len(erkannte_gruppen)} Werkzeuge aus der Querverweistabelle"})
+            if konkurrenz_produkt.vollstaendig:  # komplette Werkzeugliste: sie gilt, alle Gruppen voll
+                gewichte_aus_tabelle = {g: 1.0 for g in konkurrenz_produkt.werkzeug_gruppen}
+            else:  # unvollständig (Gerber): bekannte Werkzeuge sicher, erkannte bleiben dazu
+                gewichte_aus_tabelle = {**gewichte, **{g: 1.0 for g in konkurrenz_produkt.werkzeug_gruppen}}
+            erkannte_gruppen = set(gewichte_aus_tabelle)
 
     # Fremde Marke: Kein Katalogbild kann dasselbe Modell zeigen, darum zählt die Ausstattung.
     # Zangen-Multitools (Leatherman, Gerber) bekommen zusätzlich die Swiss Tools als Ersatz.
@@ -735,7 +800,7 @@ async def _auswerten(match_id, kontext):
             "produkt": to_product(eigenes["row"]) if eigenes else None,
             "werkzeuge": _werkzeug_liste(gewichte, kontext.get("orte", {})),
             "merkmale": [{"key": "werkzeuge", "label": "Werkzeuge",
-                          "quelle": ("Querverweistabelle " + konkurrenz_produkt.marke
+                          "quelle": (konkurrenz_produkt.quelle
                                      if konkurrenz_produkt
                                      else ("Nutzer" if kontext["nutzer_werkzeuge"] else "Bilderkennung")),
                           "wert": sorted(GRUPPEN[g][0] for g in erkannte_gruppen)}] if erkannte_gruppen else [],

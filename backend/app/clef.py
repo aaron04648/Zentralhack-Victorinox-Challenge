@@ -276,7 +276,10 @@ def _kachel(row):
         from PIL import Image
 
         KACHELN.mkdir(parents=True, exist_ok=True)
-        req = urllib.request.Request(row["bild_url"] + "?io=transform:fill,width:768&format=jpg",
+        url = row["bild_url"]
+        if "imageengine.victorinox.com" in url:  # Victorinox-CDN: verkleinert und als JPEG ausliefern
+            url += "?io=transform:fill,width:768&format=jpg"
+        req = urllib.request.Request(url,
                                      headers={"User-Agent": "Mozilla/5.0 (ZentralHack)"})
         with urllib.request.urlopen(req, timeout=30) as res:
             img = Image.open(io.BytesIO(res.read())).convert("RGB")
@@ -309,6 +312,10 @@ def _raster(rows, buchstabe):
     return f"data:image/jpeg;base64,{base64.b64encode(puffer.getvalue()).decode()}"
 
 
+class Abgebrochen(Exception):
+    """Die Bildsuche wurde abgebrochen (z. B. weil eine fremde Marke erkannt wurde)."""
+
+
 def _runde(bild_data_url, rows):
     """Eine Clef-Anfrage: welches der bis zu 27 Katalogbilder zeigt dasselbe Modell? -> {artikelnummer: p}"""
     pro_raster = RASTER * RASTER
@@ -332,11 +339,17 @@ def _runde(bild_data_url, rows):
     return {row["artikelnummer"]: float(p.get(i, 0)) for i, row in ids.items()}
 
 
-def _turnier(bild_data_url, rows, melde=lambda runde, vorher, nachher: None):
+def _turnier(bild_data_url, rows, melde=lambda runde, vorher, nachher: None, abbruch=None):
     pro_anfrage = RASTER * RASTER * RASTER_PRO_ANFRAGE
+
+    def pruefen():
+        if abbruch is not None and abbruch.is_set():
+            raise Abgebrochen()
+
     runde = 1
     with ThreadPoolExecutor(8) as pool:
         while len(rows) > pro_anfrage:
+            pruefen()
             gruppen = [rows[i:i + pro_anfrage] for i in range(0, len(rows), pro_anfrage)]
             nach_nummer = {r["artikelnummer"]: r for r in rows}
             vorher = len(rows)
@@ -344,15 +357,17 @@ def _turnier(bild_data_url, rows, melde=lambda runde, vorher, nachher: None):
                     for n in sorted(e, key=e.get, reverse=True)[:WEITER_PRO_RUNDE]]
             melde(runde, vorher, len(rows))
             runde += 1
+    pruefen()
     ergebnis = _runde(bild_data_url, rows)
     melde(runde, len(rows), 0)
     return ergebnis
 
 
-def visuell_suchen(bild_data_url, rows, fortschritt=None):
+def visuell_suchen(bild_data_url, rows, fortschritt=None, abbruch=None):
     """Kundenfoto gegen alle Katalogbilder -> [(artikelnummer, Wahrscheinlichkeit)], beste zuerst.
 
     fortschritt: optional fortschritt(text), wird nach jeder Turnierrunde aufgerufen (Live-Ablauf).
+    abbruch: optional threading.Event; ist es gesetzt, endet die Suche vor der nächsten Runde mit Abgebrochen.
 
     Auf zurückgehaltenen Katalogansichten und den Kundenfotos deutlich besser als das
     Werkzeug-Matching (siehe README, training/evaluieren.py --bildwahl).
@@ -367,13 +382,23 @@ def visuell_suchen(bild_data_url, rows, fortschritt=None):
         return melde
 
     with ThreadPoolExecutor(2) as pool:
-        ergebnisse = list(pool.map(lambda args: _turnier(bild_data_url, args[0], melder(args[1])),
+        ergebnisse = list(pool.map(lambda args: _turnier(bild_data_url, args[0], melder(args[1]), abbruch),
                                    [(rows, 1), (gemischt, 2)]))
     summe = {}
     for e in ergebnisse:
         for n, p in e.items():
             summe[n] = summe.get(n, 0.0) + p / len(ergebnisse)
     return sorted(summe.items(), key=lambda kv: -kv[1])
+
+
+def modell_waehlen(bild_data_url, kandidaten):
+    """Eine Clef-Anfrage: welcher der (höchstens 27) Kandidaten einer Marke ist auf dem Foto?
+
+    kandidaten: [{"artikelnummer": schluessel, "bild_url": ...}] -> {schluessel: Wahrscheinlichkeit}
+    """
+    if not kandidaten:
+        return {}
+    return _runde(bild_data_url, kandidaten[:RASTER * RASTER * RASTER_PRO_ANFRAGE])
 
 
 # --- Röntgenblick: Wo auf dem Foto ist welches Werkzeug? ------------------------------------
